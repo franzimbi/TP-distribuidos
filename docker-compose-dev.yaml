@@ -23,6 +23,8 @@ services:
       - rabbitmq
     environment:
       - PYTHONUNBUFFERED=1
+    volumes:
+      - ./stores.csv:/app/stores.csv
 
   filter:
     build:
