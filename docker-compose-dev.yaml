@@ -14,8 +14,8 @@ services:
 
   client:
     build:
-      context: ./client
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: client/Dockerfile
     restart: on-failure
     depends_on:
       - rabbitmq

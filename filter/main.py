@@ -5,7 +5,7 @@ connection = pika.BlockingConnection(
     pika.ConnectionParameters(host='rabbitmq'))
 
 channel = connection.channel()
-channel.queue_declare(queue='filterq1')
+channel.queue_declare(queue='filterq1', durable=True)
 channel.queue_declare(queue='reducerq1', durable=True)
 
 def callback(ch, method, properties, body):

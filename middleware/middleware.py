@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import pika
 
 class MessageMiddlewareMessageError(Exception):
     pass
@@ -48,11 +49,33 @@ class MessageMiddleware(ABC):
 	def delete(self):
 		pass
 
-
 class MessageMiddlewareExchange(MessageMiddleware):
 	def __init__(self, host, exchange_name, route_keys):
 		pass
 
 class MessageMiddlewareQueue(MessageMiddleware):
 	def __init__(self, host, queue_name):
+		self._connection = pika.BlockingConnection(pika.ConnectionParameters(host=host))
+		self._channel = self._connection.channel()
+		self._queue_name = queue_name
+		self._channel.queue_declare(queue=queue_name, durable=True)
+
+	def start_consuming(self, on_message_callback):
+		_ = on_message_callback
+		pass
+
+	def stop_consuming(self):
+		pass
+
+	def send(self, message):
+		self._channel.basic_publish(exchange='', routing_key=self._queue_name, body=message, properties=pika.BasicProperties(delivery_mode=2))
+			
+
+	def close(self):
+		try:
+			self._connection.close()
+		except Exception as e:
+			raise MessageMiddlewareCloseError() from e
+
+	def delete(self):
 		pass
