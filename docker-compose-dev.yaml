@@ -35,3 +35,15 @@ services:
       - rabbitmq
     environment:
       - PYTHONUNBUFFERED=1
+      
+  reducer:
+    build:
+      context: ./reducer
+      dockerfile: Dockerfile
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+    links:
+      - rabbitmq
+    environment:
+      - PYTHONUNBUFFERED=1
