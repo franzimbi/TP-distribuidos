@@ -1,4 +1,6 @@
-FROM rabbitmq-python-base:0.0.1
+FROM python:3.9.7-slim
 
-COPY main.py /root/main.py
-CMD /root/main.py
+WORKDIR /app
+COPY main.py /app/
+RUN pip install --no-cache-dir pika
+ENTRYPOINT ["python3", "main.py"]
