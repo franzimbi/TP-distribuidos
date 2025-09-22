@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-import pika
+import os
 import time
+
 from middleware.middleware import MessageMiddlewareQueue
 
+queue_producer = os.getenv("PRODUCE_QUEUE")
 
-mw = MessageMiddlewareQueue(host='rabbitmq', queue_name='filterq1')
+mw = MessageMiddlewareQueue(host='rabbitmq', queue_name=queue_producer)
 
 
 # connection = pika.BlockingConnection(
@@ -14,11 +16,11 @@ mw = MessageMiddlewareQueue(host='rabbitmq', queue_name='filterq1')
 
 # channel.queue_declare(queue='filterq1')
 
-with open('stores.csv', 'r') as stores:
+with open('trans.csv', 'r') as stores:
     for line in stores:
         # channel.basic_publish(exchange='', routing_key='filterq1', body=line.strip())
         mw.send(line.strip())
-        time.sleep(3)
+        time.sleep(5)
 
 # for i in range(5):
 #     channel.basic_publish(exchange='', routing_key='filterq1', body='hola Peter Buu{}'.format(i))

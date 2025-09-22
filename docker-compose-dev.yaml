@@ -23,10 +23,11 @@ services:
       - rabbitmq
     environment:
       - PYTHONUNBUFFERED=1
+      - PRODUCE_QUEUE=q11
     volumes:
-      - ./stores.csv:/app/stores.csv
+      - ./trans.csv:/app/trans.csv
 
-  filter:
+  filter1:
     build:
       context: ./filter
       dockerfile: Dockerfile
@@ -37,6 +38,24 @@ services:
       - rabbitmq
     environment:
       - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=q11
+      - PRODUCE_QUEUE=q12
+      - FILTER_NAME=bytime
+
+  filter2:
+    build:
+      context: ./filter
+      dockerfile: Dockerfile
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+    links:
+      - rabbitmq
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=q12
+      - PRODUCE_QUEUE=q13
+      - FILTER_NAME=byamount
       
   reducer:
     build:
@@ -49,3 +68,4 @@ services:
       - rabbitmq
     environment:
       - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=q13
