@@ -4,6 +4,7 @@ WORKDIR /app
 COPY filter/main.py /app/
 COPY filter/filters.py /app/
 COPY common/protocol.py /app/common/
+COPY filter/common/filter.py /app/
 COPY middleware/ /app/middleware/
 RUN pip install --no-cache-dir pika
 ENTRYPOINT ["python3", "main.py"]

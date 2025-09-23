@@ -24,8 +24,10 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - PRODUCE_QUEUE=q11
+      - CONSUME_QUEUE=q14
     volumes:
-      - ./trans.csv:/app/trans.csv
+      - ./csvs_files:/app/csvs_files
+      - ./results:/app/results
 
   filter1:
     build:
@@ -56,11 +58,11 @@ services:
       - CONSUME_QUEUE=q12
       - PRODUCE_QUEUE=q13
       - FILTER_NAME=byamount
-      
-  reducer:
+
+  filter3:
     build:
       context: .
-      dockerfile: reducer/Dockerfile
+      dockerfile: filter/Dockerfile
     restart: on-failure
     depends_on:
       - rabbitmq
@@ -69,3 +71,18 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - CONSUME_QUEUE=q13
+      - PRODUCE_QUEUE=q14
+      - FILTER_NAME=bycolumn
+      
+#  reducer:
+#    build:
+#      context: .
+#      dockerfile: reducer/Dockerfile
+#    restart: on-failure
+#    depends_on:
+#      - rabbitmq
+#    links:
+#      - rabbitmq
+#    environment:
+#      - PYTHONUNBUFFERED=1
+#      - CONSUME_QUEUE=q14

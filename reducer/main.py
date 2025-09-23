@@ -6,6 +6,7 @@ from common.protocol import decode_batch
 queue_consumer = os.getenv("CONSUME_QUEUE")
 consumer = MessageMiddlewareQueue(host="rabbitmq", queue_name=queue_consumer)
 
+
 def callback(ch, method, properties, body):
     if body == b"&END&":
         print("\n\n[REDUCER] Recibido END, fin de procesamiento.\n\n")
