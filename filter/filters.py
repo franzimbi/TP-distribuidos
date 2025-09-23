@@ -1,6 +1,5 @@
 from datetime import datetime, time
 
-
 def filter_by_time(batch: list):
     filtered = []
     for row in batch:
@@ -12,7 +11,6 @@ def filter_by_time(batch: list):
             # Si la fecha no se puede parsear, descartar
             continue
     return filtered
-
 
 def filter_by_amount(batch: list):
     filtered = []

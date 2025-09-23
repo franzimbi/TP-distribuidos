@@ -59,8 +59,8 @@ services:
       
   reducer:
     build:
-      context: ./reducer
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: reducer/Dockerfile
     restart: on-failure
     depends_on:
       - rabbitmq
