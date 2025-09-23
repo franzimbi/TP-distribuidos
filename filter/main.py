@@ -1,20 +1,11 @@
 #!/usr/bin/env python3
 import os
-import pika
-
+from middleware.middleware import MessageMiddlewareQueue
 from filters import *
-
-connection = pika.BlockingConnection(
-    pika.ConnectionParameters(host='rabbitmq'))
-
 
 filter_type = os.getenv("FILTER_NAME")
 queue_consumer = os.getenv("CONSUME_QUEUE")
 queue_producer = os.getenv("PRODUCE_QUEUE")
-
-channel = connection.channel()
-channel.queue_declare(queue=queue_consumer, durable=True)
-channel.queue_declare(queue=queue_producer, durable=True)
 
 filters = {
     'bytime': filter_by_time,
@@ -26,17 +17,20 @@ def decode_to_batch(data: bytes) -> list[list[str]]:
     data_list = batch_str.strip().split(",")
     return [data_list]
 
-
-def callback(ch, method, properties, body):
-    # batch = decode_to_batch(body)
-    batch = decode_to_batch(body)
+def callback(ch, method, properties, message):
+    batch = decode_to_batch(message)
     result = filters[filter_type](batch)
-    print(f"[FILTER1] Recibido: {batch}, enviado: {result}")
+    print(f"[FILTER] Recibido: {batch}, enviado: {result}")
     if result:
         batch_str = "\n".join([",".join(row) for row in result])
-        channel.basic_publish(exchange='', routing_key=queue_producer, body=batch_str)
+        producer.send(batch_str)
 
+consumer = MessageMiddlewareQueue(host="rabbitmq", queue_name=queue_consumer)
+producer = MessageMiddlewareQueue(host="rabbitmq", queue_name=queue_producer)
 
-channel.basic_consume(
-    queue=queue_consumer, on_message_callback=callback, auto_ack=True)
-channel.start_consuming()
+try:
+    consumer.start_consuming(callback)
+except KeyboardInterrupt:
+    consumer.stop_consuming()
+    consumer.close()
+    producer.close()

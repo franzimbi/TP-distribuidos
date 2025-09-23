@@ -61,11 +61,21 @@ class MessageMiddlewareQueue(MessageMiddleware):
 		self._channel.queue_declare(queue=queue_name, durable=True)
 
 	def start_consuming(self, on_message_callback):
-		_ = on_message_callback
-		pass
-
+		try:
+			self._channel.basic_consume(
+				queue=self._queue_name,
+				on_message_callback=on_message_callback,
+				auto_ack=True
+			)
+			self._channel.start_consuming()
+		except pika.exceptions.AMQPConnectionError as e:
+			raise MessageMiddlewareDisconnectedError() from e
+		
 	def stop_consuming(self):
-		pass
+		try:
+			self._channel.stop_consuming()
+		except pika.exceptions.AMQPConnectionError as e:
+			raise MessageMiddlewareDisconnectedError() from e
 
 	def send(self, message):
 		self._channel.basic_publish(exchange='', routing_key=self._queue_name, body=message, properties=pika.BasicProperties(delivery_mode=2))

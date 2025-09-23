@@ -29,8 +29,8 @@ services:
 
   filter1:
     build:
-      context: ./filter
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: filter/Dockerfile
     restart: on-failure
     depends_on:
       - rabbitmq
@@ -44,8 +44,8 @@ services:
 
   filter2:
     build:
-      context: ./filter
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: filter/Dockerfile
     restart: on-failure
     depends_on:
       - rabbitmq
