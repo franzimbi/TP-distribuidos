@@ -79,7 +79,6 @@ class MessageMiddlewareQueue(MessageMiddleware):
 
 	def send(self, message):
 		self._channel.basic_publish(exchange='', routing_key=self._queue_name, body=message, properties=pika.BasicProperties(delivery_mode=2))
-			
 
 	def close(self):
 		try:
