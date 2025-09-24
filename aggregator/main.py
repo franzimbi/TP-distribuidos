@@ -10,8 +10,7 @@ queue_producer = os.getenv("PRODUCE_QUEUE")
 
 producer = MessageMiddlewareQueue(host='rabbitmq', queue_name=queue_producer)
 consumer = MessageMiddlewareQueue(host='rabbitmq', queue_name=queue_consumer)
-fileQ1 = open('results/q1.csv', 'w')
-fileQ3 = open('results/q3.csv', 'w')
+file = open('results/q1.csv', 'w')
 counter = 0
 
 make_batches_from_csv('csvs_files/transactions', 150, producer)
@@ -21,7 +20,7 @@ def callback(ch, method, properties, message):
     global counter
     for line in message.decode("utf-8").split('|'):
         counter += 1
-        fileQ1.write(line+'\n')
+        file.write(line+'\n')
 
 
 consumer.start_consuming(callback)

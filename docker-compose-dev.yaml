@@ -73,7 +73,37 @@ services:
       - CONSUME_QUEUE=q13
       - PRODUCE_QUEUE=q14
       - FILTER_NAME=bycolumn
-      
+  
+  filterTime1_Q3:
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+    links:
+      - rabbitmq
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=q31
+      - PRODUCE_QUEUE=q32
+      - FILTER_NAME=bytime
+  
+  aggregator_Q3:
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+    links:
+      - rabbitmq
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=q32
+      - PRODUCE_QUEUE=q33
+      - AGGREGATOR_NAME=pendiente
+
 #  reducer:
 #    build:
 #      context: .
