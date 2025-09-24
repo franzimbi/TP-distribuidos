@@ -185,6 +185,36 @@ class Batch:
 
         return "\n".join(lines)
 
+    def delete_column(self, col):
+        """
+        borra una columna:
+        - col puede ser índice (int) o nombre de columna (str)
+        """
+        if isinstance(col, str):
+            try:
+                col_idx = self._header.index(col)
+            except ValueError:
+                return
+        elif isinstance(col, int):
+            col_idx = col
+        else:
+            raise TypeError("col debe ser int o str")
+
+        # elimina columna del header
+        del self._header[col_idx]
+
+        # eliminr columna de cada fila
+        for row in self._body:
+            if col_idx < len(row):
+                del row[col_idx]
+
+    def delete_row(self, row_idx):
+        """
+        borra una fila por índice
+        """
+        if 0 <= row_idx < len(self._body):
+            del self._body[row_idx]
+            self._size -= 1
 
 # aux = Batch(5, False, 't', ['a', 'b', 'c'], [['1', '2', '3'], ['fw3', 'efw', 'ewq'], ['123e', '2w', '3r']])
 #
@@ -220,3 +250,10 @@ class Batch:
 # index_of:1
 # id:5
 # is last:False
+
+# aux.delete_row(0)
+# print(aux)
+# aux.delete_column(0)
+# print(aux)
+# aux.delete_column('b')
+# print(aux)
