@@ -8,25 +8,36 @@ from common.protocol import make_batches_from_csv
 queue_consumer = os.getenv("CONSUME_QUEUE")
 queue_producer = os.getenv("PRODUCE_QUEUE")
 
-producer = MessageMiddlewareQueue(host='rabbitmq', queue_name=queue_producer)
-consumer = MessageMiddlewareQueue(host='rabbitmq', queue_name=queue_consumer)
+producerQ1 = MessageMiddlewareQueue(host='rabbitmq', queue_name=queue_producer)
+consumerQ1 = MessageMiddlewareQueue(host='rabbitmq', queue_name=queue_consumer)
 fileQ1 = open('results/q1.csv', 'w')
 fileQ3 = open('results/q3.csv', 'w')
 counter = 0
 
-make_batches_from_csv('csvs_files/transactions', 150, producer)
+make_batches_from_csv('csvs_files/transactions', 150, producerQ1)
 
 
-def callback(ch, method, properties, message):
+def callbackQ1(ch, method, properties, message):
     global counter
-    for line in message.decode("utf-8").split('|'):
+    data = message.decode("utf-8")
+
+    if data == "&END&":
+        print("Recibido END, deteniendo consumo...")
+        consumerQ1.stop_consuming()
+        return
+
+    for line in data.split('|'):
         counter += 1
         fileQ1.write(line+'\n')
 
+def callbackQ3(ch, method, properties, message):
+    pass
 
-consumer.start_consuming(callback)
+
+consumerQ1.start_consuming(callbackQ1)
+#consumer2.stop_consuming(callbackQ3)
 
 # connection.close() #hay q cerrar la connection en el middleware
-print(f"Q1: {counter} rows received\n\n\n\n/n/n/n")
+print(f"Q1: {counter} rows received\n\n\n\n")
 producer.close()
 consumer.close()
