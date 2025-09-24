@@ -6,7 +6,7 @@ def filter_by_time(batch: list):
     for row in batch:
         try:
             dt = datetime.strptime(row[8], "%Y-%m-%d %H:%M:%S")
-            if time(6) <= dt.time() <= time(23):
+            if time(6,0,0) <= dt.time() <= time(22,59,59):
                 filtered.append(row)
         except Exception:
             # Si la fecha no se puede parsear, descartar

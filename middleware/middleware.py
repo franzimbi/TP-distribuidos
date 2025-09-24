@@ -69,6 +69,7 @@ class MessageMiddlewareQueue(MessageMiddleware):
 			)
 			self._channel.start_consuming()
 		except pika.exceptions.AMQPConnectionError as e:
+			print(f"\n\n\n \n\n\n BASTA DE CONSUMIR PORQUE SE CAYO LA CONEXION \n\n\n ")
 			raise MessageMiddlewareDisconnectedError() from e
 		
 	def stop_consuming(self):
