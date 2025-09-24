@@ -39,5 +39,5 @@ consumerQ1.start_consuming(callbackQ1)
 
 # connection.close() #hay q cerrar la connection en el middleware
 print(f"Q1: {counter} rows received\n\n\n\n")
-producer.close()
-consumer.close()
+producerQ1.close()
+consumerQ1.close()
