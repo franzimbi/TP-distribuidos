@@ -8,6 +8,7 @@ from common.protocol import make_batches_from_csv
 queue_consumer = os.getenv("CONSUME_QUEUE")
 queue_producer = os.getenv("PRODUCE_QUEUE")
 
+
 producerQ1 = MessageMiddlewareQueue(host='rabbitmq', queue_name=queue_producer)
 consumerQ1 = MessageMiddlewareQueue(host='rabbitmq', queue_name=queue_consumer)
 fileQ1 = open('results/q1.csv', 'w')
