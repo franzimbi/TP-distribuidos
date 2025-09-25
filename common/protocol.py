@@ -36,24 +36,24 @@ def send_batches_from_csv(path, batch_size, connection: socket, type_file):
         batch_id = 0
 
         with open(path + '/' + filename, 'r') as f:
-            next(f)
+            header = next(f).strip().split(',')
             for line in f:
-                current_batch.append(line.strip())
+                row = line.strip().split(',')
+                current_batch.append(row)
                 if len(current_batch) >= batch_size:
-                    batch = Batch(id=batch_id, last=False, type_file=type_file, header=current_batch[0].split(','), rows=[row.split(',') for row in current_batch])
+                    batch = Batch(id=batch_id, last=False, type_file=type_file, header=header, rows=current_batch)
                     connection.sendall(batch.encode())
                     current_batch = []
                     batch_id += 1
         if current_batch:
-            batch = Batch(id=batch_id, last=False, type_file=type_file, header=current_batch[0].split(','), rows=[row.split(',') for row in current_batch])
+            batch = Batch(id=batch_id, last=False, type_file=type_file, header=header, rows=current_batch)
             connection.sendall(batch.encode())
             batch_id += 1
 
-    #informo que es el ultimo batch
+    # informo que es el ultimo batch
     batch = Batch(id=batch_id, last=True, type_file=type_file)
     connection.sendall(batch.encode())
-    batch_id += 1 # en teoria no hace falta pq es el ultimo batch, pero bueno, por las dudas
-
+    batch_id += 1  # en teoria no hace falta pq es el ultimo batch, pero bueno, por las dudas
 
 def recv_batches_from_socket(connection: socket):
     buffer = b''

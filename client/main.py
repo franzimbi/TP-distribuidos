@@ -1,48 +1,65 @@
 #!/usr/bin/env python3
 import os
-import time
 import socket
 import threading
-from middleware.middleware import MessageMiddlewareQueue
-from common.protocol import send_batches_from_csv
-from common.protocol import recv_batches_from_socket
-from common.protocol import Batch
+from common.protocol import send_batches_from_csv, recv_batches_from_socket
 
+HOST = os.getenv("DISTRIBUTOR_HOST")
+PORT = int(os.getenv("DISTRIBUTOR_PORT"))
 
-host = os.getenv("DISTRIBUTOR_HOST")
-port = int(os.getenv("DISTRIBUTOR_PORT"))
-fileQ1 = open('results/q1.csv', 'w')
-if fileQ1.closed:
-    print("No se pudo abrir el archivo q1.csv")
-    exit(1)
+# Abrimos el archivo de salida
+os.makedirs('results', exist_ok=True)
+fileQ1 = open('results/q1.csv', 'w', buffering=1)  # line-buffered para que flushee seguido
+
 counter = 0
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock.connect((HOST, PORT))
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.connect((host, port))
-
-Q1sender_thread = threading.Thread(
+# ----- Sender -----
+sender = threading.Thread(
     target=send_batches_from_csv,
-    args=('csvs_files/transactions', 150, s, 't')
+    args=('csvs_files/transactions', 150, sock, 't'),
+    daemon=True,
 )
-Q1sender_thread.start()
+sender.start()
 
-def receiver_thread_func():
+# ----- Receiver -----
+def receiver():
     global counter
-    for batch in recv_batches_from_socket(s):
-        if batch.is_last_batch():
-            print("Recibido END, fin de procesamiento.")
-            break
-        print(f"Llegó batch numero: {batch._id}\n")
-        for line in ["|".join(row) for row in batch._body]:
-            counter += 1
-            fileQ1.write(line + '\n')
+    try:
+        for batch in recv_batches_from_socket(sock):
+            if batch.is_last_batch():
+                print("[CLIENT] Recibido END, fin de procesamiento.")
+                break
 
-Q1receiver_thread = threading.Thread(target=receiver_thread_func)
-Q1receiver_thread.start()
+            # Log correcto del ID
+            try:
+                print(f"[CLIENT] Llegó batch id={batch.id()} con {len(batch)} filas")
+            except Exception:
+                print("[CLIENT] Llegó batch (no se pudo imprimir id)")
 
-print(f"\n\n\nvoy a cerrar threads y cositas\n\n\n\n")
-Q1receiver_thread.join()
-Q1sender_thread.join()
+            # Escribimos filas al CSV de salida
+            for row in batch:
+                # row es lista de columnas; volvemos a CSV (separador coma)
+                fileQ1.write(",".join(row) + "\n")
+                counter += 1
+
+        print(f"[CLIENT] Cerrando receiver. Total filas escritas: {counter}")
+    except Exception as e:
+        print(f"[CLIENT] Error en receiver: {e}")
+
+receiver_t = threading.Thread(target=receiver, daemon=True)
+receiver_t.start()
+
+# ----- Espera ordenada -----
+receiver_t.join()
+sender.join()
+
+try:
+    sock.shutdown(socket.SHUT_RDWR)
+except Exception:
+    pass
+sock.close()
 fileQ1.close()
-s.close()
-print(f"\n\n\nQ1: {counter} rows received\n\n\n\n")
+
+print(f"\nQ1: {counter} rows received\n")
