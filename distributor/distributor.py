@@ -31,11 +31,6 @@ class Distributor:
 
 
     def distribute_batch_to_workers(self, query_id, batch: Batch):
-        """
-        Convierte el Batch (nuestro framing) al formato viejo (string con líneas CSV unidas por '|')
-        y lo publica en la primera cola del pipeline (q11).
-        Si es el último, envía '&END&'.
-        """
         if query_id != 1:
             # por ahora solo Q1 activa
             print(f"[DISTRIBUTOR] Query {query_id} no configurada.")
@@ -46,43 +41,14 @@ class Distributor:
             producer_queue.send(END_MARKER)
             print("[DISTRIBUTOR] Marcador END enviado a workers.")
             return
-        lines = []
-        for row in batch._body:
-            if isinstance(row, (list, tuple)):
-                lines.append(",".join(row))
-            else:
-                lines.append(str(row).strip())
-
-        payload = "|".join(lines).encode("utf-8")
-        producer_queue.send(payload)
+        
+        producer_queue.send(batch.encode())
         if batch.id() % 300 == 0:
             print(f"[DISTRIBUTOR] Batch {batch.id()} distribuido a la cola de la query {query_id}.")
 
-    # def callback(self, ch, method, properties, body):
-    #     batch = Batch.decode(body)
-    #     print(f"[DISTRIBUTOR] Recibido batch de los workers.")
-    #     #client_id = batch._header.get('client_id') # no existe client_id, hay q agregarlo cuando queramos multi-clientes
-    #     client_id = 1 #por ahora fijo pq un solo cliente
-    #     client_socket = self.clients.get(client_id)
-    #     if client_socket:
-    #         client_socket.sendall(body)
-    #         print(f"[DISTRIBUTOR] Batch enviado al cliente {client_id}.")
-    #     else:
-    #         print(f"[DISTRIBUTOR] Cliente {client_id} no encontrado.")
-
     def callback(self, ch, method, properties, body: bytes):
-        client_id = 1  # por ahora 1 cliente
+        client_id = 1 #por ahora fijo pq un solo cliente
         client_socket = self.clients.get(client_id)
-
-        if client_socket is None:
-            print("[DISTRIBUTOR] No hay socket de cliente disponible para enviar resultados.")
-            return
-        try:
-            _ = client_socket.fileno()
-        except Exception:
-            print("[DISTRIBUTOR] Socket de cliente inválido.")
-            return
-
         if body == END_MARKER:
             end_batch = Batch(id=0, last=True, type_file='t', header=[], rows=[])
             try:
@@ -99,11 +65,13 @@ class Distributor:
                 print("[DISTRIBUTOR] Error cerrando socket del cliente.")
             return
 
-        rows = decode_batch(body)  #esto lo hace con esta funcion vieja pq los filters no crean un objeto batch
-        out_batch = Batch(id=0, last=False, type_file='t', header=[], rows=rows) #aca es donde todos terminan teniendo id = 0
+        batch = Batch(type_file='t')
+        batch.decode(body)
+        #aca en teoria me fijo el id del client, el d d la query, lo q sea q necesite 
+        print(f"[DISTRIBUTOR] Recibido batch de los workers.")
 
         try:
-            send_batch(client_socket, out_batch)
+            send_batch(client_socket, batch)
             print("[DISTRIBUTOR] Lote procesado reenviado al cliente.")
         except Exception as e:
             print(f"[DISTRIBUTOR] Error enviando batch al cliente: {e}")
