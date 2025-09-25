@@ -3,24 +3,6 @@ import os
 import socket
 from common.batch import Batch
 
-
-##no saquen estas 3, los filters todavia las usan
-# def make_batches_from_csv(path, batch_size, queue: MessageMiddlewareQueue):
-#     for filename in os.listdir(path):
-#         current_batch = []
-#
-#         with open(path + '/' + filename, 'r') as f:
-#             next(f)
-#             for line in f:
-#                 current_batch.append(line.strip())
-#                 if len(current_batch) >= batch_size:
-#                     queue.send(encode_batch(current_batch))
-#                     current_batch = []
-#         if current_batch:
-#             queue.send(encode_batch(current_batch))
-#
-#     queue.send(b"&END&")
-
 def encode_batch(b):
     batch_str = "|".join(b)
     return batch_str.encode("utf-8")
@@ -43,13 +25,12 @@ def send_batches_from_csv(path, batch_size, connection: socket, type_file):
                 if len(current_batch) >= batch_size:
                     send_batch(connection, current_batch)
                     current_batch.reset_body_and_increment_id()
-        while len(current_batch) >= 0:
-            if current_batch.is_empty():
-                current_batch.set_last_batch(True)
-                send_batch(connection, current_batch)
-                break
-            send_batch(connection, current_batch)
-            current_batch.reset_body_and_increment_id()
+    if len(current_batch) > 0:
+        send_batch(connection, current_batch)
+        current_batch.reset_body_and_increment_id()
+
+    current_batch.set_last_batch(True)
+    send_batch(connection, current_batch)
 
 
 def send_batch(socket, batch):

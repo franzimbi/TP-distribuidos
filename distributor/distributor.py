@@ -3,6 +3,7 @@ import socket
 import threading
 from middleware.middleware import MessageMiddlewareQueue
 from common.protocol import decode_batch
+from common.protocol import send_batch
 from common.batch import Batch
 
 Q1queue_consumer = os.getenv("CONSUME_QUEUE_Q1")
@@ -17,11 +18,9 @@ class Distributor:
         self.number_of_clients = 0
         self.clients = {}  # key: client_id, value: socket
 
-        # map de producers/consumers por query
         self.producer_queues = {}
         self.consumer_queues = {}
 
-        # Inicializar colas de MQ
         self.producer_queues[1] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q1queue_producer)
         self.consumer_queues[1] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q1queue_consumer)
 
@@ -47,15 +46,11 @@ class Distributor:
             producer_queue.send(END_MARKER)
             print("[DISTRIBUTOR] Marcador END enviado a workers.")
             return
-
-        # body: lista de filas (listas/strings) -> a CSV por fila -> unir con '|'
         lines = []
         for row in batch._body:
-            # row puede venir como lista de strings; aseguramos csv
             if isinstance(row, (list, tuple)):
                 lines.append(",".join(row))
             else:
-                # fallback si ya era string CSV
                 lines.append(str(row).strip())
 
         payload = "|".join(lines).encode("utf-8")
@@ -63,15 +58,25 @@ class Distributor:
         if batch.id() % 300 == 0:
             print(f"[DISTRIBUTOR] Batch {batch.id()} distribuido a la cola de la query {query_id}.")
 
-    def _on_worker_msg_q1(self, ch, method, properties, body: bytes):
+    # def callback(self, ch, method, properties, body):
+    #     batch = Batch.decode(body)
+    #     print(f"[DISTRIBUTOR] Recibido batch de los workers.")
+    #     #client_id = batch._header.get('client_id') # no existe client_id, hay q agregarlo cuando queramos multi-clientes
+    #     client_id = 1 #por ahora fijo pq un solo cliente
+    #     client_socket = self.clients.get(client_id)
+    #     if client_socket:
+    #         client_socket.sendall(body)
+    #         print(f"[DISTRIBUTOR] Batch enviado al cliente {client_id}.")
+    #     else:
+    #         print(f"[DISTRIBUTOR] Cliente {client_id} no encontrado.")
+
+    def callback(self, ch, method, properties, body: bytes):
         client_id = 1  # por ahora 1 cliente
         client_socket = self.clients.get(client_id)
 
         if client_socket is None:
             print("[DISTRIBUTOR] No hay socket de cliente disponible para enviar resultados.")
             return
-
-        # Si el cliente ya cerró de su lado o el socket está inválido, evitamos romper
         try:
             _ = client_socket.fileno()
         except Exception:
@@ -81,11 +86,10 @@ class Distributor:
         if body == END_MARKER:
             end_batch = Batch(id=0, last=True, type_file='t', header=[], rows=[])
             try:
-                client_socket.sendall(end_batch.encode())
+                send_batch(client_socket, end_batch)
                 print("[DISTRIBUTOR] END reenviado al cliente. Cerrando socket del cliente.")
             except Exception as e:
                 print(f"[DISTRIBUTOR] Error enviando END al cliente: {e}")
-            # AHORA sí cerramos y removemos
             try:
                 client_socket.shutdown(socket.SHUT_RDWR)
                 client_socket.close()
@@ -95,11 +99,11 @@ class Distributor:
                 print("[DISTRIBUTOR] Error cerrando socket del cliente.")
             return
 
-        rows = decode_batch(body)  # [['c1','c2',...], ...]
-        out_batch = Batch(id=0, last=False, type_file='t', header=[], rows=rows)
+        rows = decode_batch(body)  #esto lo hace con esta funcion vieja pq los filters no crean un objeto batch
+        out_batch = Batch(id=0, last=False, type_file='t', header=[], rows=rows) #aca es donde todos terminan teniendo id = 0
 
         try:
-            client_socket.sendall(out_batch.encode())
+            send_batch(client_socket, out_batch)
             print("[DISTRIBUTOR] Lote procesado reenviado al cliente.")
         except Exception as e:
             print(f"[DISTRIBUTOR] Error enviando batch al cliente: {e}")
@@ -112,7 +116,7 @@ class Distributor:
         if cq is None:
             return
         try:
-            cq.start_consuming(self._on_worker_msg_q1)
+            cq.start_consuming(self.callback)
         except Exception as e:
             if not shutdown.is_set():
                 print(f"[DISTRIBUTOR] Error en consumo de workers: {e}")

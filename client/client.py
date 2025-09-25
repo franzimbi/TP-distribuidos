@@ -1,6 +1,6 @@
 import socket
 import threading
-from common.protocol import send_batches_from_csv, recv_batches_from_socket
+from common.protocol import send_batches_from_csv, recv_batch
 
 BATCH_SIZE = 150
 
@@ -35,12 +35,12 @@ class Client:
 def receiver(skt, path):
     with open(path, 'w') as file:
         try:
-            for batch in recv_batches_from_socket(skt):
+            while True:
+                batch = recv_batch(skt)
                 if batch.is_last_batch():
                     print("[CLIENT] Recibido END, fin de procesamiento.")
                     break
                 print(f"[CLIENT] Llegó batch id={batch.id()} con {len(batch)} filas")
-
                 for row in batch:
                     # row es lista de columnas; volvemos a CSV (separador coma)
                     file.write(",".join(row) + "\n")
