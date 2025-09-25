@@ -2,7 +2,7 @@
 import os
 import socket
 import threading
-from common.protocol import recv_batches_from_socket
+from common.protocol import recv_batch
 from distributor import Distributor, shutdown
 
 distributor = Distributor()
@@ -24,7 +24,8 @@ def handle_client(sock, addr):
 
     try:
         query_id = 1
-        for batch in recv_batches_from_socket(sock):
+        while True:
+            batch = recv_batch(sock)
             distributor.distribute_batch_to_workers(query_id, batch)
             if batch.is_last_batch():
                 print(f"[DISTRIBUTOR] Cliente {addr} terminó de ENVIAR (esperando resultados de workers).")

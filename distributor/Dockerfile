@@ -3,7 +3,7 @@ FROM python:3.9.7-slim
 WORKDIR /app
 COPY distributor/main.py /app/
 COPY distributor/distributor.py /app/
-COPY common/protocol.py /app/common/
+COPY common/ /app/common/
 COPY middleware/ /app/middleware/
 RUN pip install --no-cache-dir pika
 ENV PYTHONPATH=/app

@@ -12,25 +12,6 @@ services:
         timeout: 5s
         retries: 10
 
-  client:
-    build:
-      context: .
-      dockerfile: client/Dockerfile
-    restart: on-failure
-    depends_on:
-      - rabbitmq
-      - distributor
-    links:
-      - rabbitmq
-      - distributor
-    environment:
-      - PYTHONUNBUFFERED=1
-      - DISTRIBUTOR_HOST=distributor
-      - DISTRIBUTOR_PORT=5000
-    volumes:
-      - ./csvs_files:/app/csvs_files
-      - ./results:/app/results
-  
   distributor:
       build:
         context: .
@@ -93,6 +74,25 @@ services:
       - CONSUME_QUEUE=q13
       - PRODUCE_QUEUE=q14
       - FILTER_NAME=bycolumn
+
+  client:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+      - distributor
+    links:
+      - rabbitmq
+      - distributor
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DISTRIBUTOR_HOST=distributor
+      - DISTRIBUTOR_PORT=5000
+    volumes:
+      - ./csvs_files:/app/csvs_files
+      - ./results:/app/results
   
   # filter_time1_q3:
   #   build:

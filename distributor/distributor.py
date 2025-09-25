@@ -2,7 +2,8 @@ import os
 import socket
 import threading
 from middleware.middleware import MessageMiddlewareQueue
-from common.protocol import Batch, decode_batch
+from common.protocol import decode_batch
+from common.batch import Batch
 
 Q1queue_consumer = os.getenv("CONSUME_QUEUE_Q1")
 Q1queue_producer = os.getenv("PRODUCE_QUEUE_Q1")
@@ -59,7 +60,8 @@ class Distributor:
 
         payload = "|".join(lines).encode("utf-8")
         producer_queue.send(payload)
-        print(f"[DISTRIBUTOR] Batch {batch.id()} distribuido a la cola de la query {query_id}.")
+        if batch.id() % 300 == 0:
+            print(f"[DISTRIBUTOR] Batch {batch.id()} distribuido a la cola de la query {query_id}.")
 
     def _on_worker_msg_q1(self, ch, method, properties, body: bytes):
         client_id = 1  # por ahora 1 cliente
