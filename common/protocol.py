@@ -54,6 +54,33 @@ def send_batches_from_csv(path, batch_size, connection: socket, type_file):
     connection.sendall(batch.encode())
     batch_id += 1  # en teoria no hace falta pq es el ultimo batch, pero bueno, por las dudas
 
+def send_batch(socket, batch):
+    data = batch.encode()
+    size = len(data)
+    socket.sendall(size.to_bytes(4, "big"))
+    socket.sendall(data) 
+
+def recv_exact(socket, n):
+    """Recibe exactamente n bytes del socket."""
+    buffer = b''
+    while len(buffer) < n:
+        chunk = socket.recv(n - len(buffer))
+        if not chunk:
+            raise ConnectionError("Socket cerrado antes de tiempo")
+        buffer += chunk
+    return buffer
+
+
+def recv_batch(socket):
+    size_bytes = recv_exact(socket, 4)
+    size = int.from_bytes(size_bytes, "big")
+    data = recv_exact(socket, size)
+
+    batch = Batch(id=0)
+    batch.decode(data)
+    return batch
+
+
 def recv_batches_from_socket(connection: socket):
     buffer = b''
     while True:
