@@ -4,6 +4,7 @@ from common.protocol import send_batches_from_csv, recv_batches_from_socket
 
 BATCH_SIZE = 150
 
+
 class Client:
 
     def __init__(self, host, port):
@@ -13,9 +14,9 @@ class Client:
     def start(self, path_input, path_output):
         self.sender = threading.Thread(
             target=send_batches_from_csv,
-            args=(path_input, BATCH_SIZE, self.socket, 't'), #TODO sacar este 't'
+            args=(path_input, BATCH_SIZE, self.socket, 't'),  # TODO sacar este 't'
             daemon=True
-            )
+        )
         self.sender.start()
         self.receiver = threading.Thread(target=receiver, args=(self.socket, path_output), daemon=True)
         self.receiver.start()
@@ -23,7 +24,7 @@ class Client:
     def close(self):
         self.receiver.join()
         self.sender.join()
-        
+
         # try:
         #     self.socket.shutdown(socket.SHUT_RDWR)
         # except Exception:
@@ -32,7 +33,7 @@ class Client:
 
 
 def receiver(skt, path):
-    with open(path, 'w')  as file:
+    with open(path, 'w') as file:
         try:
             for batch in recv_batches_from_socket(skt):
                 if batch.is_last_batch():

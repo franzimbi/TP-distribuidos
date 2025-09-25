@@ -19,7 +19,6 @@ def make_batches_from_csv(path, batch_size, queue: MessageMiddlewareQueue):
 
     queue.send(b"&END&")
 
-
 def encode_batch(batch):
     batch_str = "|".join(batch)
     return batch_str.encode("utf-8")
