@@ -19,15 +19,35 @@ services:
     restart: on-failure
     depends_on:
       - rabbitmq
+      - distributor
     links:
       - rabbitmq
+      - distributor
     environment:
       - PYTHONUNBUFFERED=1
-      - PRODUCE_QUEUE=q11
-      - CONSUME_QUEUE=q14
+      - DISTRIBUTOR_HOST=distributor
+      - DISTRIBUTOR_PORT=5000
     volumes:
       - ./csvs_files:/app/csvs_files
       - ./results:/app/results
+  
+  distributor:
+      build:
+        context: .
+        dockerfile: client/Dockerfile
+      restart: on-failure
+      depends_on:
+        - rabbitmq
+      links:
+        - rabbitmq
+      environment:
+        - PYTHONUNBUFFERED=1
+        - CONSUME_QUEUE_Q1=q14
+        - CONSUME_QUEUE_Q3=q34
+        - PRODUCE_QUEUE_Q1=q11
+        - PRODUCE_QUEUE_Q3=q31
+        - TCP_PORT=5000
+
 
   filter1:
     build:
