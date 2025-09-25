@@ -34,7 +34,7 @@ services:
   distributor:
       build:
         context: .
-        dockerfile: client/Dockerfile
+        dockerfile: distributor/Dockerfile
       restart: on-failure
       depends_on:
         - rabbitmq

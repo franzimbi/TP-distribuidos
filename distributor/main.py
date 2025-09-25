@@ -39,8 +39,7 @@ class Distributor:
 
     def distribute_batch_to_workers(self, query_id, batch):
         producer_queue = None
-        if query_id == 't': #esto lo hago pq ahora mismo los batches no tienen flag de query_id, asi q lo pego con cinta para q lo arregle juanfran q a el le gusta arreglar cosas feas dice
-            query_id = 1
+        if query_id == 1: #esto lo hago pq ahora mismo los batches no tienen flag de query_id, asi q lo pego con cinta para q lo arregle juanfran q a el le gusta arreglar cosas feas dice
             producer_queue = self.producer_queues[1]
         producer_queue.send(batch.encode())
         print(f"[DISTRIBUTOR] Batch distribuido a la cola de la query {query_id}.")
@@ -60,8 +59,8 @@ class Distributor:
     def start_consuming_from_workers(self, query_id):
         consumer_queue = self.consumer_queues.get(query_id)
         if consumer_queue is not None:
-            consumer_queue.start_consuming(self.callback())
-
+            consumer_queue.start_consuming(self.callback)
+    
     def stop_consuming_from_all_workers(self):
         for query_id, consumer_queue in self.consumer_queues.items():
             if consumer_queue is not None:
@@ -103,24 +102,22 @@ def handle_client(socket, addr):
         socket.close()
         print(f"Cliente desconectado: {addr}")
 
-
 def accept_clients():
     clients_threads = []
     client_number = 0
     while True:
-        client_number += 1
         socket, addr = server_socket.accept()
-        clients_threads[client_number] = threading.Thread(target=handle_client, args=(socket, addr))
+        clients_threads.append(threading.Thread(target=handle_client, args=(socket, addr)))
         clients_threads[client_number].start()
+        client_number += 1
         ##aca chequear si hay algun thread para liberar, ya no quiero pensar esto, ahora me da paja
 
-    
 Q1consumer_thread = threading.Thread(target=distributor.start_consuming_from_workers, args=(1,))
 Q1consumer_thread.start()
 
 accept_thread = threading.Thread(target=accept_clients)
 accept_thread.start()
 
-distributor.stop_consuming_from_all_workers()
 Q1consumer_thread.join()
 accept_thread.join()
+distributor.stop_consuming_from_all_workers()

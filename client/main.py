@@ -26,7 +26,6 @@ Q1sender_thread = threading.Thread(
 )
 Q1sender_thread.start()
 
-
 def receiver_thread_func():
     global counter
     for batch in recv_batches_from_socket(s):
@@ -40,9 +39,6 @@ def receiver_thread_func():
 
 Q1receiver_thread = threading.Thread(target=receiver_thread_func)
 Q1receiver_thread.start()
-
-
-
 
 print(f"\n\n\nvoy a cerrar threads y cositas\n\n\n\n")
 Q1receiver_thread.join()
