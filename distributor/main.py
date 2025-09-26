@@ -60,7 +60,7 @@ def main():
     initialize_log(logging_level)
     logging.debug(f"action: config | result: success | port: {port} | host: {host}  | "
                   f"listen_backlog: {listen_backlog} | logging_level: {logging_level}")
-    
+
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_socket.bind((host, port))

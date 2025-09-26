@@ -4,6 +4,7 @@ from client import Client
 from configparser import ConfigParser
 import logging
 
+
 def initialize_config():
     """ Parse env variables or config file to find program config params
 
@@ -23,7 +24,8 @@ def initialize_config():
     try:
         config_params["port"] = int(os.getenv('SYSTEM_PORT', config["DEFAULT"]["SYSTEM_PORT"]))
         config_params["host"] = str(os.getenv('SYSTEM_HOST', config["DEFAULT"]["SYSTEM_HOST"]))
-        config_params["listen_backlog"] = int(os.getenv('SERVER_LISTEN_BACKLOG', config["DEFAULT"]["SYSTEM_LISTEN_BACKLOG"]))
+        config_params["listen_backlog"] = int(
+            os.getenv('SERVER_LISTEN_BACKLOG', config["DEFAULT"]["SYSTEM_LISTEN_BACKLOG"]))
         config_params["logging_level"] = os.getenv('LOGGING_LEVEL', config["DEFAULT"]["LOGGING_LEVEL"])
     except KeyError as e:
         raise KeyError("Key was not found. Error: {} .Aborting server".format(e))
@@ -31,6 +33,7 @@ def initialize_config():
         raise ValueError("Key could not be parsed. Error: {}. Aborting server".format(e))
 
     return config_params
+
 
 def initialize_log(logging_level):
     """
@@ -61,6 +64,7 @@ def main():
     this_client = Client(host, port)
     this_client.start('csvs_files/transactions', 'results/q1.csv')
     this_client.close()
+
 
 if __name__ == "__main__":
     main()
