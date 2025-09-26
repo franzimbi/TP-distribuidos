@@ -4,19 +4,23 @@ from common.protocol import send_batches_from_csv, recv_batch
 
 BATCH_SIZE = 150
 
-class Client:
+class Requester:
 
     def __init__(self, host, port):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect((host, port))
+        self.receiver = None
+        self.sender = None
 
-    def start(self, path_input, path_output):
+    def start(self, path_input, path_output, query_id):
+        
         self.sender = threading.Thread(
             target=send_batches_from_csv,
-            args=(path_input, BATCH_SIZE, self.socket, 't', 1),
+            args=(path_input, BATCH_SIZE, self.socket, 't', query_id),
             daemon=True
         )
         self.sender.start()
+
         self.receiver = threading.Thread(target=receiver, args=(self.socket, path_output), daemon=True)
         self.receiver.start()
 
