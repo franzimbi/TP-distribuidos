@@ -25,7 +25,8 @@ services:
         - PYTHONUNBUFFERED=1
         - CONSUME_QUEUE_Q1=q14
         - PRODUCE_QUEUE_Q1=q11
-        - TCP_PORT=5000
+      volumes:
+        - ./config.ini:/app/config.ini
 
 
   filter1:
@@ -42,6 +43,8 @@ services:
       - CONSUME_QUEUE=q11
       - PRODUCE_QUEUE=q12
       - FILTER_NAME=bytime
+    volumes:
+      - ./config.ini:/app/config.ini
 
   filter2:
     build:
@@ -57,6 +60,8 @@ services:
       - CONSUME_QUEUE=q12
       - PRODUCE_QUEUE=q13
       - FILTER_NAME=byamount
+    volumes:
+      - ./config.ini:/app/config.ini
 
   filter3:
     build:
@@ -72,6 +77,8 @@ services:
       - CONSUME_QUEUE=q13
       - PRODUCE_QUEUE=q14
       - FILTER_NAME=bycolumn
+    volumes:
+      - ./config.ini:/app/config.ini
 
   client:
     build:
@@ -91,6 +98,7 @@ services:
     volumes:
       - ./csvs_files:/app/csvs_files
       - ./results:/app/results
+      - ./config.ini:/app/config.ini
   
   # filter_time1_q3:
   #   build:

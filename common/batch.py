@@ -15,7 +15,7 @@ class Batch:
         size: size de batch
         """
 
-    def __init__(self, id=0, last=False, type_file='', header=None, rows=None):
+    def __init__(self, id=0, last=False, type_file=' ', header=None, rows=None):
         self._id_batch = int(id)
         self._last_batch = last
         self._type_file = type_file
