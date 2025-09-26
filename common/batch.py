@@ -141,19 +141,20 @@ class Batch:
             res += (1).to_bytes(1, byteorder="big", signed=False)
         else:
             res += (0).to_bytes(1, byteorder="big", signed=False)
-        res += self._type_file.encode("utf-8")
+        type_bytes = self._type_file.encode("utf-8")[:1]
+        if not type_bytes:
+            type_bytes = b"\x00"
+        res += type_bytes
         header_joined = ",".join(self._header).encode("utf-8")
         res += len(header_joined).to_bytes(4, byteorder="big", signed=False)
         res += header_joined
         res += self._size.to_bytes(4, byteorder='big', signed=False)
-
         body_joined = "|".join([",".join(l) for l in self._body])
         body_joined = body_joined.encode("utf-8")
-
         res += len(body_joined).to_bytes(4, byteorder="big", signed=False)
         res += body_joined
-
         return res
+
 
     def decode(self, data: bytes):
         offset = 0
