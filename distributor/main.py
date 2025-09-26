@@ -70,11 +70,13 @@ def main():
     def handle_client(sock, addr):
         client_id = 1  # todo: mover a accept
         distributor.add_client(client_id, sock)
-
         try:
-            query_id = 1
+            query_id = None
             while True:
                 batch = recv_batch(sock)
+                if query_id is None:
+                    query_id = batch.get_query_id()
+                    logging.debug(f"[DISTRIBUTOR] Cliente {addr} inició con query_id {query_id}")
                 distributor.distribute_batch_to_workers(query_id, batch)
                 if batch.is_last_batch():
                     print(f"[DISTRIBUTOR] Cliente {addr} terminó de ENVIAR (esperando resultados de workers).")
@@ -105,6 +107,9 @@ def main():
     q1_consumer_thread = threading.Thread(target=distributor.start_consuming_from_workers, args=(1,), daemon=True)
     q1_consumer_thread.start()
 
+    # q3_consumer_thread = threading.Thread(target=distributor.start_consuming_from_workers, args=(3,), daemon=True)
+    # q3_consumer_thread.start()
+
     accept_thread = threading.Thread(target=accept_clients, daemon=True)
     accept_thread.start()
 
@@ -112,6 +117,7 @@ def main():
         while True:
             accept_thread.join(timeout=1.0)
             q1_consumer_thread.join(timeout=1.0)
+            # q3_consumer_thread.join(timeout=1.0)
     except KeyboardInterrupt:
         pass
     finally:
@@ -123,6 +129,7 @@ def main():
             pass
         accept_thread.join(timeout=2.0)
         q1_consumer_thread.join(timeout=2.0)
+        # q3_consumer_thread.join(timeout=2.0)
         print("[DISTRIBUTOR] Apagado limpio.")
 
 

@@ -15,8 +15,9 @@ class Batch:
         size: size de batch
         """
 
-    def __init__(self, id=0, last=False, type_file=' ', header=None, rows=None):
+    def __init__(self, id=0, query_id =0, last=False, type_file=' ', header=None, rows=None):
         self._id_batch = int(id)
+        self._query_id = int(query_id) 
         self._last_batch = last
         self._type_file = type_file
         self._header = header if header is not None else []
@@ -72,6 +73,12 @@ class Batch:
 
     def get_header(self):
         return self._header
+    
+    def get_query_id(self):
+        return self._query_id
+
+    def set_query_id(self, id):
+        self._query_id = id
 
     def reset_body_and_increment_id(self):
         self._id_batch += 1
@@ -137,6 +144,7 @@ class Batch:
     def encode(self) -> bytes:
         res = b''
         res += self._id_batch.to_bytes(4, byteorder='big', signed=False)
+        res += self._query_id.to_bytes(4, byteorder='big', signed=False)
         if self._last_batch:
             res += (1).to_bytes(1, byteorder="big", signed=False)
         else:
@@ -159,6 +167,8 @@ class Batch:
     def decode(self, data: bytes):
         offset = 0
         self._id_batch = int.from_bytes(data[offset:offset + 4], byteorder='big', signed=False)
+        offset += 4
+        self._query_id = int.from_bytes(data[offset:offset + 4], byteorder='big', signed=False)
         offset += 4
         self._last_batch = bool(int.from_bytes(data[offset:offset + 1], byteorder='big', signed=False))
         offset += 1

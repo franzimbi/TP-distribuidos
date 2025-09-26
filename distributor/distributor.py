@@ -7,12 +7,10 @@ from common.batch import Batch
 
 Q1queue_consumer = os.getenv("CONSUME_QUEUE_Q1")
 Q1queue_producer = os.getenv("PRODUCE_QUEUE_Q1")
-
-END_MARKER = b"&END&"
+Q3queue_consumer = os.getenv("CONSUME_QUEUE_Q3")
+Q3queue_producer = os.getenv("PRODUCE_QUEUE_Q3")
 
 shutdown = threading.Event()
-
-
 class Distributor:
     def __init__(self):
         self.number_of_clients = 0
@@ -22,7 +20,11 @@ class Distributor:
         self.consumer_queues = {}
 
         self.producer_queues[1] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q1queue_producer)
+        # self.producer_queues[3] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q3queue_producer)
+
         self.consumer_queues[1] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q1queue_consumer)
+        # self.consumer_queues[3] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q3queue_consumer)
+
 
     def add_client(self, client_id, client_socket):
         self.number_of_clients += 1
@@ -35,18 +37,9 @@ class Distributor:
         return sock
 
     def distribute_batch_to_workers(self, query_id, batch: Batch):
-        if query_id != 1:
-            # por ahora solo Q1 activa
-            print(f"[DISTRIBUTOR] Query {query_id} no configurada.")
-            return
+        q = self.producer_queues.get(query_id)
 
-        producer_queue = self.producer_queues[1]
-        # if batch.is_last_batch():
-        #     producer_queue.send(END_MARKER)
-        #     print("[DISTRIBUTOR] Marcador END enviado a workers.")
-        #     return
-
-        producer_queue.send(batch.encode())
+        q.send(batch.encode())
 
     def callback(self, ch, method, properties, body: bytes):
         client_id = 1  # por ahora fijo pq un solo cliente

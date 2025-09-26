@@ -3,7 +3,7 @@ import os
 import socket
 from common.batch import Batch
 
-def send_batches_from_csv(path, batch_size, connection: socket, type_file):
+def send_batches_from_csv(path, batch_size, connection: socket, type_file, query_id):
     current_batch = Batch(type_file=type_file)
     for filename in os.listdir(path):
 
@@ -16,14 +16,17 @@ def send_batches_from_csv(path, batch_size, connection: socket, type_file):
             for line in f:
                 current_batch.add_row(line)
                 if len(current_batch) >= batch_size:
+                    current_batch.set_query_id(query_id)
                     send_batch(connection, current_batch)
                     current_batch.reset_body_and_increment_id()
 
     if len(current_batch) > 0:
+        current_batch.set_query_id(query_id)
         send_batch(connection, current_batch)
         current_batch.reset_body_and_increment_id()
 
     current_batch.set_last_batch(True)
+    current_batch.set_query_id(query_id)
     send_batch(connection, current_batch)
 
 

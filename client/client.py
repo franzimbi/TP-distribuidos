@@ -4,7 +4,6 @@ from common.protocol import send_batches_from_csv, recv_batch
 
 BATCH_SIZE = 150
 
-
 class Client:
 
     def __init__(self, host, port):
@@ -14,7 +13,7 @@ class Client:
     def start(self, path_input, path_output):
         self.sender = threading.Thread(
             target=send_batches_from_csv,
-            args=(path_input, BATCH_SIZE, self.socket, 't'),  # TODO sacar este 't'
+            args=(path_input, BATCH_SIZE, self.socket, 't', 1),
             daemon=True
         )
         self.sender.start()

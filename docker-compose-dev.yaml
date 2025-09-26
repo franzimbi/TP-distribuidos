@@ -25,9 +25,38 @@ services:
         - PYTHONUNBUFFERED=1
         - CONSUME_QUEUE_Q1=q14
         - PRODUCE_QUEUE_Q1=q11
+
+        - CONSUME_QUEUE_Q3=q34
+        - PRODUCE_QUEUE_Q3=q31
       volumes:
         - ./config.ini:/app/config.ini
 
+  aggregator_q3:
+      build:
+        context: .
+        dockerfile: aggregator/Dockerfile
+      restart: on-failure
+      depends_on:
+        - rabbitmq
+      links:
+        - rabbitmq
+      environment:
+        - PYTHONUNBUFFERED=1
+        - CONSUME_QUEUE=q32
+        - PRODUCE_QUEUE=q33
+        - AGGREGATOR_NAME=pendiente
+  # reducer:
+  #   build:
+  #     context: .
+  #     dockerfile: reducer/Dockerfile
+  #   restart: on-failure
+  #   depends_on:
+  #     - rabbitmq
+  #   links:
+  #     - rabbitmq
+  #   environment:
+  #     - PYTHONUNBUFFERED=1
+  #     - CONSUME_QUEUE=q14
 
   filter1:
     build:
@@ -80,6 +109,21 @@ services:
     volumes:
       - ./config.ini:/app/config.ini
 
+  filter_time1_q3:
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+    links:
+      - rabbitmq
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=q31
+      - PRODUCE_QUEUE=q32
+      - FILTER_NAME=bytime
+  
   client:
     build:
       context: .
@@ -99,46 +143,3 @@ services:
       - ./csvs_files:/app/csvs_files
       - ./results:/app/results
       - ./config.ini:/app/config.ini
-  
-  # filter_time1_q3:
-  #   build:
-  #     context: .
-  #     dockerfile: filter/Dockerfile
-  #   restart: on-failure
-  #   depends_on:
-  #     - rabbitmq
-  #   links:
-  #     - rabbitmq
-  #   environment:
-  #     - PYTHONUNBUFFERED=1
-  #     - CONSUME_QUEUE=q31
-  #     - PRODUCE_QUEUE=q32
-  #     - FILTER_NAME=bytime
-  
-  # aggregator_q3:
-  #   build:
-  #     context: .
-  #     dockerfile: aggregator/Dockerfile
-  #   restart: on-failure
-  #   depends_on:
-  #     - rabbitmq
-  #   links:
-  #     - rabbitmq
-  #   environment:
-  #     - PYTHONUNBUFFERED=1
-  #     - CONSUME_QUEUE=q32
-  #     - PRODUCE_QUEUE=q33
-  #     - AGGREGATOR_NAME=pendiente
-
-#  reducer:
-#    build:
-#      context: .
-#      dockerfile: reducer/Dockerfile
-#    restart: on-failure
-#    depends_on:
-#      - rabbitmq
-#    links:
-#      - rabbitmq
-#    environment:
-#      - PYTHONUNBUFFERED=1
-#      - CONSUME_QUEUE=q14
