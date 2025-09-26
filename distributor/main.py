@@ -15,11 +15,9 @@ server_socket.bind((HOST, TCP_PORT))
 server_socket.listen()
 server_socket.settimeout(1.0)
 
-print(f"Distributor escuchando en {HOST}:{TCP_PORT}")
 
 def handle_client(sock, addr):
-    print(f"Cliente conectado: {addr}")
-    client_id = 1
+    client_id = 1 #todo: mover a accept
     distributor.add_client(client_id, sock)
 
     try:
@@ -34,15 +32,16 @@ def handle_client(sock, addr):
         print(f"Error con cliente {addr}: {e}")
         try:
             sock.close()
-        except Exception:
+        except OSError as e:
             pass
-        if distributor.clients.get(client_id) is sock:
-            del distributor.clients[client_id]
+        distributor.remove_client(client_id)
         print(f"Cliente desconectado (por error): {addr}")
+
 
 def accept_clients():
     threads = []
     while not shutdown.is_set():
+        threads = [t for t in threads if t.is_alive()]
         try:
             sock, addr = server_socket.accept()
         except socket.timeout:
@@ -52,6 +51,7 @@ def accept_clients():
         threads.append(t)
     for t in threads:
         t.join(timeout=1.0)
+
 
 q1_consumer_thread = threading.Thread(target=distributor.start_consuming_from_workers, args=(1,), daemon=True)
 q1_consumer_thread.start()

@@ -1,14 +1,12 @@
 from middleware.middleware import MessageMiddlewareQueue
-from common.protocol import decode_batch
 from common.batch import Batch
 
 BUFFER_SIZE = 150
-END_MARKER = b"&END&"
 
 
 class Filter:
     def __init__(self, consume_queue, produce_queue, filter):
-        self._buffer = ''
+        self._buffer = Batch()
         self._counter = 0
         self._consume_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=consume_queue)
         self._produce_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=produce_queue)
@@ -18,25 +16,49 @@ class Filter:
         self._consume_queue.start_consuming(self.callback)
 
     def callback(self, ch, method, properties, message):
-        if message == END_MARKER:
-            print("[FILTER] Marcador END recibido, finalizando.")
-            self.send_current_buffer()
-            self._produce_queue.send(END_MARKER)
-            return
-
-        #batch = decode_batch(message) #viejo
-        batch = Batch(type_file='t')
+        batch = Batch()
         batch.decode(message)
-        result = self._filter(batch)
 
-        if not result:
-            print("[FILTER] Resultado vacío, no se envía nada.")
-            return
+        try:
+            result = self._filter(batch)
+            if not result.is_empty():
+                if self._buffer.is_empty() and result.get_header():
+                    self._buffer.set_header(result.get_header())
+                for i in result:
+                    self._buffer.add_row(i)
+        except Exception as e:
+            print(f"\n\n\n error: {e} | batch:{batch} | filter:{self._filter.__name__}")
 
-        self._buffer = result.encode()
-        self._produce_queue.send(self._buffer)
-        print(f"[FILTER] Batch procesado enviado.")
-        self._buffer = ""
+        if len(self._buffer) >= BUFFER_SIZE or batch.is_last_batch():
+            self._buffer.set_id(batch.id())
+            if batch.is_last_batch():
+                self._buffer.set_last_batch()
+            self._produce_queue.send(self._buffer.encode())
+            self._buffer = Batch(type_file=batch.type())
+
+
+
+
+        # batch = message.decode()
+        # if batch.is_last_batch():
+        #     print("[FILTER] Marcador END recibido, finalizando.")
+        #     self.send_current_buffer()
+        #     self._produce_queue.send(END_MARKER)
+        #     return
+        #
+        # #batch = decode_batch(message) #viejo
+        # batch = Batch(type_file='t')
+        # batch.decode(message)
+        # result = self._filter(batch)
+        #
+        # if not result:
+        #     print("[FILTER] Resultado vacío, no se envía nada.")
+        #     return
+        #
+        # self._buffer = result.encode()
+        # self._produce_queue.send(self._buffer)
+        # print(f"[FILTER] Batch procesado enviado.")
+        # self._buffer = ""
 
         # for row in result:
         #     line = ",".join(row)

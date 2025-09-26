@@ -1,38 +1,43 @@
 from datetime import datetime, time
 from common.batch import Batch
 
+
 def filter_by_time(batch: Batch):
-    #filtered = []
-    filtered = Batch(type_file=batch._type_file)
-    for row in batch._body:
+    index = batch.index_of('created_at')
+    if index is None:
+        raise ValueError("El batch no tiene la columna 'created_at'")
+    filtered = []
+    for row in batch:
         try:
-            dt = datetime.strptime(row[8], "%Y-%m-%d %H:%M:%S")
-            if time(6,0,0) <= dt.time() <= time(22,59,59):
-                filtered.add_row(row)
+            dt = datetime.strptime(row[index], "%Y-%m-%d %H:%M:%S")
+            if time(6, 0, 0) <= dt.time() <= time(22, 59, 59):
+                filtered.append(row)
         except Exception:
             # Si la fecha no se puede parsear, descartar
             print("no pude parsear la fecha")
             continue
-    return filtered
+
+    batch.replace_all_rows(filtered)
+    return batch
 
 
 def filter_by_amount(batch: Batch):
-    #filtered = []
-    filtered = Batch(type_file=batch._type_file)
-    for row in batch._body:
+    index = batch.index_of('final_amount')
+    filtered = []
+    for row in batch:
         try:
-            if float(row[7]) >= 75:
-                filtered.add_row(row)
-        except Exception:
-            print("no pude parsear la cantidad")
+            if float(row[index]) >= 75:
+                filtered.append(row)
+        except ValueError:
             continue
-    return filtered
+    batch.replace_all_rows(filtered)
+    return batch
 
 
 def filter_by_column(batch: Batch):
-    #filtered = []
-    filtered = Batch(type_file=batch._type_file)
-    for row in batch._body:
-        aux = [row[0], row[7]]
-        filtered.add_row(row)
-    return filtered
+    keep = ['transaction_id', 'final_amount']
+    for col in list(batch.get_header()):  # list() para evitar problemas al modificar _header mientras iterás
+        if col not in keep:
+            batch.delete_column(col)
+    return batch
+

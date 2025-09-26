@@ -24,9 +24,7 @@ services:
       environment:
         - PYTHONUNBUFFERED=1
         - CONSUME_QUEUE_Q1=q14
-        - CONSUME_QUEUE_Q3=q34
         - PRODUCE_QUEUE_Q1=q11
-        - PRODUCE_QUEUE_Q3=q31
         - TCP_PORT=5000
 
 

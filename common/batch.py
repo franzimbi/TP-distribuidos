@@ -33,6 +33,12 @@ class Batch:
     def id(self):
         return self._id_batch
 
+    def type(self):
+        return self._type_file
+
+    def set_id(self, id: int):
+        self._id_batch = int(id)
+
     def set_header(self, header):
         """
         setea los headers del batch.
@@ -41,15 +47,22 @@ class Batch:
             * lista de strings (ej: ["id","nombre","edad"])
         Solo se permite si el batch está vacío (sin filas).
         """
-        if self._body:
-            raise RuntimeError("No se puede setear el header: el batch ya tiene filas")
-
         if isinstance(header, str):
-            self._header = header.strip().split(",") if header.strip() else []
+            header_list = header.strip().split(",") if header.strip() else []
         elif isinstance(header, list):
-            self._header = header
+            header_list = header
         else:
             raise TypeError("header debe ser un string CSV o una lista de strings")
+
+        if self._body:
+            if self._header != header_list:
+                raise RuntimeError(
+                    f"No se puede setear el header: el batch ya tiene filas y el header es distinto "
+                    f"(existente: {self._header}, nuevo: {header_list})"
+                )
+            return
+
+        self._header = header_list
 
     def is_last_batch(self):
         return self._last_batch
@@ -148,12 +161,12 @@ class Batch:
         offset += 4
         self._last_batch = bool(int.from_bytes(data[offset:offset + 1], byteorder='big', signed=False))
         offset += 1
-        self._type_file = data[offset:offset + 1].decode("utf-8")
+        self._type_file = data[offset:offset + 1].decode("utf-8", errors='replace')
         offset += 1
         header_len = int.from_bytes(data[offset:offset + 4], byteorder='big', signed=False)
         offset += 4
         header_bytes = data[offset:offset + header_len]
-        self._header = header_bytes.decode("utf-8").split(",") if header_len > 0 else []
+        self._header = header_bytes.decode("utf-8", errors='replace').split(",") if header_len > 0 else []
         offset += header_len
 
         self._size = int.from_bytes(data[offset:offset + 4], byteorder='big', signed=False)
@@ -163,7 +176,7 @@ class Batch:
         offset += 4
 
         body_bytes = data[offset:offset + body_len]
-        body_str = body_bytes.decode("utf-8")
+        body_str = body_bytes.decode("utf-8", errors='replace')
         self._body = [line.split(",") for line in body_str.split("|")] if body_len > 0 else []
 
     def __str__(self):
@@ -236,6 +249,32 @@ class Batch:
 
         self._body.append(row_list)
         self._size += 1
+
+    def replace_all_rows(self, new_rows):
+        """
+        reemplaza todas las filas del batch con `new_rows`.
+        Puede recibir lista de listas o lista de strings CSV.
+        Valida que la cantidad de columnas coincida con headers.
+        """
+        if self._header is None:
+            raise ValueError("Primero hay que definir headers con set_headers().")
+
+        processed_rows = []
+
+        for row in new_rows:
+            if isinstance(row, str):
+                row = [col.strip() for col in row.split(",")]
+
+            if not isinstance(row, list):
+                raise TypeError("Cada fila debe ser lista o string CSV.")
+
+            if len(row) != len(self._header):
+                raise ValueError(
+                    f"Fila inválida: {row}, cantidad esperada: {len(self._header)}"
+                )
+            processed_rows.append(row)
+        self._body = processed_rows
+        self._size = len(processed_rows)
 
     def add_rows(self, rows):
         """

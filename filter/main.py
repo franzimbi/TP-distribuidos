@@ -20,7 +20,8 @@ producer = MessageMiddlewareQueue(host="rabbitmq", queue_name=queue_producer)
 print(f"[{filter_type}] Escuchando en cola: {queue_consumer}, enviando a: {queue_producer}")
 
 try:
-    this_filter = Filter(queue_consumer, queue_producer, filters[filter_type])
+    filter_by_env = filters[filter_type]
+    this_filter = Filter(queue_consumer, queue_producer, filter_by_env)
     this_filter.start()
 except KeyboardInterrupt:
     consumer.stop_consuming()

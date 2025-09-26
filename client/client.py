@@ -33,16 +33,20 @@ class Client:
 
 
 def receiver(skt, path):
+    is_first = True
     with open(path, 'w') as file:
         try:
             while True:
                 batch = recv_batch(skt)
+                if is_first:
+                    file.write(",".join(batch.get_header()) + "\n")
+                    is_first = False
                 if batch.is_last_batch():
                     print("[CLIENT] Recibido END, fin de procesamiento.")
                     break
-                print(f"[CLIENT] Llegó batch id={batch.id()} con {len(batch)} filas")
                 for row in batch:
                     # row es lista de columnas; volvemos a CSV (separador coma)
                     file.write(",".join(row) + "\n")
         except Exception as e:
             print(f"[CLIENT] Error en receiver: {e}")
+    print(f"[CLIENT] Recibido y guardado en {path}")

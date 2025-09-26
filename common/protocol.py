@@ -3,28 +3,22 @@ import os
 import socket
 from common.batch import Batch
 
-def encode_batch(b):
-    batch_str = "|".join(b)
-    return batch_str.encode("utf-8")
-
-
-def decode_batch(data):
-    batch_str = data.decode("utf-8")
-    return [line.split(",") for line in batch_str.strip().split("|")]
-
-
-## nuevo
 def send_batches_from_csv(path, batch_size, connection: socket, type_file):
+    current_batch = Batch(type_file=type_file)
     for filename in os.listdir(path):
-        current_batch = Batch(type_file=type_file)
 
         with open(path + '/' + filename, 'r') as f:
-            current_batch.set_header(next(f))
+            headers = next(f)
+            try:
+                current_batch.set_header(headers)
+            except RuntimeError as e:
+               print("[PROTOCOL] error al setear headers | error: {}".format(e))
             for line in f:
                 current_batch.add_row(line)
                 if len(current_batch) >= batch_size:
                     send_batch(connection, current_batch)
                     current_batch.reset_body_and_increment_id()
+
     if len(current_batch) > 0:
         send_batch(connection, current_batch)
         current_batch.reset_body_and_increment_id()
@@ -33,7 +27,7 @@ def send_batches_from_csv(path, batch_size, connection: socket, type_file):
     send_batch(connection, current_batch)
 
 
-def send_batch(socket, batch):
+def send_batch(socket, batch: Batch):
     data = batch.encode()
     size = len(data)
     socket.sendall(size.to_bytes(4, "big"))
@@ -56,7 +50,7 @@ def recv_batch(socket):
     size = int.from_bytes(size_bytes, "big")
     data = recv_exact(socket, size)
 
-    batch = Batch(id=0)
+    batch = Batch()
     batch.decode(data)
     return batch
 
