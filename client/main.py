@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 import os
-from client import Requester
+from client import Client
 from configparser import ConfigParser
 import logging
-import threading
-
-QUERY_ONE_ID = 1
 
 
 def initialize_config():
@@ -64,18 +61,9 @@ def main():
     logging.debug(f"action: config | result: success | port: {port} | host: {host}  | "
                   f"listen_backlog: {listen_backlog} | logging_level: {logging_level}")
 
-    this_requester = Requester(host, port)
-    
-    query1 = threading.Thread(target=this_requester.start, args=(
-        'csvs_files/transactions', 'results/q1.csv', QUERY_ONE_ID), daemon=True)
-    query1.start()
-#   query2 = 
-#   query3 =
-#   query4 =
-#   this_requester.start('csvs_files/transactions', 'results/q1.csv', QUERY_ONE_ID)
-    
-    query1.join() #primero join
-    this_requester.close() #luego close, no hacer al reves
+    this_client = Client(host, port)
+    this_client.start('csvs_files/transactions', 'results')
+    this_client.close()
 
 
 if __name__ == "__main__":

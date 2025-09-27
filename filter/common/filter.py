@@ -31,6 +31,7 @@ class Filter:
 
         if len(self._buffer) >= BUFFER_SIZE or batch.is_last_batch():
             self._buffer.set_id(batch.id())
+            self._buffer.set_query_id(batch.get_query_id())
             if batch.is_last_batch():
                 self._buffer.set_last_batch()
             self._produce_queue.send(self._buffer.encode())

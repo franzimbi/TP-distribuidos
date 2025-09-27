@@ -2,31 +2,31 @@ from middleware.middleware import MessageMiddlewareQueue
 import os
 import socket
 from common.batch import Batch
+import logging
 
-def send_batches_from_csv(path, batch_size, connection: socket, type_file, query_id):
+def send_batches_from_csv(path, batch_size, connection: socket, type_file, query_id=0):
     current_batch = Batch(type_file=type_file)
     for filename in os.listdir(path):
-
         with open(path + '/' + filename, 'r') as f:
             headers = next(f)
             try:
                 current_batch.set_header(headers)
             except RuntimeError as e:
-               print("[PROTOCOL] error al setear headers | error: {}".format(e))
+                logging.error("[PROTOCOL] error set_header: %s", e)
             for line in f:
                 current_batch.add_row(line)
                 if len(current_batch) >= batch_size:
-                    current_batch.set_query_id(query_id)
+                    current_batch.set_query_id(0)  # <- ahora 0
                     send_batch(connection, current_batch)
                     current_batch.reset_body_and_increment_id()
 
     if len(current_batch) > 0:
-        current_batch.set_query_id(query_id)
+        current_batch.set_query_id(0)
         send_batch(connection, current_batch)
         current_batch.reset_body_and_increment_id()
 
     current_batch.set_last_batch(True)
-    current_batch.set_query_id(query_id)
+    current_batch.set_query_id(0)
     send_batch(connection, current_batch)
 
 

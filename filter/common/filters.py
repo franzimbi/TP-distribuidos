@@ -1,25 +1,27 @@
 from datetime import datetime, time
 from common.batch import Batch
 
-
 def filter_by_time(batch: Batch):
-    index = batch.index_of('created_at')
-    if index is None:
-        raise ValueError("El batch no tiene la columna 'created_at'")
+    idx = batch.index_of('created_at')
+    if idx is None:
+        return batch
+    
     filtered = []
     for row in batch:
         try:
-            dt = datetime.strptime(row[index], "%Y-%m-%d %H:%M:%S")
+            year = int(row[idx][:4])
+            if year not in (2024, 2025):
+                continue
+
+            dt = datetime.strptime(row[idx], "%Y-%m-%d %H:%M:%S")
             if time(6, 0, 0) <= dt.time() <= time(22, 59, 59):
                 filtered.append(row)
+
         except Exception:
-            # Si la fecha no se puede parsear, descartar
-            print("no pude parsear la fecha")
             continue
 
     batch.replace_all_rows(filtered)
     return batch
-
 
 def filter_by_amount(batch: Batch):
     index = batch.index_of('final_amount')

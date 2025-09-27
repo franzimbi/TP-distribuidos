@@ -68,16 +68,23 @@ def main():
     server_socket.settimeout(1.0)
 
     def handle_client(sock, addr):
-        client_id = 1  # todo: mover a accept
+        client_id = 1  # TODO: IDs únicos si soportan varios clientes
         distributor.add_client(client_id, sock)
+
+        first_batch_type = None
+
         try:
-            query_id = None
             while True:
                 batch = recv_batch(sock)
-                if query_id is None:
-                    query_id = batch.get_query_id()
-                    logging.debug(f"[DISTRIBUTOR] Cliente {addr} inició con query_id {query_id}")
-                distributor.distribute_batch_to_workers(query_id, batch)
+
+                if first_batch_type is None:
+                    first_batch_type = batch.type()
+                    distributor.set_client_queries_for_type(client_id, first_batch_type)
+                    logging.debug(f"[DISTRIBUTOR] Cliente {addr} inició tipo={first_batch_type}, "
+                                  f"queries pendientes={distributor.client_queries.get(client_id)}")
+
+                distributor.distribute_batch_to_workers(batch)
+
                 if batch.is_last_batch():
                     print(f"[DISTRIBUTOR] Cliente {addr} terminó de ENVIAR (esperando resultados de workers).")
                     break
@@ -85,7 +92,7 @@ def main():
             print(f"Error con cliente {addr}: {e}")
             try:
                 sock.close()
-            except OSError as e:
+            except OSError:
                 pass
             distributor.remove_client(client_id)
             print(f"Cliente desconectado (por error): {addr}")
@@ -104,20 +111,12 @@ def main():
         for t in threads:
             t.join(timeout=1.0)
 
-    q1_consumer_thread = threading.Thread(target=distributor.start_consuming_from_workers, args=(1,), daemon=True)
-    q1_consumer_thread.start()
-
-    # q3_consumer_thread = threading.Thread(target=distributor.start_consuming_from_workers, args=(3,), daemon=True)
-    # q3_consumer_thread.start()
-
     accept_thread = threading.Thread(target=accept_clients, daemon=True)
     accept_thread.start()
 
     try:
         while True:
             accept_thread.join(timeout=1.0)
-            q1_consumer_thread.join(timeout=1.0)
-            # q3_consumer_thread.join(timeout=1.0)
     except KeyboardInterrupt:
         pass
     finally:
@@ -128,10 +127,7 @@ def main():
         except Exception:
             pass
         accept_thread.join(timeout=2.0)
-        q1_consumer_thread.join(timeout=2.0)
-        # q3_consumer_thread.join(timeout=2.0)
         print("[DISTRIBUTOR] Apagado limpio.")
-
 
 if __name__ == "__main__":
     main()
