@@ -1,3 +1,5 @@
+import copy
+
 
 class Batch:
     """ id: identificador de batches.
@@ -15,9 +17,9 @@ class Batch:
         size: size de batch
         """
 
-    def __init__(self, id=0, query_id =0, last=False, type_file=' ', header=None, rows=None):
+    def __init__(self, id=0, query_id=0, last=False, type_file=' ', header=None, rows=None):
         self._id_batch = int(id)
-        self._query_id = int(query_id) 
+        self._query_id = int(query_id)
         self._last_batch = last
         self._type_file = type_file
         self._header = header if header is not None else []
@@ -39,6 +41,21 @@ class Batch:
 
     def set_id(self, id: int):
         self._id_batch = int(id)
+
+    def change_header_name_value(self, old_column, new_column, dictionary):
+        try:
+            id = self._header.index(old_column)
+            self._header[id] = new_column
+        except ValueError as e:
+            raise ValueError(f'la columna {old_column} no existe en el header')
+        body_copy = copy.deepcopy(self._body)
+        for i in body_copy:
+            try:
+                i[id] = dictionary[i[id]]
+            except KeyError as e:
+                self._header[self._header.index(new_column)] = old_column
+                raise KeyError(f'el id {i[id]} no existe en el dictionary')
+        self._body = body_copy
 
     def set_header(self, header):
         """
@@ -73,7 +90,7 @@ class Batch:
 
     def get_header(self):
         return self._header
-    
+
     def get_query_id(self):
         return self._query_id
 
@@ -162,7 +179,6 @@ class Batch:
         res += len(body_joined).to_bytes(4, byteorder="big", signed=False)
         res += body_joined
         return res
-
 
     def decode(self, data: bytes):
         offset = 0
@@ -300,7 +316,16 @@ class Batch:
         for row in rows:
             self.add_row(row)
 
-# aux = Batch(5, False, 't', ['a', 'b', 'c'], [['1', '2', '3'], ['fw3', 'efw', 'ewq'], ['123e', '2w', '3r']])
+# aux = Batch(5, 1, False, 't', ['id', 'b', 'c'], [['1', 'rwe23', '23edwq'], ['2', 'efw', 'ewq'], ['3', '2w', '3r']])
+#
+# dic = {'1': 'Juan', '2': 'Ana', '4': 'dada'}
+#
+# print(aux)
+# try:
+#     aux.change_header_name_value('id', 'name', dic)
+# except Exception as e:
+#     print(e)
+# print(aux)
 #
 #
 # print('for comun\n')
