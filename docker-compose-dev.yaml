@@ -26,8 +26,10 @@ services:
         - CONSUME_QUEUE_Q1=q14
         - PRODUCE_QUEUE_Q1=q11
 
-        - CONSUME_QUEUE_Q3=q33
+        - CONSUME_QUEUE_Q3=q34
         - PRODUCE_QUEUE_Q3=q31
+        - JOIN_QUEUE=j31
+
       volumes:
         - ./config.ini:/app/config.ini
 
@@ -46,24 +48,22 @@ services:
         - PRODUCE_QUEUE=q33
         - AGGREGATOR_NAME=tpv_by_semester_store
 
-  # reducer_q3_join:
-  #   build:
-  #     context: .
-  #     dockerfile: reducer/Dockerfile
-  #   restart: on-failure
-  #   depends_on:
-  #     - rabbitmq
-  #   links:
-  #     - rabbitmq
-  #   environment:
-  #     - PYTHONUNBUFFERED=1
-  #     - CONSUME_QUEUE=q33
-  #     - PRODUCE_QUEUE=q34
-  #     - REDUCER_NAME=join_stores
-  #     - STORES_CSV=/app/csvs_files/stores.csv
-  #   volumes:
-  #     - ./csvs_files:/app/csvs_files
-  #     - ./config.ini:/app/config.ini
+  joiner_q3:
+    build:
+      context: .
+      dockerfile: joinner/Dockerfile
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+    links:
+      - rabbitmq
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=q33
+      - PRODUCE_QUEUE=q34
+      - JOIN_QUEUE=j31
+    volumes:
+      - ./config.ini:/app/config.ini
 
 
   filter1:

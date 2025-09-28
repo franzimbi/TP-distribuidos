@@ -7,6 +7,7 @@ from distributor import Distributor, shutdown
 from configparser import ConfigParser
 import logging
 
+
 def initialize_config():
     """ Parse env variables or config file to find program config params
 
@@ -26,7 +27,8 @@ def initialize_config():
     try:
         config_params["port"] = int(os.getenv('SYSTEM_PORT', config["DEFAULT"]["SYSTEM_PORT"]))
         config_params["host"] = str(os.getenv('SYSTEM_HOST', config["DEFAULT"]["SYSTEM_HOST"]))
-        config_params["listen_backlog"] = int(os.getenv('SERVER_LISTEN_BACKLOG', config["DEFAULT"]["SYSTEM_LISTEN_BACKLOG"]))
+        config_params["listen_backlog"] = int(
+            os.getenv('SERVER_LISTEN_BACKLOG', config["DEFAULT"]["SYSTEM_LISTEN_BACKLOG"]))
         config_params["logging_level"] = os.getenv('LOGGING_LEVEL', config["DEFAULT"]["LOGGING_LEVEL"])
     except KeyError as e:
         raise KeyError("Key was not found. Error: {} .Aborting server".format(e))
@@ -34,6 +36,7 @@ def initialize_config():
         raise ValueError("Key could not be parsed. Error: {}. Aborting server".format(e))
 
     return config_params
+
 
 def initialize_log(logging_level):
     """
@@ -48,6 +51,7 @@ def initialize_log(logging_level):
         datefmt='%Y-%m-%d %H:%M:%S',
     )
     logging.getLogger("pika").setLevel(logging.WARNING)
+
 
 def main():
     config_params = initialize_config()
@@ -128,6 +132,7 @@ def main():
             pass
         accept_thread.join(timeout=2.0)
         print("[DISTRIBUTOR] Apagado limpio.")
+
 
 if __name__ == "__main__":
     main()
