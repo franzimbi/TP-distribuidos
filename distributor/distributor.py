@@ -10,10 +10,11 @@ Q1queue_consumer = os.getenv("CONSUME_QUEUE_Q1")
 Q1queue_producer = os.getenv("PRODUCE_QUEUE_Q1")
 Q3queue_consumer = os.getenv("CONSUME_QUEUE_Q3")
 Q3queue_producer = os.getenv("PRODUCE_QUEUE_Q3")
+Q3queue_joiner = os.getenv("JOIN_QUEUE_Q3")
 
 shutdown = threading.Event()
 
-ROUTING = {'t': [1, 3]}
+ROUTING = {'t': [1, 3], 's': [3]}  
 
 def make_batch_for_query(src: Batch, query_id: int) -> Batch:
     return Batch(
@@ -36,6 +37,9 @@ class Distributor:
         self.producer_queues = {
             1: MessageMiddlewareQueue(host='rabbitmq', queue_name=Q1queue_producer),
             3: MessageMiddlewareQueue(host='rabbitmq', queue_name=Q3queue_producer),
+        }
+        self.joiner_queues = {
+            3: MessageMiddlewareQueue(host='rabbitmq', queue_name=Q3queue_joiner),
         }
         self.consumer_queues = {
             1: MessageMiddlewareQueue(host='rabbitmq', queue_name=Q1queue_consumer),
@@ -95,6 +99,16 @@ class Distributor:
             logging.warning(f"[DISTRIBUTOR] Sin routing para type={batch.type()}")
             return
         for query_id in query_ids:
+            if batch.type() == 's':
+                logging.debug(f"\n\n\n[DISTRIBUTOR] Distribuyendo batch id={batch.id()} qid={query_id} a workers de Q{query_id}")
+                q = self.joiner_queues.get(query_id)
+                if not q:
+                    logging.error(f"[DISTRIBUTOR] Joiner queue no configurada para Q{query_id}")
+                    continue
+                out = make_batch_for_query(batch, query_id)
+                q.send(out.encode())
+                logging.debug(f"[DISTRIBUTOR] Batch id={batch.id()} qid={query_id} enviado a joiner")
+                continue
             q = self.producer_queues.get(query_id)
             if not q:
                 logging.error(f"[DISTRIBUTOR] Producer queue no configurada para Q{query_id}")

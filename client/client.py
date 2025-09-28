@@ -7,6 +7,12 @@ from common.protocol import send_batches_from_csv, recv_batch
 BATCH_SIZE = 150
 AMOUNT_OF_QUERIES = 2
 
+STORES_PATH = '/stores'
+TRANSACTION_PATH = '/transactions'
+
+STORES_TYPE_FILE = 's'
+TRANSACTION_TYPE_FILE = 't'
+
 class Client:
 
     def __init__(self, host, port):
@@ -14,15 +20,20 @@ class Client:
         self.socket.connect((host, port))
 
     def start(self, path_input, path_output):
-        self.sender = threading.Thread(
+        
+        logging.debug(f'envio stores para q3')
+        send_batches_from_csv(path_input+STORES_PATH, BATCH_SIZE, self.socket, STORES_TYPE_FILE, 3)
+        logging.debug(f'stores para q3 enviados.')
+
+        self.sender_transaction = threading.Thread(
             target=send_batches_from_csv,
-            args=(path_input, BATCH_SIZE, self.socket, 't', 1),
+            args=(path_input+TRANSACTION_PATH, BATCH_SIZE, self.socket, TRANSACTION_TYPE_FILE, 1),
             daemon=True
         )
-        self.sender.start()
+        self.sender_transaction.start()
 
         self.receiver = threading.Thread(
-            target=receiver, args=(self.socket, 'results'), daemon=True
+            target=receiver, args=(self.socket, path_output), daemon=True
         )
         self.receiver.start()
 

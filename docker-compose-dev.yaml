@@ -28,7 +28,7 @@ services:
 
         - CONSUME_QUEUE_Q3=q34
         - PRODUCE_QUEUE_Q3=q31
-        - JOIN_QUEUE=j31
+        - JOIN_QUEUE_Q3=j31
 
       volumes:
         - ./config.ini:/app/config.ini
@@ -62,6 +62,8 @@ services:
       - CONSUME_QUEUE=q33
       - PRODUCE_QUEUE=q34
       - JOIN_QUEUE=j31
+      - COLUMN_NAME=1
+      - COLUMN_ID=1
     volumes:
       - ./config.ini:/app/config.ini
 

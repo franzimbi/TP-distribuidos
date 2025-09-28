@@ -19,11 +19,12 @@ class Join:
     def callback_to_receive_join_data(self, ch, method, properties, message):
         batch = Batch()
         batch.decode(message)
-        id = batch.index_of(self.column_id)
-        name = batch.index_of(self.column_name)
-        for row in batch:
-            if row[id] not in self.join_dictionary:
-                self.join_dictionary[row[id]] = row[name]
+        print(batch)
+        # id = batch.index_of(self.column_id)
+        # name = batch.index_of(self.column_name)
+        # for row in batch:
+        #     if row[id] not in self.join_dictionary:
+        #         self.join_dictionary[row[id]] = row[name]
 
         if batch.is_last_batch():
             self.join_queue.stop_consuming()

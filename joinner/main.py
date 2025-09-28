@@ -26,6 +26,9 @@ def initialize_config():
         config_params["PRODUCE_QUEUE"] = os.getenv('PRODUCE_QUEUE', config["DEFAULT"]["PRODUCE_QUEUE"])
         config_params["JOIN_QUEUE"] = os.getenv('JOIN_QUEUE', config["DEFAULT"]["JOIN_QUEUE"])
 
+        config_params["COLUMN_ID"] = os.getenv('COLUMN_ID', config["DEFAULT"]["COLUMN_ID"])
+        config_params["COLUMN_NAME"] = os.getenv('COLUMN_NAME', config["DEFAULT"]["COLUMN_NAME"])
+
         config_params["listen_backlog"] = int(
             os.getenv('SERVER_LISTEN_BACKLOG', config["DEFAULT"]["SYSTEM_LISTEN_BACKLOG"]))
         config_params["logging_level"] = os.getenv('LOGGING_LEVEL', config["DEFAULT"]["LOGGING_LEVEL"])
@@ -49,6 +52,8 @@ def initialize_log(logging_level):
         level=logging_level,
         datefmt='%Y-%m-%d %H:%M:%S',
     )
+
+    logging.getLogger("pika").setLevel(logging.WARNING)
 
 
 def main():
