@@ -1,0 +1,44 @@
+version: '3.8'
+services:
+  rabbitmq:
+    build:
+      context: ./middleware
+      dockerfile: Dockerfile
+    environment:
+      - RABBITMQ_LOGS=-  # mantiene logs en stdout
+      - RABBITMQ_LOG_LEVEL=error
+    ports:
+      - 15672:15672
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:15672" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  producer-test1:
+    build:
+      context: .
+      dockerfile: test/producer/Dockerfile
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+    links:
+      - rabbitmq
+    environment:
+      - PYTHONUNBUFFERED=1
+      - QUEUE_PRODUCE=input_test1
+      - MEG_SEND='test 1 a 1 de tp escalabilidad'
+
+  consumer-test1:
+    build:
+      context: .
+      dockerfile: test/consumer/Dockerfile
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+    links:
+      - rabbitmq
+    environment:
+      - PYTHONUNBUFFERED=1
+      - QUEUE_PRODUCE=input_test1
+      - MEG_SEND='test 1 a 1 de tp escalabilidad'
