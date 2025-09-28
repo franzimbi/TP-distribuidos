@@ -62,8 +62,8 @@ services:
       - CONSUME_QUEUE=q33
       - PRODUCE_QUEUE=q34
       - JOIN_QUEUE=j31
-      - COLUMN_NAME=1
-      - COLUMN_ID=1
+      - COLUMN_NAME=store_name
+      - COLUMN_ID=store_id
     volumes:
       - ./config.ini:/app/config.ini
 
