@@ -30,8 +30,6 @@ class Distributor:
         self.consumer_queues[3] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q3queue_consumer)
         self.joiner_queues[3] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q3queue_joiner)
 
-
-
     def add_client(self, client_id, client_socket):
         self.number_of_clients += 1
         self.clients[client_id] = client_socket
@@ -44,23 +42,21 @@ class Distributor:
 
     def distribute_batch_to_workers(self, batch: Batch):
         queries = self.files_types_for_queries[batch.type()]
-        # print(f"[DISTRIBUTOR] Distribuyendo batch {batch.id()} de tipo {batch.type()} a las queries {queries}.")
         for query_id in queries:
             batch.set_query_id(query_id)
             if query_id == 3 and (batch.id() % 10000 == 0 or batch.id() == 0):
                 print(f"\n[DISTRIBUTOR] Distribuyendo batch {batch.id()} de tipo {batch.type()} a la query {batch.get_query_id()}.")
-            if(batch.type() == 't'):
+            if(batch.type() == 't'): # la proxima veo d hacer algo mas objetoso para evitar estos ifs ~pedro
                 q = self.producer_queues[query_id]
             if(batch.type() == 's'):
                 q = self.joiner_queues[query_id]
             q.send(batch.encode())
 
     def callback(self, ch, method, properties, body: bytes):
-        client_id = 1  # por ahora fijo pq un solo cliente
-        client_socket = self.clients.get(client_id)
-
         batch = Batch()
         batch.decode(body)
+        client_id = 1  # por ahora fijo pq un solo cliente
+        client_socket = self.clients.get(client_id)
         try:
             send_batch(client_socket, batch)
             if batch.get_query_id() == 3:
@@ -68,13 +64,7 @@ class Distributor:
         except Exception as e:
             print(f"[DISTRIBUTOR] error al querer enviar batch:{batch} al cliente:{client_id} | error: {e}")
         if batch.is_last_batch():
-            print(f"\n\n\n[DISTRIBUTOR] Cliente {client_id} recibió todos los resultados de la query {batch.get_query_id()}.\n\n\n")
-            # try:
-                # client_socket.shutdown(socket.SHUT_RDWR)
-                # client_socket.close()
-                # self.remove_client(client_id)
-            # except Exception as e:
-            #     print(f"[DISTRIBUTOR] Error cerrando socket del cliente{client_id} | error: {e}")
+            print(f"\n[DISTRIBUTOR] Cliente {client_id} recibió todos los resultados de la query {batch.get_query_id()}.\n")            
             return
 
     def start_consuming_from_workers(self, query_id):
@@ -82,7 +72,6 @@ class Distributor:
         if cq is None:
             return
         try:
-            print(f"\n\n\n[DISTRIBUTOR] Iniciando consumo de la query {query_id}.\n\n\n")
             cq.start_consuming(self.callback)
         except Exception as e:
             if not shutdown.is_set():
@@ -93,6 +82,5 @@ class Distributor:
             if cq is not None:
                 try:
                     cq.stop_consuming()
-                    print(f"[DISTRIBUTOR] Detenido consumo de la query {qid}.")
                 except Exception as e:
                     print(f"[DISTRIBUTOR] Error al detener consumo de la query {qid}: {e}")

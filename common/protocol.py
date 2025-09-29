@@ -3,8 +3,6 @@ import os
 import socket
 from common.batch import Batch
 import logging
-batch_counter = 0
-batch_counter2 = 0
 
 def send_batches_from_csv(path, batch_size, connection: socket, type_file, query_id):
     print(f"[PROTOCOL] Enviando batches desde {path} de tipo {type_file} para query {query_id}")
@@ -40,8 +38,6 @@ def send_batch(socket, batch: Batch):
     
 
 def recv_exact(socket, n):
-    global batch_counter
-
     buffer = b''
     while len(buffer) < n:
         chunk = socket.recv(n - len(buffer))

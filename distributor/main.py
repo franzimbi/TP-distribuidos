@@ -89,20 +89,20 @@ def main():
 
                 if batch.is_last_batch():
                     contador += 1
-                    print(f"\n\n\n \n [DISTRIBUTOR] Cliente {addr} terminó de ENVIAR {batch.type()}(esperando resultados de workers).\n\n\n")
+                    print(f"\n[DISTRIBUTOR] Cliente {addr} terminó de ENVIAR {batch.type()}(esperando resultados de workers).\n")
                     if contador == 2: #pq por ahora solo hacemos 2 queries
-                        print(f"\n\n\n[DISTRIBUTOR] Cliente {addr} terminó de ENVIAR todos los tipos de archivos.\n\n\n")
-                        break
+                        print(f"\n[DISTRIBUTOR] Cliente {addr} terminó de ENVIAR todos los tipos de archivos.\n")
+                        # break #mejor sacar este break para que cuando el cliente cierre la conexion, el except pueda cerrar todo
                     continue
 
         except Exception as e:
-            print(f"Error con cliente {addr}: {e}")
+            print(f"cliente {addr}: cerro la conexion")
             try:
                 sock.close()
             except OSError:
+                print("Socket ya cerrado")
                 pass
             distributor.remove_client(client_id)
-            print(f"Cliente desconectado (por error): {addr}")
 
     def accept_clients():
         threads = []
@@ -115,8 +115,12 @@ def main():
             t = threading.Thread(target=handle_client, args=(sock, addr), daemon=True)
             t.start()
             threads.append(t)
+            for t in threads: #desp d aceptar un cliente, me aseguro d limpiar los threads muertos
+                t.join(timeout=1.0)
+                if not t.is_alive():
+                    threads.remove(t) 
         for t in threads:
-            t.join(timeout=1.0)
+            t.join()
 
     q1_consumer_thread = threading.Thread(target=distributor.start_consuming_from_workers, args=(1,), daemon=True)
     q1_consumer_thread.start()
@@ -129,11 +133,10 @@ def main():
 
     try:
         while True:
-            accept_thread.join()
+            accept_thread.join() # no agrueguen timeout aca, crean un busy loop alpedo
     except KeyboardInterrupt:
         pass
     finally:
-        # shutdown.set()
         distributor.stop_consuming_from_all_workers()
         print("\nhice stop consuming from all threads")
         try:
@@ -148,7 +151,6 @@ def main():
         print("joinee q3_consumer thread")
 
         print("[DISTRIBUTOR] Apagado limpio.")
-
 
 if __name__ == "__main__":
     main()

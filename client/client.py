@@ -23,9 +23,7 @@ class Client:
 
     def start(self, path_input, path_output):
     
-        logging.debug(f'envio stores para q3')
         send_batches_from_csv(path_input+STORES_PATH, BATCH_SIZE, self.socket, STORES_TYPE_FILE, 3)
-        logging.debug(f'stores para q3 enviados.')
 
         self.sender_transaction = threading.Thread(
             target=send_batches_from_csv,
@@ -41,11 +39,9 @@ class Client:
         print(f"[CLIENT] Hilos sender y receiver iniciados.")
 
     def close(self):
-        print("\n\n\n[CLIENT] Cerrando cliente...\n\n\n")
         if self.receiver_thread:
             self.receiver_thread.join()
             print("[CLIENT] joinee receiver...")
-        print("[CLIENT] pase if de join receiver \n\n")
         if self.sender_transaction:
             self.sender_transaction.join()
             print("[CLIENT] joinee sender...")
@@ -68,7 +64,6 @@ class Client:
                     logging.info(f"[CLIENT] Recibido END de Q{qid}. Pendientes: {AMOUNT_OF_QUERIES - len(ended)}")
                     if len(ended) >= AMOUNT_OF_QUERIES:
                         logging.info("[CLIENT] Recibidos END de todas las queries. Fin.")
-                        # self.close()
                         break
                     continue
 
