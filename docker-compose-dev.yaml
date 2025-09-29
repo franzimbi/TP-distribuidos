@@ -23,12 +23,16 @@ services:
         - rabbitmq
       environment:
         - PYTHONUNBUFFERED=1
-        - CONSUME_QUEUE_Q1=q14
-        - PRODUCE_QUEUE_Q1=q11
 
-        - CONSUME_QUEUE_Q3=q34
+        - PRODUCE_QUEUE_Q1=q11
+        - CONSUME_QUEUE_Q1=q14
+
         - PRODUCE_QUEUE_Q3=q31
+        - CONSUME_QUEUE_Q3=q34
         - JOIN_QUEUE_Q3=j31
+
+        - PRODUCE_QUEUE_Q4=q41
+        - CONSUME_QUEUE_Q4=q43
 
       volumes:
         - ./config.ini:/app/config.ini
@@ -47,6 +51,46 @@ services:
         - CONSUME_QUEUE=q32
         - PRODUCE_QUEUE=q33
         - AGGREGATOR_NAME=tpv_by_semester_store
+      volumes:
+        - ./config.ini:/app/config.ini
+
+  aggregator_q4:
+      build:
+        context: .
+        dockerfile: aggregator/Dockerfile
+      restart: on-failure
+      depends_on:
+        - rabbitmq
+      links:
+        - rabbitmq
+      environment:
+        - PYTHONUNBUFFERED=1
+
+        - CONSUME_QUEUE=q41
+        - PRODUCE_QUEUE=q42
+        - AGGREGATOR_NAME=counter
+      volumes:
+        - ./config.ini:/app/config.ini
+
+  reducer_q4:
+      build:
+        context: .
+        dockerfile: reducer/Dockerfile
+      restart: on-failure
+      depends_on:
+        - rabbitmq
+      links:
+        - rabbitmq
+      environment:
+        - PYTHONUNBUFFERED=1
+
+        - CONSUME_QUEUE=q42
+        - PRODUCE_QUEUE=q43
+        - TOP=3
+        - COLUMN_NAME=store_id,user_id,purchases_qty
+      volumes:
+        - ./config.ini:/app/config.ini
+        
 
   joiner_q3:
     build:

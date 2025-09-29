@@ -5,7 +5,7 @@ import logging
 from common.protocol import send_batches_from_csv, recv_batch
 
 BATCH_SIZE = 150
-AMOUNT_OF_QUERIES = 2
+AMOUNT_OF_QUERIES = 3
 
 STORES_PATH = '/stores'
 TRANSACTION_PATH = '/transactions'

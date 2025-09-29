@@ -12,12 +12,15 @@ Q3queue_consumer = os.getenv("CONSUME_QUEUE_Q3")
 Q3queue_producer = os.getenv("PRODUCE_QUEUE_Q3")
 Q3queue_joiner = os.getenv("JOIN_QUEUE_Q3")
 
+Q4queue_consumer = os.getenv("CONSUME_QUEUE_Q4")
+Q4queue_producer = os.getenv("PRODUCE_QUEUE_Q4")
+
 shutdown = threading.Event()
 class Distributor:
     def __init__(self):
         self.number_of_clients = 0
         self.clients = {}  # key: client_id, value: socket
-        self.files_types_for_queries = {'t': [1,3], 's': [3]}  # key: type_file, value: list of query_ids
+        self.files_types_for_queries = {'t': [1,3,4], 's': [3]}  # key: type_file, value: list of query_ids
 
         self.producer_queues = {} # key: query_id, value: MessageMiddlewareQueue
         self.consumer_queues = {} # ""
@@ -29,6 +32,10 @@ class Distributor:
         self.producer_queues[3] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q3queue_producer)        
         self.consumer_queues[3] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q3queue_consumer)
         self.joiner_queues[3] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q3queue_joiner)
+        
+        self.producer_queues[4] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q4queue_producer)
+        self.consumer_queues[4] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q4queue_consumer)
+
 
     def add_client(self, client_id, client_socket):
         self.number_of_clients += 1
@@ -42,10 +49,10 @@ class Distributor:
 
     def distribute_batch_to_workers(self, batch: Batch):
         queries = self.files_types_for_queries[batch.type()]
+        if (batch.id() % 10000 == 0 or batch.id() == 0):
+                print(f"\n[DISTRIBUTOR] Distribuyendo batch {batch.id()} de tipo {batch.type()} a las queries {queries}.")
         for query_id in queries:
-            batch.set_query_id(query_id)
-            if query_id == 3 and (batch.id() % 10000 == 0 or batch.id() == 0):
-                print(f"\n[DISTRIBUTOR] Distribuyendo batch {batch.id()} de tipo {batch.type()} a la query {batch.get_query_id()}.")
+            batch.set_query_id(query_id)    
             if(batch.type() == 't'): # la proxima veo d hacer algo mas objetoso para evitar estos ifs ~pedro
                 q = self.producer_queues[query_id]
             if(batch.type() == 's'):
