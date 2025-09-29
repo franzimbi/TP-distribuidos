@@ -74,7 +74,7 @@ def main():
     producer = MessageMiddlewareQueue(host="rabbitmq", queue_name=queue_producer)
     join_data = MessageMiddlewareQueue(host="rabbitmq", queue_name=join_queue)
 
-    this_join = Join(join_data, config_params["COLUMN_ID"], config_params["COLUMN_NAME"], logging)
+    this_join = Join(join_data, config_params["COLUMN_ID"], config_params["COLUMN_NAME"])
 
     this_join.start(consumer, producer)
 

@@ -1,20 +1,20 @@
 from middleware.middleware import MessageMiddlewareQueue, MessageMiddlewareDisconnectedError
 from common.batch import Batch
+import logging
 
 
 class Join:
-    def __init__(self, join_queue, column_id, column_name, logger):
+    def __init__(self, join_queue, column_id, column_name):
         self.producer_queue = None
         self.consumer_queue = None
         self.join_dictionary = {}
         self.column_id = column_id
         self.column_name = column_name
         self.join_queue = join_queue
-        self.logger = logger
         # recibe de join_queue los datos y arma el diccionario de id-valor
-        self.logger.info("action: receive_join_data | status: waiting")
+        logging.info("action: receive_join_data | status: waiting")
         self.join_queue.start_consuming(self.callback_to_receive_join_data)
-        self.logger.info("action: receive_join_data | status: finished | entries: %d", len(self.join_dictionary))
+        logging.info("action: receive_join_data | status: finished | entries: %d", len(self.join_dictionary))
 
     def callback_to_receive_join_data(self, ch, method, properties, message):
         batch = Batch()
@@ -37,8 +37,9 @@ class Join:
         batch = Batch()
         batch.decode(message)
         try:
-            batch.change_header_name_value(self.column_id, self.column_name, self.join_dictionary)
-            self.logger.debug(f'action: join_batch_with_dicctionary | result: success')
+            if not batch.is_last_batch():
+                batch.change_header_name_value(self.column_id, self.column_name, self.join_dictionary)
+                logging.debug(f'action: join_batch_with_dicctionary | result: success')
         except (ValueError, KeyError) as e:
-            self.logger.error(f'action: join_batch_with_dicctionary | result: fail | errror: {e}')
+            logging.error(f'action: join_batch_with_dicctionary | result: fail | errror: {e}')
         self.producer_queue.send(batch.encode())

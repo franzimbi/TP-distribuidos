@@ -18,9 +18,11 @@ class Client:
     def __init__(self, host, port):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect((host, port))
+        self.sender_transaction = None
+        self.receiver_thread = None
 
     def start(self, path_input, path_output):
-        
+    
         logging.debug(f'envio stores para q3')
         send_batches_from_csv(path_input+STORES_PATH, BATCH_SIZE, self.socket, STORES_TYPE_FILE, 3)
         logging.debug(f'stores para q3 enviados.')
@@ -31,59 +33,66 @@ class Client:
             daemon=True
         )
         self.sender_transaction.start()
-
-        self.receiver = threading.Thread(
-            target=receiver, args=(self.socket, path_output), daemon=True
+        
+        self.receiver_thread = threading.Thread(
+            target=self.receiver, args=(path_output,), daemon=True
         )
-        self.receiver.start()
+        self.receiver_thread.start()
+        print(f"[CLIENT] Hilos sender y receiver iniciados.")
 
     def close(self):
-        self.receiver.join()
-        self.sender.join()
+        print("\n\n\n[CLIENT] Cerrando cliente...\n\n\n")
+        if self.receiver_thread:
+            self.receiver_thread.join()
+            print("[CLIENT] joinee receiver...")
+        print("[CLIENT] pase if de join receiver \n\n")
+        if self.sender_transaction:
+            self.sender_transaction.join()
+            print("[CLIENT] joinee sender...")
         self.socket.close()
+        print("[CLIENT] socket cerrado.")
 
 
-def receiver(skt, out_dir):
-    files = {}
-    wrote_header = {}
-    ended = set()
+    def receiver(self, out_dir):
+        files = {}
+        wrote_header = {}
+        ended = set()
+        os.makedirs(out_dir, exist_ok=True)
+        try:
+            while True:
+                batch = recv_batch(self.socket)
+                qid = batch.get_query_id()
 
-    os.makedirs(out_dir, exist_ok=True)
+                if batch.is_last_batch():
+                    ended.add(qid)
+                    logging.info(f"[CLIENT] Recibido END de Q{qid}. Pendientes: {AMOUNT_OF_QUERIES - len(ended)}")
+                    if len(ended) >= AMOUNT_OF_QUERIES:
+                        logging.info("[CLIENT] Recibidos END de todas las queries. Fin.")
+                        # self.close()
+                        break
+                    continue
 
-    try:
-        while True:
-            batch = recv_batch(skt)
-            qid = batch.get_query_id()
+                if qid not in files:
+                    path = os.path.join(out_dir, f"q{qid}.csv")
+                    files[qid] = open(path, "w")
+                    wrote_header[qid] = False
+                    logging.debug(f"[CLIENT] Abierto archivo de salida: {path}")
 
-            if batch.is_last_batch():
-                ended.add(qid)
-                logging.info(f"[CLIENT] Recibido END de Q{qid}. Pendientes: {AMOUNT_OF_QUERIES - len(ended)}")
-                if len(ended) >= AMOUNT_OF_QUERIES:
-                    logging.info("[CLIENT] Recibidos END de todas las queries. Fin.")
-                    break
-                continue
+                f = files[qid]
+                if not wrote_header[qid]:
+                    f.write(",".join(batch.get_header()) + "\n")
+                    wrote_header[qid] = True
+                    logging.debug(f"[CLIENT] Escribí header para Q{qid}: {batch.get_header()}")
 
-            if qid not in files:
-                path = os.path.join(out_dir, f"q{qid}.csv")
-                files[qid] = open(path, "w")
-                wrote_header[qid] = False
-                logging.debug(f"[CLIENT] Abierto archivo de salida: {path}")
+                for row in batch:
+                    f.write(",".join(row) + "\n")
 
-            f = files[qid]
-            if not wrote_header[qid]:
-                f.write(",".join(batch.get_header()) + "\n")
-                wrote_header[qid] = True
-                logging.debug(f"[CLIENT] Escribí header para Q{qid}: {batch.get_header()}")
-
-            for row in batch:
-                f.write(",".join(row) + "\n")
-
-    except Exception as e:
-        logging.error(f"[CLIENT] Error en receiver: {e}")
-    finally:
-        for f in files.values():
-            try:
-                f.close()
-            except Exception:
-                pass
-        logging.info(f"[CLIENT] Resultados guardados en {out_dir}")
+        except Exception as e:
+            logging.info(f"\n\n\n\n[CLIENT] Error en receiver: {e}")
+        finally:
+            for f in files.values():
+                try:
+                    f.close()
+                except Exception:
+                    pass
+            logging.info(f"[CLIENT] Resultados guardados en {out_dir}")

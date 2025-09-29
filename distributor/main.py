@@ -27,8 +27,7 @@ def initialize_config():
     try:
         config_params["port"] = int(os.getenv('SYSTEM_PORT', config["DEFAULT"]["SYSTEM_PORT"]))
         config_params["host"] = str(os.getenv('SYSTEM_HOST', config["DEFAULT"]["SYSTEM_HOST"]))
-        config_params["listen_backlog"] = int(
-            os.getenv('SERVER_LISTEN_BACKLOG', config["DEFAULT"]["SYSTEM_LISTEN_BACKLOG"]))
+        config_params["listen_backlog"] = int(os.getenv('SERVER_LISTEN_BACKLOG', config["DEFAULT"]["SYSTEM_LISTEN_BACKLOG"]))
         config_params["logging_level"] = os.getenv('LOGGING_LEVEL', config["DEFAULT"]["LOGGING_LEVEL"])
     except KeyError as e:
         raise KeyError("Key was not found. Error: {} .Aborting server".format(e))
@@ -74,7 +73,7 @@ def main():
     def handle_client(sock, addr):
         client_id = 1  # TODO: IDs únicos si soportan varios clientes
         distributor.add_client(client_id, sock)
-
+        contador = 0 
         first_batch_type = None
 
         try:
@@ -83,15 +82,19 @@ def main():
 
                 if first_batch_type is None:
                     first_batch_type = batch.type()
-                    distributor.set_client_queries_for_type(client_id, first_batch_type)
-                    logging.debug(f"[DISTRIBUTOR] Cliente {addr} inició tipo={first_batch_type}, "
-                                  f"queries pendientes={distributor.client_queries.get(client_id)}")
+                    # distributor.set_client_queries_for_type(client_id, first_batch_type)
+                    logging.debug(f"[DISTRIBUTOR] Cliente {addr} inició tipo={first_batch_type}")
 
                 distributor.distribute_batch_to_workers(batch)
 
                 if batch.is_last_batch():
-                    print(f"[DISTRIBUTOR] Cliente {addr} terminó de ENVIAR (esperando resultados de workers).")
-                    break
+                    contador += 1
+                    print(f"\n\n\n \n [DISTRIBUTOR] Cliente {addr} terminó de ENVIAR {batch.type()}(esperando resultados de workers).\n\n\n")
+                    if contador == 2: #pq por ahora solo hacemos 2 queries
+                        print(f"\n\n\n[DISTRIBUTOR] Cliente {addr} terminó de ENVIAR todos los tipos de archivos.\n\n\n")
+                        break
+                    continue
+
         except Exception as e:
             print(f"Error con cliente {addr}: {e}")
             try:
@@ -115,22 +118,35 @@ def main():
         for t in threads:
             t.join(timeout=1.0)
 
+    q1_consumer_thread = threading.Thread(target=distributor.start_consuming_from_workers, args=(1,), daemon=True)
+    q1_consumer_thread.start()
+    
+    q3_consumer_thread = threading.Thread(target=distributor.start_consuming_from_workers, args=(3,), daemon=True)
+    q3_consumer_thread.start()
+
     accept_thread = threading.Thread(target=accept_clients, daemon=True)
     accept_thread.start()
 
     try:
         while True:
-            accept_thread.join(timeout=1.0)
+            accept_thread.join()
     except KeyboardInterrupt:
         pass
     finally:
-        shutdown.set()
+        # shutdown.set()
         distributor.stop_consuming_from_all_workers()
+        print("\nhice stop consuming from all threads")
         try:
             server_socket.close()
         except Exception:
             pass
         accept_thread.join(timeout=2.0)
+        print("joinee accept thread")
+        q1_consumer_thread.join(timeout=2.0)
+        print("joinee q1_consumer thread")
+        q3_consumer_thread.join(timeout=2.0)
+        print("joinee q3_consumer thread")
+
         print("[DISTRIBUTOR] Apagado limpio.")
 
 

@@ -29,6 +29,7 @@ class TPVBySemesterStore:
         return f"{dt.year}_{'S1' if dt.month <= 6 else 'S2'}"
 
     def callback(self, ch, method, properties, message):
+        #print(f"[aggregator_q3] mensaje recibido")
         batch = Batch(); batch.decode(message)
 
         if self._qid is None:
@@ -36,6 +37,8 @@ class TPVBySemesterStore:
 
         if batch.is_last_batch():
             self._flush(batch)
+            print(f"\n\n\n\n[aggregator_q3] hice flush\n\n\n\n")
+            print(f"[aggregator_q3] END recibido, batch entero: {batch}")
             end = Batch(
                 id=batch.id(),
                 query_id=(self._qid or 0),
@@ -58,11 +61,13 @@ class TPVBySemesterStore:
                 key = (year_sem, store_id)
                 self._acc[key] = self._acc.get(key, 0.0) + amount
             except Exception:
+                print(f"[aggregator_q3] fila mal formada: {row}")
                 continue
 
     def _flush(self, src_batch):
+        print(f"\n\n\n\n[aggregator_q3] flush\n\n\n\n")
         if not self._acc:
-            logging.debug("[aggregator_q3] flush sin datos")
+            logging.info("[aggregator_q3] flush sin datos")
             return
 
         rows = [[ys, str(sid), f"{tpv:.2f}"] for (ys, sid), tpv in self._acc.items()]
