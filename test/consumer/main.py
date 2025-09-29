@@ -1,6 +1,7 @@
 import os
 from middleware import MessageMiddlewareQueue
 import logging
+import time
 
 def main():
     producer_queue = os.getenv("QUEUE_PRODUCE")
@@ -10,6 +11,7 @@ def main():
         level=logging.INFO,
         format='%(message)s'
     )
+    logging.getLogger("pika").setLevel(logging.WARNING)
     logger = logging.getLogger(__name__)
 
 
@@ -23,6 +25,8 @@ def main():
         else:
             # Rojo si falla
             logger.info(f"\033[91mReceived {received}: {success}\033[0m")
+
+        time.sleep(1)
 
     producer = MessageMiddlewareQueue(host="rabbitmq", queue_name=producer_queue)
 

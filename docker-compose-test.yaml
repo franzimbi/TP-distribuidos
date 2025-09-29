@@ -27,6 +27,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - QUEUE_PRODUCE=input_test1
+      - CANT_MSG=1
       - MEG_SEND='test 1 a 1 de tp escalabilidad'
 
   consumer-test1:
@@ -42,3 +43,89 @@ services:
       - PYTHONUNBUFFERED=1
       - QUEUE_PRODUCE=input_test1
       - MEG_SEND='test 1 a 1 de tp escalabilidad'
+
+  producer-test2:
+    build:
+      context: .
+      dockerfile: test/producer/Dockerfile
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+    links:
+      - rabbitmq
+    environment:
+      - PYTHONUNBUFFERED=1
+      - QUEUE_PRODUCE=input_test2
+      - CANT_MSG=5
+      - MEG_SEND='test 1 a N de tp escalabilidad'
+
+  consumer-test2.1:
+    build:
+      context: .
+      dockerfile: test/consumer/Dockerfile
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+    links:
+      - rabbitmq
+    environment:
+      - PYTHONUNBUFFERED=1
+      - QUEUE_PRODUCE=input_test2
+      - MEG_SEND='test 1 a N de tp escalabilidad'
+
+  consumer-test2.2:
+    build:
+      context: .
+      dockerfile: test/consumer/Dockerfile
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+    links:
+      - rabbitmq
+    environment:
+      - PYTHONUNBUFFERED=1
+      - QUEUE_PRODUCE=input_test2
+      - MEG_SEND='test 1 a N de tp escalabilidad'
+
+  consumer-test2.3:
+    build:
+      context: .
+      dockerfile: test/consumer/Dockerfile
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+    links:
+      - rabbitmq
+    environment:
+      - PYTHONUNBUFFERED=1
+      - QUEUE_PRODUCE=input_test2
+      - MEG_SEND='test 1 a N de tp escalabilidad'
+
+  consumer-test2.4:
+    build:
+      context: .
+      dockerfile: test/consumer/Dockerfile
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+    links:
+      - rabbitmq
+    environment:
+      - PYTHONUNBUFFERED=1
+      - QUEUE_PRODUCE=input_test2
+      - MEG_SEND='test 1 a N de tp escalabilidad'
+
+  consumer-test2.5:
+    build:
+      context: .
+      dockerfile: test/consumer/Dockerfile
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+    links:
+      - rabbitmq
+    environment:
+      - PYTHONUNBUFFERED=1
+      - QUEUE_PRODUCE=input_test2
+      - MEG_SEND='test 1 a N de tp escalabilidad'
+
