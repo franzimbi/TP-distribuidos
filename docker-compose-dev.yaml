@@ -90,7 +90,7 @@ services:
         - COLUMN_NAME=store_id,user_id,purchases_qty
       volumes:
         - ./config.ini:/app/config.ini
-        
+
 
   joiner_q3:
     build:

@@ -9,7 +9,6 @@ class Reducer:
         self._top = int(top)
         self.top_users = {}
         self._columns = [n.strip() for n in columns.split(",")] #store_id, user_id
-        self.bol = True
 
         logging.info(f"[REDUCER] Initialized with top={self._top} and columns={self._columns}")
 
@@ -20,11 +19,6 @@ class Reducer:
     def callback(self, ch, method, properties, message):
         batch = Batch(); batch.decode(message)
 
-        if self.bol:
-            logging.info(f"\n\n\n[REDUCER] Received batch {batch.id()} {batch}\n\n")
-            self.bol = False
-        if batch.id() == 0 or batch.is_last_batch():
-            logging.info(f"[REDUCER] Received batch {batch.id()} {batch}")
         for i in batch.iter_per_header():
             store = i["store_id"]
             user = i["user_id"]
@@ -37,15 +31,24 @@ class Reducer:
             self.top_users[store] = {k: self.top_users[store][k] for k in top_keys}
 
         if batch.is_last_batch():
-            logging.info(f'\n\n[REDUCER] top_users: {self.top_users}')
-            batch_result = Batch(batch.id(), batch.get_query_id(), type_file=batch.type())
-            batch_result.set_header(['store_id', 'user_id', 'purchases_qty'])
-            batch_result.set_last_batch()
-            for store in self.top_users:
-                for user in store:
-                    logging.info(f"[REDUCER] Adding row: store={store}, user={user}, purchases_qty={self.top_users[store][user]}")
-                    batch_result.add_row([store, user, self.top_users[store][user]])
-            logging.info(f"[REDUCER] Sending batch {batch_result.id()} with {len(batch_result)} rows.")
-            self._producer_queue.send(batch_result.encode())
+            rows = []
+            for store, users in self.top_users.items():
+                for user, qty in users.items():
+                    rows.append((store, user, qty))
+            rows.sort(key=lambda x: (int(x[0]), int(x[1])))
+            self.send_last_batch(batch, rows)
+
+    def send_last_batch(self, batch, rows):
+        batch_result = Batch(batch.id(), batch.get_query_id(), type_file=batch.type())
+        batch_result.set_header(['store_id', 'user_id', 'purchases_qty'])
+        batch_result.set_last_batch()
+        for store, user, qty in rows:
+            batch_result.add_row([store, user, str(qty)])
+        logging.info(f"[REDUCER] Sending batch {batch_result.id()} with {len(batch_result)} rows.")
+        self._producer_queue.send(batch_result.encode())
+        logging.info(f"[REDUCER] Sending batch {batch_result.id()} with")
+        logging.info(f"columns: {batch_result.get_header()}")
+        for i in batch_result:
+            logging.info(f"{i}")
 
 
