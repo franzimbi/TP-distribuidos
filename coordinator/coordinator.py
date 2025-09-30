@@ -41,6 +41,7 @@ class Coordinator:
                 print(f"[Coordinator] Node {self.finished_nodes} finished ({self.finished_nodes}/{self.num_nodes})")
 
                 if self.finished_nodes == self.num_nodes:
+                    self.finished_nodes = 0
                     self._send_downstream_end()
             else:
                 print(f"[Coordinator] Unknown text message: {msg}")
