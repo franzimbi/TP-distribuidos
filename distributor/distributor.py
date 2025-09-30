@@ -1,4 +1,7 @@
+import logging
 import os
+import signal
+import sys
 import threading
 from middleware.middleware import MessageMiddlewareQueue
 from common.protocol import send_batch
@@ -27,6 +30,8 @@ class Distributor:
         self.consumer_queues = {} # ""
         self.joiner_queues = {}   # ""
 
+        signal.signal(signal.SIGTERM, self.graceful_quit)
+
         self.producer_queues[1] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q1queue_producer)
         self.consumer_queues[1] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q1queue_consumer)
         
@@ -39,7 +44,24 @@ class Distributor:
         self.joiner_queues[4] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q4queue_joiner_users)
         self.joiner_queues[42] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q4queue_joiner_stores)
 
+    def graceful_quit(self, signum, frame):
+        logging.info(f'signum {signum} activado')
+        shutdown.set()
+        self.stop_consuming_from_all_workers()
 
+        for qid, q in {**self.consumer_queues, **self.producer_queues, **self.joiner_queues}.items():
+            if q is not None:
+                try:
+                    q.close()
+                except Exception as e:
+                    print(f"[DISTRIBUTOR] Error cerrando conexión {qid}: {e}")
+
+        for cid, sock in self.clients.items():
+            try:
+                sock.close()
+            except Exception as e:
+                print(f"[DISTRIBUTOR] Error cerrando socket cliente {cid}: {e}")
+        sys.exit(0)
 
     def add_client(self, client_id, client_socket):
         self.number_of_clients += 1

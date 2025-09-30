@@ -1,6 +1,8 @@
 from common.batch import Batch
 import logging
 import heapq
+import signal
+import sys
 
 class Reducer:
     def __init__(self, consumer, producer, top, columns):
@@ -11,6 +13,14 @@ class Reducer:
         self._columns = [n.strip() for n in columns.split(",")] #store_id, user_id
 
         logging.info(f"[REDUCER] Initialized with top={self._top} and columns={self._columns}")
+        signal.signal(signal.SIGTERM, self.graceful_shutdown)
+
+    def graceful_shutdown(self, signum, frame):
+        try:
+            self.close()
+        except Exception as e:
+            logging.error(f"[REDUCER] Error closing: {e}")
+        sys.exit(0)
 
     def start(self):
         logging.info("[REDUCER] Starting consumer...")
@@ -47,5 +57,7 @@ class Reducer:
         logging.info(f"[REDUCER] Sending batch {batch_result.id()} with {len(batch_result)} rows.")
         self._producer_queue.send(batch_result.encode())
 
-
-
+    def close(self):
+        self._consumer_queue.stop_consuming()
+        self._consumer_queue.close()
+        self._producer_queue.close()

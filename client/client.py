@@ -2,6 +2,8 @@ import os
 import socket
 import threading
 import logging
+import sys
+import signal
 from common.protocol import send_batches_from_csv, recv_batch
 
 BATCH_SIZE = 150
@@ -22,6 +24,18 @@ class Client:
         self.socket.connect((host, port))
         self.sender_transaction = None
         self.receiver_thread = None
+
+        self.shutdown_event = threading.Event()
+
+        signal.signal(signal.SIGTERM, self.graceful_shutdown)
+
+    def graceful_shutdown(self, signum, frame):
+        self.shutdown_event.set()
+        try:
+            self.close()
+        except Exception as e:
+            logging.error(f"[CLIENT] Error al cerrar: {e}")
+        sys.exit(0)
 
     def start(self, path_input, path_output):
     
@@ -61,7 +75,7 @@ class Client:
         ended = set()
         os.makedirs(out_dir, exist_ok=True)
         try:
-            while True:
+            while not self.shutdown_event.is_set():
                 batch = recv_batch(self.socket)
                 qid = batch.get_query_id()
 

@@ -395,7 +395,7 @@ services:
       - JOIN_QUEUE=j41
       - COLUMN_NAME=birthdate
       - COLUMN_ID=user_id
-      - USE_DISKCACHE='True' # string vacio == false, cualquier otro valor == true
+      - USE_DISKCACHE=True # True sin comillas y con mayusucula
     volumes:
       - ./config.ini:/app/config.ini
 

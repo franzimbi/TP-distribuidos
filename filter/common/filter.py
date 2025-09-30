@@ -1,6 +1,9 @@
 from middleware.middleware import MessageMiddlewareQueue
 from common.batch import Batch
 import threading
+import logging
+import signal
+import sys
 
 BUFFER_SIZE = 150
 
@@ -19,6 +22,15 @@ class Filter:
         self._filter = filter
         self.received_end = False
         self.threads = []
+
+        signal.signal(signal.SIGTERM, self.graceful_shutdown)
+
+    def graceful_shutdown(self, signum, frame):
+        try:
+            self.close()
+        except Exception as e:
+            logging.error(f"[FILTER] Error al cerrar: {e}")
+        sys.exit(0)
 
     def start(self):
         t = threading.Thread(
@@ -70,37 +82,18 @@ class Filter:
                         self._produce_queue.send(self._buffer.encode())
                         self._buffer = Batch(type_file=batch.type())
 
-        # batch = message.decode()
-        # if batch.is_last_batch():
-        #     print("[FILTER] Marcador END recibido, finalizando.")
-        #     self.send_current_buffer()
-        #     self._produce_queue.send(END_MARKER)
-        #     return
-        #
-        # #batch = decode_batch(message) #viejo
-        # batch = Batch(type_file='t')
-        # batch.decode(message)
-        # result = self._filter(batch)
-        #
-        # if not result:
-        #     print("[FILTER] Resultado vacío, no se envía nada.")
-        #     return
-        #
-        # self._buffer = result.encode()
-        # self._produce_queue.send(self._buffer)
-        # print(f"[FILTER] Batch procesado enviado.")
-        # self._buffer = ""
-
-        # for row in result:
-        #     line = ",".join(row)
-        #     self._buffer = (self._buffer + "|" + line) if self._buffer else line
-        #     self._counter += 1
-        #     if self._counter >= BUFFER_SIZE:
-        #         self.send_current_buffer()
-
     def send_current_buffer(self):
-        # print(f"\n\nMANDO BUFFER: {self._buffer}\n")
         if self._counter > 0:
             self._produce_queue.send(self._buffer)
             self._buffer = ""
             self._counter = 0
+
+    def close(self):
+        self._consume_queue.stop_consuming()
+        self._consume_queue.close()
+        self._produce_queue.close()
+
+        self._coordinator_consume_queue.stop_consuming()
+        self._coordinator_produce_queue.close()
+
+        self._coordinator_produce_queue.close()
