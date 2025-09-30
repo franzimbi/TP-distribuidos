@@ -8,7 +8,6 @@ logger = logging.getLogger(__name__)
 
 BUFFER_SIZE = 150
 
-
 class Counter:
     def __init__(self, consumer, producer):
         self._consumer_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=consumer)

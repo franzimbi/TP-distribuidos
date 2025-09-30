@@ -76,7 +76,7 @@ class TPVBySemesterStore:
                 type_file=src_batch.type(),
                 header=list(OUT_HEADER),
                 rows=chunk
-)
+            )
             self._produce_queue.send(outb.encode())
             sent_batches += 1
 

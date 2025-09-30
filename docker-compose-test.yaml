@@ -129,3 +129,40 @@ services:
       - QUEUE_PRODUCE=input_test2
       - MEG_SEND='test 1 a N de tp escalabilidad'
 
+  producer-exch-1to1:
+    build:
+      context: .
+      dockerfile: test/exchange/producer/Dockerfile
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+    links:
+      - rabbitmq
+    environment:
+      - PYTHONUNBUFFERED=1
+      - RABBIT_HOST=rabbitmq
+      - EXCHANGE=ex_test_1to1
+      - EXCHANGE_TYPE=direct
+      - ROUTING_KEY=rk.1to1
+      - QUEUE_NAME=q_ex_test_1to1
+      - CANT_MSG=3
+      - MEG_SEND=exchange 1 a 1 OK
+
+  consumer-exch-1to1:
+    build:
+      context: .
+      dockerfile: test/exchange/consumer/Dockerfile
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+    links:
+      - rabbitmq
+    environment:
+      - PYTHONUNBUFFERED=1
+      - RABBIT_HOST=rabbitmq
+      - EXCHANGE=ex_test_1to1
+      - EXCHANGE_TYPE=direct
+      - ROUTING_KEY=rk.1to1
+      - QUEUE_NAME=q_ex_test_1to1
+      - EXPECTED=exchange 1 a 1 OK
+      - MAX_MSG=3

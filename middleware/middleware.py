@@ -54,11 +54,52 @@ class MessageMiddleware(ABC):
     def delete(self):
         pass
 
-
 class MessageMiddlewareExchange(MessageMiddleware):
-    def __init__(self, host, exchange_name, route_keys):
-        pass
+    def __init__(self, host, exchange_name, route_keys, exchange_type, queue_name=None):
+        self.connection = pika.BlockingConnection(pika.ConnectionParameters(host=host))
+        self.channel = self.connection.channel()
+        self.route_keys = route_keys
+        self.exchange = exchange_name
+        self.queue = queue_name
 
+        self.channel.exchange_declare(
+            exchange=self.exchange,
+            exchange_type=exchange_type,
+            durable=True
+        )
+        if self.queue:
+            self.channel.queue_declare(queue=self.queue, durable=True, exclusive=False, auto_delete=False)
+            for route_key in self.route_keys:
+                self.channel.queue_bind(queue=self.queue, exchange=self.exchange, routing_key=route_key)
+
+    def start_consuming(self, on_message_callback):
+        try:
+            self.channel.basic_consume(queue=self.queue, on_message_callback=on_message_callback, auto_ack=True)
+            self.channel.start_consuming()
+
+        except pika.exceptions.AMQPConnectionError as e:
+            raise MessageMiddlewareDisconnectedError() from e
+        except Exception as e:
+            raise MessageMiddlewareMessageError() from e
+
+    def stop_consuming(self):
+        try:
+            self.channel.stop_consuming()
+        except pika.exceptions.AMQPConnectionError as e:
+            raise MessageMiddlewareDisconnectedError() from e
+        
+    def send(self, message):
+        self.channel.basic_publish(exchange=self.exchange, routing_key=self.route_keys[0], body=message, 
+                                   properties=pika.BasicProperties(delivery_mode=2))
+
+    def close(self):
+        try:
+            self.connection.close()
+        except Exception as e:
+            raise MessageMiddlewareCloseError() from e
+
+    def delete(self):
+        pass
 
 class MessageMiddlewareQueue(MessageMiddleware):
     def __init__(self, host, queue_name):
