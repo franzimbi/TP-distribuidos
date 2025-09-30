@@ -1,5 +1,4 @@
 import os
-import socket
 import threading
 from middleware.middleware import MessageMiddlewareQueue
 from common.protocol import send_batch
@@ -79,6 +78,7 @@ class Distributor:
             print(f"[DISTRIBUTOR] error al querer enviar batch:{batch} al cliente:{client_id} | error: {e}")
         if batch.is_last_batch():
             print(f"\n[DISTRIBUTOR] Cliente {client_id} recibió todos los resultados de la query {batch.get_query_id()}.\n")            
+            print(f"[DISTRIBUTOR] el batch es:\n {batch}\n")
             return
 
     def start_consuming_from_workers(self, query_id):

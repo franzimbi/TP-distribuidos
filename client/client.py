@@ -76,6 +76,7 @@ class Client:
                     f.write(",".join(batch.get_header()) + "\n")
                     wrote_header[qid] = True
                     logging.debug(f"[CLIENT] Escribí header para Q{qid}: {batch.get_header()}")
+                    print(f"[CLIENT] imprimo batch de query nueva:\n {batch}")
 
                 for row in batch:
                     f.write(",".join(row) + "\n")
@@ -83,6 +84,7 @@ class Client:
                 if batch.is_last_batch():
                     ended.add(qid)
                     logging.info(f"[CLIENT] Recibido END de Q{qid}. Pendientes: {AMOUNT_OF_QUERIES - len(ended)}")
+                    print(f"[CLIENT] imprimo batch q es last batch:\n {batch}")
                     if len(ended) >= AMOUNT_OF_QUERIES:
                         logging.info("[CLIENT] Recibidos END de todas las queries. Fin.")
                         break
