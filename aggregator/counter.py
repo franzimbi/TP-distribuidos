@@ -36,32 +36,35 @@ class Counter:
         batch = Batch()
         batch.decode(message)
 
-        if batch.is_last_batch():
-            self.flush(batch)
-            end_batch = Batch(
-                id=batch.id(),
-                query_id=batch.get_query_id(),
-                last=True,
-                type_file=batch.type(),
-                header=[],
-                rows=[]
-            )
-            self._accumulator.clear()
-            self._producer_queue.send(end_batch.encode())
-            logger.info("[COUNTER] END sent")
-            return
         for row in batch.iter_per_header():
-            try:
-                store_id = row["store_id"]
-                user_id = row["user_id"].split('.')[0]
-                if user_id == '' or store_id == '':
-                    continue
+            store_id = row.get("store_id")
+            user_id_raw = row.get("user_id")
+            created_at = row.get("created_at")
+            if not created_at:
+                continue
 
+            if not store_id or not user_id_raw:
+                continue
+            store_id = str(store_id).strip()
+            try:
+                year = int(created_at[:4])
+                if year not in (2024, 2025):
+                    continue
+                user_id = str(int(float(user_id_raw)))
                 key = (store_id, user_id)
                 self._accumulator[key] = self._accumulator.get(key, 0) + 1
+            except ValueError:
+                logger.warning(f"[COUNTER] Invalid user_id: {user_id_raw}")
+                continue
             except Exception as e:
                 logger.error(f"[COUNTER] Malformed row: {row} | Error: {e}")
                 continue
+            
+        if batch.is_last_batch():
+            self.flush(batch)
+            self._accumulator.clear()
+            logger.info("[COUNTER] END sent")
+            return
 
     def flush(self, src_batch):
         if not self._accumulator:
@@ -73,12 +76,14 @@ class Counter:
 
         for i in range(0, len(rows), BUFFER_SIZE):
             chunk = rows[i:i + BUFFER_SIZE]
+            last_chunk = i + BUFFER_SIZE >= len(rows)
             out_batch = Batch(
                 id=src_batch.id(),
                 query_id=src_batch.get_query_id(),
-                last=False,
+                last=last_chunk,
                 type_file=src_batch.type(),
                 header=header,
                 rows=chunk
             )
             self._producer_queue.send(out_batch.encode())
+

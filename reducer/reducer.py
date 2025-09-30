@@ -7,7 +7,7 @@ class Reducer:
         self._consumer_queue = consumer
         self._producer_queue = producer
         self._top = int(top)
-        self.top_users = {}
+        self.top_users = {} # key: store_id, value: dict of user_id -> purchases_qty
         self._columns = [n.strip() for n in columns.split(",")] #store_id, user_id
 
         logging.info(f"[REDUCER] Initialized with top={self._top} and columns={self._columns}")
@@ -46,9 +46,6 @@ class Reducer:
             batch_result.add_row([store, user, str(qty)])
         logging.info(f"[REDUCER] Sending batch {batch_result.id()} with {len(batch_result)} rows.")
         self._producer_queue.send(batch_result.encode())
-        logging.info(f"[REDUCER] Sending batch {batch_result.id()} with")
-        logging.info(f"columns: {batch_result.get_header()}")
-        for i in batch_result:
-            logging.info(f"{i}")
+
 
 

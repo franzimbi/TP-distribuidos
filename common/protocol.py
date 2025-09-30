@@ -15,6 +15,8 @@ def send_batches_from_csv(path, batch_size, connection: socket, type_file, query
             except RuntimeError as e:
                 logging.debug("[PROTOCOL] error set_header: %s", e)
             for line in f:
+                # if type_file == 'u':
+                #     print(f"[PROTOCOL] Leyendo linea: {line.strip()}")
                 current_batch.add_row(line)
                 if len(current_batch) >= batch_size:
                     current_batch.set_query_id(query_id) # no se deberia hacer aca, sino en el distributor, yo lo cambi desp ~pedro

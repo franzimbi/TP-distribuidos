@@ -29,6 +29,8 @@ def initialize_config():
         config_params["COLUMN_ID"] = os.getenv('COLUMN_ID', config["DEFAULT"]["COLUMN_ID"])
         config_params["COLUMN_NAME"] = os.getenv('COLUMN_NAME', config["DEFAULT"]["COLUMN_NAME"])
 
+        config_params["USE_DISKCACHE"] = os.getenv('USE_DISKCACHE', 'False').strip().lower() in ('1', 'true', 'yes')
+
         config_params["listen_backlog"] = int(
             os.getenv('SERVER_LISTEN_BACKLOG', config["DEFAULT"]["SYSTEM_LISTEN_BACKLOG"]))
         config_params["logging_level"] = os.getenv('LOGGING_LEVEL', config["DEFAULT"]["LOGGING_LEVEL"])
@@ -74,10 +76,11 @@ def main():
     producer = MessageMiddlewareQueue(host="rabbitmq", queue_name=queue_producer)
     join_data = MessageMiddlewareQueue(host="rabbitmq", queue_name=join_queue)
 
-    this_join = Join(join_data, config_params["COLUMN_ID"], config_params["COLUMN_NAME"])
+    this_join = Join(join_data, config_params["COLUMN_ID"], config_params["COLUMN_NAME"], config_params["USE_DISKCACHE"])
 
     this_join.start(consumer, producer)
 
+    this_join.close()
 
 if __name__ == "__main__":
     main()

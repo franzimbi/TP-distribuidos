@@ -9,9 +9,11 @@ AMOUNT_OF_QUERIES = 3
 
 STORES_PATH = '/stores'
 TRANSACTION_PATH = '/transactions'
+USERS_PATH = '/users'
 
 STORES_TYPE_FILE = 's'
 TRANSACTION_TYPE_FILE = 't'
+USERS_TYPE_FILE = 'u'
 
 class Client:
 
@@ -24,6 +26,10 @@ class Client:
     def start(self, path_input, path_output):
     
         send_batches_from_csv(path_input+STORES_PATH, BATCH_SIZE, self.socket, STORES_TYPE_FILE, 3)
+
+        send_batches_from_csv(path_input+USERS_PATH, BATCH_SIZE, self.socket, USERS_TYPE_FILE, 4)
+
+        print("\n\nYA ENVIE LOS USERS \n\n")
 
         self.sender_transaction = threading.Thread(
             target=send_batches_from_csv,
@@ -44,7 +50,7 @@ class Client:
             print("[CLIENT] joinee receiver...")
         if self.sender_transaction:
             self.sender_transaction.join()
-            print("[CLIENT] joinee sender...")
+            print("[CLIENT] joinee sender transactions...")
         self.socket.close()
         print("[CLIENT] socket cerrado.")
 
@@ -58,14 +64,6 @@ class Client:
             while True:
                 batch = recv_batch(self.socket)
                 qid = batch.get_query_id()
-
-                if batch.is_last_batch():
-                    ended.add(qid)
-                    logging.info(f"[CLIENT] Recibido END de Q{qid}. Pendientes: {AMOUNT_OF_QUERIES - len(ended)}")
-                    if len(ended) >= AMOUNT_OF_QUERIES:
-                        logging.info("[CLIENT] Recibidos END de todas las queries. Fin.")
-                        break
-                    continue
 
                 if qid not in files:
                     path = os.path.join(out_dir, f"q{qid}.csv")
@@ -81,6 +79,14 @@ class Client:
 
                 for row in batch:
                     f.write(",".join(row) + "\n")
+                
+                if batch.is_last_batch():
+                    ended.add(qid)
+                    logging.info(f"[CLIENT] Recibido END de Q{qid}. Pendientes: {AMOUNT_OF_QUERIES - len(ended)}")
+                    if len(ended) >= AMOUNT_OF_QUERIES:
+                        logging.info("[CLIENT] Recibidos END de todas las queries. Fin.")
+                        break
+                    continue
 
         except Exception as e:
             logging.info(f"\n\n\n\n[CLIENT] Error en receiver: {e}")

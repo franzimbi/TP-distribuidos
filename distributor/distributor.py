@@ -14,13 +14,15 @@ Q3queue_joiner = os.getenv("JOIN_QUEUE_Q3")
 
 Q4queue_consumer = os.getenv("CONSUME_QUEUE_Q4")
 Q4queue_producer = os.getenv("PRODUCE_QUEUE_Q4")
+Q4queue_joiner_users = os.getenv("JOIN_QUEUE_Q4_1")
+Q4queue_joiner_stores = os.getenv("JOIN_QUEUE_Q4_2")
 
 shutdown = threading.Event()
 class Distributor:
     def __init__(self):
         self.number_of_clients = 0
         self.clients = {}  # key: client_id, value: socket
-        self.files_types_for_queries = {'t': [1,3,4], 's': [3]}  # key: type_file, value: list of query_ids
+        self.files_types_for_queries = {'t': [1,3,4], 's': [3,42], 'u': [4]}  # key: type_file, value: list of query_ids
 
         self.producer_queues = {} # key: query_id, value: MessageMiddlewareQueue
         self.consumer_queues = {} # ""
@@ -35,6 +37,9 @@ class Distributor:
         
         self.producer_queues[4] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q4queue_producer)
         self.consumer_queues[4] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q4queue_consumer)
+        self.joiner_queues[4] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q4queue_joiner_users)
+        self.joiner_queues[42] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q4queue_joiner_stores)
+
 
 
     def add_client(self, client_id, client_socket):
@@ -57,17 +62,19 @@ class Distributor:
                 q = self.producer_queues[query_id]
             if(batch.type() == 's'):
                 q = self.joiner_queues[query_id]
+            if batch.type() == 'u':
+                q = self.joiner_queues[4] 
             q.send(batch.encode())
 
     def callback(self, ch, method, properties, body: bytes):
         batch = Batch()
         batch.decode(body)
-        client_id = 1  # por ahora fijo pq un solo cliente
+        client_id = 1  #por ahora fijo pq un solo cliente
         client_socket = self.clients.get(client_id)
         try:
             send_batch(client_socket, batch)
-            if batch.get_query_id() == 3:
-                print(f"[DISTRIBUTOR] Enviado batch {batch.id()} de tipo {batch.type()} a cliente {client_id} (Q{batch.get_query_id()})")
+            if batch.get_query_id() == 4:
+                print(f"\n\n[DISTRIBUTOR] Enviado batch {batch.id()} de tipo {batch.type()} a cliente {client_id} (Q{batch.get_query_id()})\n\n")
         except Exception as e:
             print(f"[DISTRIBUTOR] error al querer enviar batch:{batch} al cliente:{client_id} | error: {e}")
         if batch.is_last_batch():

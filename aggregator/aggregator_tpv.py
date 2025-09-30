@@ -35,23 +35,6 @@ class TPVBySemesterStore:
         if self._qid is None:
             self._qid = batch.get_query_id()
 
-        if batch.is_last_batch():
-            self._flush(batch)
-            # print(f"\n[aggregator] hice flush\n")
-            end = Batch(
-                id=batch.id(),
-                query_id=(self._qid or 0),
-                last=True,
-                type_file='t',
-                header=[],
-                rows=[]
-            )
-            self._produce_queue.send(end.encode())
-            logging.info("[aggregator] END enviado")
-            self._acc.clear()
-            self._qid = None
-            return
-
         for row in batch.iter_per_header():
             try:
                 year_sem  = self._year_semester(row["created_at"])
@@ -63,6 +46,11 @@ class TPVBySemesterStore:
                 print(f"[aggregator] fila mal formada: {row}")
                 continue
 
+        if batch.is_last_batch():
+            self._flush(batch)
+            logging.info("[aggregator] END enviado")
+            return
+    
     def _flush(self, src_batch):
         # print(f"\n[aggregator] flush\n"
         if not self._acc:
@@ -80,14 +68,15 @@ class TPVBySemesterStore:
 
         for i in range(0, total_rows, BUFFER_SIZE):
             chunk = rows[i:i + BUFFER_SIZE]
+            is_last_chunk = i + BUFFER_SIZE >= total_rows
             outb = Batch(
                 id=out_id,
                 query_id=qid,
-                last=False,
-                type_file='t',
+                last=is_last_chunk,
+                type_file=src_batch.type(),
                 header=list(OUT_HEADER),
                 rows=chunk
-            )
+)
             self._produce_queue.send(outb.encode())
             sent_batches += 1
 

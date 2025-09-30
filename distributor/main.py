@@ -111,6 +111,9 @@ def main():
     q3_consumer_thread = threading.Thread(target=distributor.start_consuming_from_workers, args=(3,), daemon=True)
     q3_consumer_thread.start()
 
+    q4_consumer_thread = threading.Thread(target=distributor.start_consuming_from_workers, args=(4,), daemon=True)
+    q4_consumer_thread.start()
+
     accept_thread = threading.Thread(target=accept_clients, daemon=True)
     accept_thread.start()
 
