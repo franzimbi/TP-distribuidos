@@ -209,6 +209,7 @@ class Batch:
     def __str__(self):
         lines = [
             f"Batch ID: {self._id_batch}",
+            f"Query ID: {self._query_id}",
             f"Last batch: {self._last_batch}",
             f"Type file: {self._type_file}",
             f"Header: {self._header}",

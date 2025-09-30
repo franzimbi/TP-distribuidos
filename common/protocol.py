@@ -8,7 +8,7 @@ def send_batches_from_csv(path, batch_size, connection: socket, type_file, query
     print(f"[PROTOCOL] Enviando batches desde {path} de tipo {type_file} para query {query_id}")
     current_batch = Batch(type_file=type_file)
     for filename in os.listdir(path):
-        with open(path + '/' + filename, 'r') as f:
+        with open(path + '/' + filename, 'r', encoding='utf-8', errors='replace') as f:
             headers = next(f)
             try:
                 current_batch.set_header(headers)
