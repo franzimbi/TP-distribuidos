@@ -99,8 +99,8 @@ class Distributor:
         except Exception as e:
             print(f"[DISTRIBUTOR] error al querer enviar batch:{batch} al cliente:{client_id} | error: {e}")
         if batch.is_last_batch():
-            print(f"\n[DISTRIBUTOR] Cliente {client_id} recibió todos los resultados de la query {batch.get_query_id()}.\n")            
-            print(f"[DISTRIBUTOR] el batch es:\n {batch}\n")
+            print(f"\n[DISTRIBUTOR] Cliente {client_id} recibió todos los resultados de la query {batch.get_query_id()}.\n")
+            print(f"[DISTRIBUTOR] el last_batch es {batch.id()}")
             return
 
     def start_consuming_from_workers(self, query_id):

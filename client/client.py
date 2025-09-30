@@ -98,7 +98,7 @@ class Client:
                 if batch.is_last_batch():
                     ended.add(qid)
                     logging.info(f"[CLIENT] Recibido END de Q{qid}. Pendientes: {AMOUNT_OF_QUERIES - len(ended)}")
-                    print(f"[CLIENT] imprimo batch q es last batch:\n {batch}")
+                    print(f"[CLIENT] last batch es:\n {batch.id()}")
                     if len(ended) >= AMOUNT_OF_QUERIES:
                         logging.info("[CLIENT] Recibidos END de todas las queries. Fin.")
                         break

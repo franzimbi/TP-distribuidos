@@ -56,9 +56,6 @@ class Coordinator:
     def _send_downstream_end(self):
         self.downstream_queue.send(self.end_batch.encode())
         print("[Coordinator] Sent END_BATCH downstream\n")
-        print(f"\n el batch es:\n {self.end_batch} \n\n")
-
-        print(f"\n el batch es:\n {self.end_batch} \n\n")
 
     def close(self):
         self.consumer_queue.stop_consuming()
