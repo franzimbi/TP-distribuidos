@@ -1,6 +1,5 @@
 from middleware.middleware import MessageMiddlewareQueue
 from common.batch import Batch
-import threading
 import logging
 import signal
 import sys
@@ -9,19 +8,12 @@ BUFFER_SIZE = 150
 
 
 class Filter:
-    def __init__(self, consume_queue, produce_queue, filter, coordinator_consume_queue, coordinator_produce_queue):
-        self._buffer_lock = threading.Lock()
+    def __init__(self, consume_queue, produce_queue, filter):
         self._buffer = Batch()
         self._counter = 0
         self._consume_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=consume_queue)
         self._produce_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=produce_queue)
-
-        self._coordinator_consume_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=coordinator_consume_queue)
-        self._coordinator_produce_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=coordinator_produce_queue)
-        
         self._filter = filter
-        self.received_end = False
-        self.threads = []
 
         signal.signal(signal.SIGTERM, self.graceful_shutdown)
 
@@ -33,33 +25,27 @@ class Filter:
         sys.exit(0)
 
     def start(self):
-        t = threading.Thread(
-            target=self._coordinator_consume_queue.start_consuming, 
-            args=(self.coordinator_callback,), daemon=True
-        )       
-        self.threads.append(t)
-        t.start()
         self._consume_queue.start_consuming(self.callback)
 
-    def coordinator_callback(self, ch, method, properties, body):
-        msg = body.decode()
-        if msg == "FLUSH":
-            print("[FILTER] Received FLUSH command from coordinator.")
-
-            to_send = None
-            with self._buffer_lock:
-                if not self._buffer.is_empty() and not self.received_end:
-                    to_send = self._buffer
-                    self._buffer = Batch(type_file=self._buffer.type())
-
-            # envío fuera del lock
-            if to_send:
-                self._produce_queue.send(to_send.encode())
-
-            self._coordinator_produce_queue.send(b"NODE_FINISHED")
-            print("[FILTER] Sent NODE_FINISHED to coordinator.")
-        else:
-            print(f"[FILTER] Unknown command from coordinator: {msg}")
+    # def coordinator_callback(self, ch, method, properties, body):
+    #     msg = body.decode()
+    #     if msg == "FLUSH":
+    #         print("[FILTER] Received FLUSH command from coordinator.")
+    #
+    #         to_send = None
+    #         with self._buffer_lock:
+    #             if not self._buffer.is_empty() and not self.received_end:
+    #                 to_send = self._buffer
+    #                 self._buffer = Batch(type_file=self._buffer.type())
+    #
+    #         # envío fuera del lock
+    #         if to_send:
+    #             self._produce_queue.send(to_send.encode())
+    #
+    #         self._coordinator_produce_queue.send(b"NODE_FINISHED")
+    #         print("[FILTER] Sent NODE_FINISHED to coordinator.")
+    #     else:
+    #         print(f"[FILTER] Unknown command from coordinator: {msg}")
 
     # def callback(self, ch, method, properties, message):
     #     # agrego filas filtradas al buffer
@@ -106,6 +92,7 @@ class Filter:
     def callback(self, ch, method, properties, message):
         batch = Batch()
         batch.decode(message)
+
         try:
             result = self._filter(batch)
             if not result.is_empty():
@@ -134,8 +121,3 @@ class Filter:
         self._consume_queue.stop_consuming()
         self._consume_queue.close()
         self._produce_queue.close()
-
-        self._coordinator_consume_queue.stop_consuming()
-        self._coordinator_produce_queue.close()
-
-        self._coordinator_produce_queue.close()
