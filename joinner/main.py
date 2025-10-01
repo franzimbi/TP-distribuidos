@@ -4,6 +4,7 @@ import os
 from middleware.middleware import MessageMiddlewareQueue
 from join import Join
 import signal
+import sys
 
 
 def initialize_config():

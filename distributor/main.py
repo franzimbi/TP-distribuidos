@@ -6,6 +6,8 @@ from common.protocol import recv_batch
 from distributor import Distributor, shutdown
 from configparser import ConfigParser
 import logging
+import signal
+import sys
 
 
 def initialize_config():
@@ -34,7 +36,7 @@ def initialize_log(logging_level):
     )
     logging.getLogger("pika").setLevel(logging.WARNING)
 
-
+    
 def main():
     config_params = initialize_config()
     distributor = Distributor()
@@ -52,6 +54,27 @@ def main():
     server_socket.bind((host, port))
     server_socket.listen()
     server_socket.settimeout(1.0)
+
+    def graceful_quit(signum, frame):
+        distributor.stop_consuming_from_all_workers()
+        print("\nhice stop consuming from all threads")
+        try:
+            server_socket.close()
+        except Exception:
+            pass
+        accept_thread.join(timeout=2.0)
+        print("joinee accept thread")
+        q1_consumer_thread.join(timeout=2.0)
+        print("joinee q1_consumer thread")
+        q3_consumer_thread.join(timeout=2.0)
+        print("joinee q3_consumer thread")
+        q4_consumer_thread.join()
+        print("joinee q4_consumer thread")
+
+        print("[DISTRIBUTOR] Apagado limpio.")
+        sys.exit(0)
+
+    signal.signal(signal.SIGTERM, graceful_quit)
 
     def handle_client(sock, addr):
         client_id = 1  # TODO: IDs únicos si soportan varios clientes

@@ -27,6 +27,7 @@ class Coordinator:
     def graceful_shutdown(self, signum, frame):
         try:
             self.close()
+            print("[Coordinator] Apagado limpio.")
         except Exception as e:
             logging.error(f"[Coordinator] Error during shutdown: {e}")
         sys.exit(0)
@@ -67,6 +68,9 @@ class Coordinator:
     def close(self):
         self.consumer_queue.stop_consuming()
         self.consumer_queue.close()
+        print("Consume queues cerradas")
         for q in list(self.producer_queues.values()):
             q.close()
+        print("Producer queues cerradas")
         self.downstream_queue.close()
+        print("Downstream queue cerrada")

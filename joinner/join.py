@@ -36,6 +36,7 @@ class Join:
 
     def graceful_quit(self, signum, frame):
         try:
+            print("Recibida señal SIGTERM, cerrando joiner...")
             self.close()
         except Exception as e:
             logging.error(f"Error cerrando joiner: {e}")
@@ -110,12 +111,14 @@ class Join:
     def close(self):
         try:
             if self.consumer_queue:
+                self.consumer_queue.stop_consuming()
                 self.consumer_queue.close()
             if self.producer_queue:
                 self.producer_queue.close()
             if self.join_queue:
                 self.join_queue.close()
             if self.coordinator_consumer:
+                self.coordinator_consumer.stop_consuming()
                 self.coordinator_consumer.close()
             if self.coordinator_producer:
                 self.coordinator_producer.close()
