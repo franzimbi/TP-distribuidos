@@ -221,7 +221,6 @@ services:
     volumes:
       - ./config.ini:/app/config.ini
 
-
 # QUERIE #3
   aggregator-q3:
       build:
@@ -232,7 +231,13 @@ services:
         - PYTHONUNBUFFERED=1
         - CONSUME_QUEUE=q32
         - PRODUCE_QUEUE=q33
-        - AGGREGATOR_NAME=tpv_by_semester_store
+        - AGGREGATOR_NAME=sum
+        - KEY_COLUMN=store_id
+        - VALUE_COLUMN=final_amount
+        - BUCKET_KIND=semester
+        - BUCKET_NAME=year_semester
+        - TIME_COL=created_at
+        - OUT_VALUE=tpv
       networks:
         - mynet
       volumes:
@@ -431,6 +436,8 @@ services:
 
         - CONSUME_QUEUE=q42
         - PRODUCE_QUEUE=q43
+        - KEY_COLUMNS=store_id,user_id
+        - COUNT_NAME=purchases_qty
         - AGGREGATOR_NAME=counter
       volumes:
         - ./config.ini:/app/config.ini

@@ -1,63 +1,50 @@
 #!/usr/bin/env python3
 import os
-from aggregator_tpv import TPVBySemesterStore
-from counter import Counter
-from configparser import ConfigParser
 import logging
+from aggregator_tpv import Aggregator
+from counter import Counter
 
-def initialize_config():
-    config = ConfigParser(os.environ)
-    config.read("config.ini")
-
-    config_params = {}
-    try:
-        config_params["CONSUME_QUEUE"] = str(os.getenv('CONSUME_QUEUE', config["DEFAULT"]["CONSUME_QUEUE"]))
-        config_params["PRODUCE_QUEUE"] = str(os.getenv('PRODUCE_QUEUE', config["DEFAULT"]["PRODUCE_QUEUE"]))
-        config_params["AGGREGATOR_NAME"] = str(os.getenv('AGGREGATOR_NAME', config["DEFAULT"]["AGGREGATOR_NAME"]))
-
-        
-        config_params["listen_backlog"] = int(os.getenv('SERVER_LISTEN_BACKLOG', config["DEFAULT"]["SYSTEM_LISTEN_BACKLOG"]))
-        config_params["logging_level"] = os.getenv('LOGGING_LEVEL', config["DEFAULT"]["LOGGING_LEVEL"])
-    except KeyError as e:
-        raise KeyError("Key was not found. Error: {} .Aborting server".format(e))
-    except ValueError as e:
-        raise ValueError("Key could not be parsed. Error: {}. Aborting server".format(e))
-
-    return config_params
-
-
-def initialize_log(logging_level):
-    logging.basicConfig(
-        format='%(asctime)s %(levelname)-8s %(message)s',
-        level=logging_level,
-        datefmt='%Y-%m-%d %H:%M:%S',
-    )
-    logging.getLogger("pika").setLevel(logging.WARNING)
+def get_env(name, *, required=False, default=None):
+    val = os.environ.get(name, default)
+    if required and (val is None or str(val).strip() == ""):
+        raise KeyError(f"Missing env: {name}")
+    return val
 
 def main():
-    config_params = initialize_config()
+    logging.basicConfig(
+        format='%(asctime)s %(levelname)-8s %(message)s',
+        level=get_env("LOGGING_LEVEL", default="INFO"),
+        datefmt='%Y-%m-%d %H:%M:%S',
+    )
 
-    consume = config_params["CONSUME_QUEUE"]
-    produce = config_params["PRODUCE_QUEUE"]
-    print(f"[AGGREGATOR] Escuchando en cola: {consume}, enviando a: {produce}")
-    name = config_params["AGGREGATOR_NAME"]
-    logging_level = config_params["logging_level"]
-    listen_backlog = config_params["listen_backlog"]
-    initialize_log(logging_level)
-    logging.debug(f"action: config | result: success | consume: {consume} | produce: {produce}  | "
-                  f"listen_backlog: {listen_backlog} | logging_level: {logging_level}")
-    
+    consume = get_env("CONSUME_QUEUE", required=True)
+    produce = get_env("PRODUCE_QUEUE", required=True)
+    name    = get_env("AGGREGATOR_NAME", required=True).strip().lower()
+
     logging.info(f"[{name}] {consume} -> {produce}")
 
-    if name == "tpv_by_semester_store":
-        worker = TPVBySemesterStore(consume, produce)
+    if name == "sum":
+        worker = Aggregator(
+            consume, produce,
+            key_col       = get_env("KEY_COLUMN",   required=True),
+            value_col     = get_env("VALUE_COLUMN", required=True),
+            bucket_kind   = get_env("BUCKET_KIND",  required=True), 
+            bucket_name   = get_env("BUCKET_NAME",  required=True),
+            time_col      = get_env("TIME_COL",     default="created_at"),
+            out_value_name= get_env("OUT_VALUE",    default="total"),
+        )
     elif name == "counter":
-        worker = Counter(consume, produce)   
+        worker = Counter(
+            consume, produce,
+            key_columns = get_env("KEY_COLUMNS", required=True),
+            count_name  = get_env("COUNT_NAME",  required=True),
+        )
 
     try:
         worker.start()
     except KeyboardInterrupt:
-        worker.stop()
+        try: worker.stop()
+        except Exception: pass
 
 if __name__ == "__main__":
     main()
