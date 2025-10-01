@@ -37,7 +37,6 @@ class Coordinator:
     def callback(self, ch, method, properties, body):
         try:
             msg = body.decode('utf-8')
-            print(f"[Coordinator] Received message: {msg}")
             if len(body) <= 4:
                 if msg == END_MESSAGE:
                     self.finished_nodes += 1

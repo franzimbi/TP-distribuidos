@@ -96,7 +96,7 @@ class Distributor:
             if batch.type() == 's':
                 q = self.joiner_queues[query_id]
             if batch.type() == 'u':
-                q = self.joiner_queues[4]
+                q = self.joiner_queues[query_id]
             q.send(batch.encode())
 
     def callback(self, ch, method, properties, body: bytes):
