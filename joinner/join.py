@@ -55,7 +55,6 @@ class Join:
         self.coordinator_consumer = MessageMiddlewareQueue(host="rabbitmq", queue_name=coordinator_consumer)
         self.coordinator_producer = MessageMiddlewareQueue(host="rabbitmq", queue_name=coordinator_producer)
 
-        logging.debug("\n\n lanzo hilo de coordinador")
         self.conection_coordinator = threading.Thread(
             target=self.coordinator_consumer.start_consuming,
             args=(self.coordinator_callback,), daemon=True

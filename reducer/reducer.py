@@ -10,10 +10,11 @@ class Reducer:
         self._producer_queue = producer
         self._top = int(top)
         self.top_users = {} # key: store_id, value: dict of user_id -> purchases_qty
-        self._columns = [n.strip() for n in columns.split(",")] #store_id, user_id
+        self._columns = [n.strip() for n in columns.split(",")] #store_id, user_id,purchases_qty
 
-        logging.info(f"[REDUCER] Initialized with top={self._top} and columns={self._columns}")
+        logging.debug(f"[REDUCER] Initialized with top={self._top} and columns={self._columns}")
         signal.signal(signal.SIGTERM, self.graceful_shutdown)
+        signal.signal(signal.SIGINT, self.graceful_shutdown)
 
     def graceful_shutdown(self, signum, frame):
         try:
@@ -29,9 +30,9 @@ class Reducer:
         batch = Batch(); batch.decode(message)
 
         for i in batch.iter_per_header():
-            store = i["store_id"]
-            user = i["user_id"]
-            qty = int(i["purchases_qty"])
+            store = i[self._columns[0]]
+            user = i[self._columns[1]]
+            qty = int(i[self._columns[2]])
             if store not in self.top_users:
                 self.top_users[store] = {}
 
@@ -43,16 +44,16 @@ class Reducer:
             rows = []
             for store, users in self.top_users.items():
                 for user, qty in users.items():
-                    rows.append((store, user, qty))
+                    rows.append((store, user))
             rows.sort(key=lambda x: (int(x[0]), int(x[1])))
             self.send_last_batch(batch, rows)
 
     def send_last_batch(self, batch, rows):
         batch_result = Batch(batch.id(), batch.get_query_id(), type_file=batch.type())
-        batch_result.set_header(['store_id', 'user_id', 'purchases_qty'])
+        batch_result.set_header([self._columns[0], self._columns[1]])
         batch_result.set_last_batch()
-        for store, user, qty in rows:
-            batch_result.add_row([store, user, str(qty)])
+        for store, user in rows:
+            batch_result.add_row([store, user])
         self._producer_queue.send(batch_result.encode())
 
     def close(self):
