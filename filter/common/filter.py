@@ -31,6 +31,7 @@ class Filter:
 
     def graceful_shutdown(self, signum, frame):
         try:
+            print("Recibida señal SIGTERM, cerrando filter...")
             self.close()
         except Exception as e:
             logging.error(f"[FILTER] Error al cerrar: {e}")
@@ -94,6 +95,10 @@ class Filter:
         self._consume_queue.stop_consuming()
         self._consume_queue.close()
         self._produce_queue.close()
-        self._coordinator_consume_queue.close()
         self._coordinator_consume_queue.stop_consuming()
+        self._coordinator_consume_queue.close()
         self._coordinator_produce_queue.close()
+        print("Queues cerradas")
+        self.conection_coordinator.join()
+        print("Hilo de conexion con coordinator joineado")
+        print("[FILTER] Apagado limpio.")

@@ -18,7 +18,9 @@ class Reducer:
 
     def graceful_shutdown(self, signum, frame):
         try:
+            print("Recibida señal SIGTERM, cerrando reducer...")
             self.close()
+            print("[REDUCER] Apagado limpio.")
         except Exception as e:
             logging.error(f"[REDUCER] Error closing: {e}")
         sys.exit(0)
@@ -65,3 +67,4 @@ class Reducer:
         self._consumer_queue.stop_consuming()
         self._consumer_queue.close()
         self._producer_queue.close()
+        print("Queues cerradas")
