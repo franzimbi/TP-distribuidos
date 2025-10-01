@@ -53,16 +53,15 @@ class Counter:
                 key = (store_id, user_id)
                 self._accumulator[key] = self._accumulator.get(key, 0) + 1
             except ValueError:
-                logger.warning(f"[COUNTER] Invalid user_id: {user_id_raw}")
+                logger.error(f"[COUNTER] Invalid user_id: {user_id_raw}")
                 continue
             except Exception as e:
-                logger.error(f"[COUNTER] Malformed row: {row} | Error: {e}")
+                logger.warning(f"[COUNTER] Malformed row: {row} | Error: {e}")
                 continue
             
         if batch.is_last_batch():
             self.flush(batch)
             self._accumulator.clear()
-            logger.info("[COUNTER] END sent")
             return
 
     def flush(self, src_batch):

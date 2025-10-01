@@ -25,13 +25,11 @@ class Join:
         signal.signal(signal.SIGTERM, self.graceful_quit)
 
         # recibe de join_queue los datos y arma el diccionario de id-valor
-        logging.info("action: receive_join_data | status: waiting")
         self.join_queue.start_consuming(self.callback_to_receive_join_data)
-        logging.info("action: receive_join_data | status: finished | entries: %d | diskcache: {%s}",
-                     len(self.join_dictionary), str(use_diskcache))
+        # logging.debug("action: receive_join_data | status: finished | entries: %d | diskcache: {%s}",
+        #              len(self.join_dictionary), str(use_diskcache))
 
     def graceful_quit(self, signum, frame):
-        logging.info("SIGTERM recibido, cerrando joiner...")
         try:
             self.close()
         except Exception as e:
@@ -55,13 +53,13 @@ class Join:
         name = batch.index_of(self.column_name)
 
         if id is None or name is None:
-            logging.debug(f"Column {self.column_id} or {self.column_name} not found in batch header")
+            logging.error(f"Column {self.column_id} or {self.column_name} not found in batch header")
             return
         for row in batch:
             key = row[id]
             value = row[name]
             if key is None or value is None:
-                logging.debug(f"Key or value is None for row: {row}")
+                logging.error(f"Key or value is None for row: {row}")
                 continue
             if key not in self.join_dictionary:
                 self.join_dictionary[key] = value
@@ -81,10 +79,9 @@ class Join:
         #     logging.info(f'[QUERY 4 callback] receive batch: {batch}')
         try:
             batch.change_header_name_value(self.column_id, self.column_name, self.join_dictionary)
-            logging.debug(f'action: join_batch_with_dicctionary | result: success')
         except (ValueError, KeyError) as e:
             logging.error(
-                f'action: join_batch_with_dicctionary | result: fail | errror: {e} | dic: {self.join_dictionary}')
+                f'action: join_batch_with_dicctionary | result: fail | error: {e} | dic: {self.join_dictionary}')
         self.producer_queue.send(batch.encode())
 
     def close(self):

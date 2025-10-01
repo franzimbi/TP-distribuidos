@@ -23,7 +23,6 @@ class Reducer:
         sys.exit(0)
 
     def start(self):
-        logging.info("[REDUCER] Starting consumer...")
         self._consumer_queue.start_consuming(self.callback)
 
     def callback(self, ch, method, properties, message):
@@ -54,7 +53,6 @@ class Reducer:
         batch_result.set_last_batch()
         for store, user, qty in rows:
             batch_result.add_row([store, user, str(qty)])
-        logging.info(f"[REDUCER] Sending batch {batch_result.id()} with {len(batch_result)} rows.")
         self._producer_queue.send(batch_result.encode())
 
     def close(self):

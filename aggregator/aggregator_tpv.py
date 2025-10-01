@@ -6,6 +6,7 @@ from common.batch import Batch
 BUFFER_SIZE = 150
 OUT_HEADER = ["year_semester", "store_id", "tpv"]
 
+
 class TPVBySemesterStore:
     def __init__(self, consume_queue, produce_queue):
         self._consume_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=consume_queue)
@@ -17,44 +18,47 @@ class TPVBySemesterStore:
         self._consume_queue.start_consuming(self.callback)
 
     def stop(self):
-        try: self._consume_queue.stop_consuming()
-        except Exception: pass
-        try: self._consume_queue.close()
-        except Exception: pass
-        try: self._produce_queue.close()
-        except Exception: pass
+        try:
+            self._consume_queue.stop_consuming()
+        except Exception:
+            pass
+        try:
+            self._consume_queue.close()
+        except Exception:
+            pass
+        try:
+            self._produce_queue.close()
+        except Exception:
+            pass
 
     def _year_semester(self, created_at_str: str) -> str:
         dt = datetime.strptime(created_at_str, "%Y-%m-%d %H:%M:%S")
         return f"{dt.year}_{'S1' if dt.month <= 6 else 'S2'}"
 
     def callback(self, ch, method, properties, message):
-        #print(f"[aggregator] mensaje recibido")
-        batch = Batch(); batch.decode(message)
+        batch = Batch();
+        batch.decode(message)
 
         if self._qid is None:
             self._qid = batch.get_query_id()
 
         for row in batch.iter_per_header():
             try:
-                year_sem  = self._year_semester(row["created_at"])
-                store_id  = row["store_id"]
-                amount    = float(row["final_amount"])
+                year_sem = self._year_semester(row["created_at"])
+                store_id = row["store_id"]
+                amount = float(row["final_amount"])
                 key = (year_sem, store_id)
                 self._acc[key] = self._acc.get(key, 0.0) + amount
             except Exception:
-                print(f"[aggregator] fila mal formada: {row}")
+                logging.error(f"[aggregator] fila mal formada: {row}")
                 continue
 
         if batch.is_last_batch():
             self._flush(batch)
-            logging.info("[aggregator] END enviado")
             return
-    
+
     def _flush(self, src_batch):
-        # print(f"\n[aggregator] flush\n"
         if not self._acc:
-            logging.info("[aggregator] flush sin datos")
             return
 
         rows = [[ys, str(sid), f"{tpv:.2f}"] for (ys, sid), tpv in self._acc.items()]
@@ -79,6 +83,4 @@ class TPVBySemesterStore:
             )
             self._produce_queue.send(outb.encode())
             sent_batches += 1
-
-        logging.info(f"[aggregator] flush: {total_rows} filas en {sent_batches} batches")
         self._acc.clear()

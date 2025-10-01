@@ -43,8 +43,6 @@ class Client:
 
         send_batches_from_csv(path_input+USERS_PATH, BATCH_SIZE, self.socket, USERS_TYPE_FILE, 4)
 
-        print("\n\nYA ENVIE LOS USERS \n\n")
-
         self.sender_transaction = threading.Thread(
             target=send_batches_from_csv,
             args=(path_input+TRANSACTION_PATH, BATCH_SIZE, self.socket, TRANSACTION_TYPE_FILE, 1),
@@ -56,17 +54,17 @@ class Client:
             target=self.receiver, args=(path_output,), daemon=True
         )
         self.receiver_thread.start()
-        print(f"[CLIENT] Hilos sender y receiver iniciados.")
+        logging.debug(f"[CLIENT] Hilos sender y receiver iniciados.")
 
     def close(self):
         if self.receiver_thread:
             self.receiver_thread.join()
-            print("[CLIENT] joinee receiver...")
+            logging.debug("[CLIENT] joinee receiver...")
         if self.sender_transaction:
             self.sender_transaction.join()
-            print("[CLIENT] joinee sender transactions...")
+            logging.debug("[CLIENT] joinee sender transactions...")
         self.socket.close()
-        print("[CLIENT] socket cerrado.")
+        logging.info("[CLIENT] socket cerrado.")
 
 
     def receiver(self, out_dir):
@@ -90,22 +88,20 @@ class Client:
                     f.write(",".join(batch.get_header()) + "\n")
                     wrote_header[qid] = True
                     logging.debug(f"[CLIENT] Escribí header para Q{qid}: {batch.get_header()}")
-                    print(f"[CLIENT] imprimo batch de query nueva:\n {batch}")
 
                 for row in batch:
                     f.write(",".join(row) + "\n")
                 
                 if batch.is_last_batch():
                     ended.add(qid)
-                    logging.info(f"[CLIENT] Recibido END de Q{qid}. Pendientes: {AMOUNT_OF_QUERIES - len(ended)}")
-                    print(f"[CLIENT] last batch es:\n {batch.id()}")
+                    logging.debug(f"[CLIENT] Recibido END de Q{qid}. Pendientes: {AMOUNT_OF_QUERIES - len(ended)}")
                     if len(ended) >= AMOUNT_OF_QUERIES:
                         logging.info("[CLIENT] Recibidos END de todas las queries. Fin.")
                         break
                     continue
 
         except Exception as e:
-            logging.info(f"\n\n\n\n[CLIENT] Error en receiver: {e}")
+            logging.info(f"\n[CLIENT] Error en receiver: {e}")
         finally:
             for f in files.values():
                 try:

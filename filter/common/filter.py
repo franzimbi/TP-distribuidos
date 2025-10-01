@@ -59,11 +59,9 @@ class Filter:
                     for i in result:
                         self._buffer.add_row(i)
             except Exception as e:
-                print(f"\n\n\n error: {e} | batch:{batch} | filter:{self._filter.__name__}")
+                logging.error(f"\n\n\n error: {e} | batch:{batch} | filter:{self._filter.__name__}")
 
             if batch.is_last_batch():
-                # send message to coordinator
-                print("[FILTER] Sending last batch to coordinator and marking buffer as last batch.")
                 self._buffer.set_last_batch()
                 self._buffer.set_id(batch.id())
                 self._buffer.set_query_id(batch.get_query_id())
@@ -77,27 +75,20 @@ class Filter:
                 self._buffer.set_query_id(batch.get_query_id())
                 self._produce_queue.send(self._buffer.encode())
                 self._buffer = Batch(type_file=batch.type())
-        if batch.is_last_batch():
-            print("[FILTER] free lock after processing batch")
 
 
     def coordinator_callback(self, ch, method, properties, body):
         msg = body.decode('utf-8')
-        print(f"[FILTER] Received message from coordinator: |{msg}| waiting for |{FLUSH_MESSAGE}|")
         if str(msg) == str(FLUSH_MESSAGE):
-            print("[FILTER] Received FLUSH command from coordinator.")
             with self.lock:
-                print("[FILTER] Acquired lock for flushing buffer.")
                 if not self._buffer.is_empty():
                     self._produce_queue.send(self._buffer.encode())
                     self._buffer = Batch()
                     self._coordinator_produce_queue.send(END_MESSAGE)
-                    print("[FILTER] Sent END message to coordinator after flushing buffer.")
                 else:
-                    print("[FILTER] Buffer is empty, nothing to flush.")
                     self._coordinator_produce_queue.send(END_MESSAGE)
         else:
-            print(f"[FILTER] Unknown command from coordinator: {msg}")
+            logging.error(f"[FILTER] Unknown command from coordinator: {msg}")
                     
     def close(self):
         self._consume_queue.stop_consuming()

@@ -72,14 +72,11 @@ def main():
 
                 if batch.is_last_batch():
                     contador += 1
-                    print(f"\n[DISTRIBUTOR] Cliente {addr} terminó de ENVIAR {batch.type()}(esperando resultados de workers).\n")
-                    if contador == 2: #pq por ahora solo hacemos 2 queries
-                        print(f"\n[DISTRIBUTOR] Cliente {addr} terminó de ENVIAR todos los tipos de archivos.\n")
-                        # break #mejor sacar este break para que cuando el cliente cierre la conexion, el except pueda cerrar todo
+                    # break #mejor sacar este break para que cuando el cliente cierre la conexion, el except pueda cerrar todo
                     continue
 
         except Exception as e:
-            print(f"cliente {addr}: cerro la conexion")
+            logging.debug(f"cliente {addr}: cerro la conexion")
             try:
                 sock.close()
             except OSError:

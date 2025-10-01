@@ -7,6 +7,8 @@ from middleware.middleware import MessageMiddlewareQueue
 from common.protocol import send_batch
 from common.batch import Batch
 
+COUNT_OF_PRINTS = 30000
+
 Q1queue_consumer = os.getenv("CONSUME_QUEUE_Q1")
 Q1queue_producer = os.getenv("PRODUCE_QUEUE_Q1")
 
@@ -20,25 +22,28 @@ Q4queue_joiner_users = os.getenv("JOIN_QUEUE_Q4_1")
 Q4queue_joiner_stores = os.getenv("JOIN_QUEUE_Q4_2")
 
 shutdown = threading.Event()
+
+
 class Distributor:
     def __init__(self):
         self.number_of_clients = 0
         self.clients = {}  # key: client_id, value: socket
-        self.files_types_for_queries = {'t': [1,3,4], 's': [3,42], 'u': [4]}  # key: type_file, value: list of query_ids
+        self.files_types_for_queries = {'t': [1, 3, 4], 's': [3, 42],
+                                        'u': [4]}  # key: type_file, value: list of query_ids
 
-        self.producer_queues = {} # key: query_id, value: MessageMiddlewareQueue
-        self.consumer_queues = {} # ""
-        self.joiner_queues = {}   # ""
+        self.producer_queues = {}  # key: query_id, value: MessageMiddlewareQueue
+        self.consumer_queues = {}  # ""
+        self.joiner_queues = {}  # ""
 
         signal.signal(signal.SIGTERM, self.graceful_quit)
 
         self.producer_queues[1] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q1queue_producer)
         self.consumer_queues[1] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q1queue_consumer)
-        
-        self.producer_queues[3] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q3queue_producer)        
+
+        self.producer_queues[3] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q3queue_producer)
         self.consumer_queues[3] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q3queue_consumer)
         self.joiner_queues[3] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q3queue_joiner)
-        
+
         self.producer_queues[4] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q4queue_producer)
         self.consumer_queues[4] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q4queue_consumer)
         self.joiner_queues[4] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q4queue_joiner_users)
@@ -54,13 +59,13 @@ class Distributor:
                 try:
                     q.close()
                 except Exception as e:
-                    print(f"[DISTRIBUTOR] Error cerrando conexión {qid}: {e}")
+                    logging.error(f"[DISTRIBUTOR] Error cerrando conexión {qid}: {e}")
 
         for cid, sock in self.clients.items():
             try:
                 sock.close()
             except Exception as e:
-                print(f"[DISTRIBUTOR] Error cerrando socket cliente {cid}: {e}")
+                logging.error(f"[DISTRIBUTOR] Error cerrando socket cliente {cid}: {e}")
         sys.exit(0)
 
     def add_client(self, client_id, client_socket):
@@ -75,32 +80,33 @@ class Distributor:
 
     def distribute_batch_to_workers(self, batch: Batch):
         queries = self.files_types_for_queries[batch.type()]
-        if (batch.id() % 10000 == 0 or batch.id() == 0):
-                print(f"\n[DISTRIBUTOR] Distribuyendo batch {batch.id()} de tipo {batch.type()} a las queries {queries}.")
+        if batch.id() % COUNT_OF_PRINTS == 0 or batch.id() == 0:
+            logging.debug(
+                f"[DISTRIBUTOR] Distribuyendo batch {batch.id()} de tipo {batch.type()} a las queries {queries}.")
         for query_id in queries:
-            batch.set_query_id(query_id)    
-            if(batch.type() == 't'): # la proxima veo d hacer algo mas objetoso para evitar estos ifs ~pedro
+            batch.set_query_id(query_id)
+            if batch.type() == 't':  # la proxima veo d hacer algo mas objetoso para evitar estos ifs ~pedro
                 q = self.producer_queues[query_id]
-            if(batch.type() == 's'):
+            if batch.type() == 's':
                 q = self.joiner_queues[query_id]
             if batch.type() == 'u':
-                q = self.joiner_queues[4] 
+                q = self.joiner_queues[4]
             q.send(batch.encode())
 
     def callback(self, ch, method, properties, body: bytes):
         batch = Batch()
         batch.decode(body)
-        client_id = 1  #por ahora fijo pq un solo cliente
+        client_id = 1  # por ahora fijo pq un solo cliente
         client_socket = self.clients.get(client_id)
         try:
             send_batch(client_socket, batch)
-            if batch.get_query_id() == 4:
-                print(f"\n\n[DISTRIBUTOR] Enviado batch {batch.id()} de tipo {batch.type()} a cliente {client_id} (Q{batch.get_query_id()})\n\n")
+            # if batch.get_query_id() == 4:
+            #     print(f"\n\n[DISTRIBUTOR] Enviado batch {batch.id()} de tipo {batch.type()} a cliente {client_id} (Q{batch.get_query_id()})\n\n")
         except Exception as e:
-            print(f"[DISTRIBUTOR] error al querer enviar batch:{batch} al cliente:{client_id} | error: {e}")
+            logging.error(f"[DISTRIBUTOR] error al querer enviar batch:{batch} al cliente:{client_id} | error: {e}")
         if batch.is_last_batch():
-            print(f"\n[DISTRIBUTOR] Cliente {client_id} recibió todos los resultados de la query {batch.get_query_id()}.\n")
-            print(f"[DISTRIBUTOR] el last_batch es {batch.id()}")
+            logging.debug(
+                f"\n[DISTRIBUTOR] Cliente {client_id} recibió todos los resultados de la query {batch.get_query_id()}.\n")
             return
 
     def start_consuming_from_workers(self, query_id):
@@ -111,7 +117,7 @@ class Distributor:
             cq.start_consuming(self.callback)
         except Exception as e:
             if not shutdown.is_set():
-                print(f"[DISTRIBUTOR] Error en consumo de workers: {e}")
+                logging.error(f"[DISTRIBUTOR] Error en consumo de workers: {e}")
 
     def stop_consuming_from_all_workers(self):
         for qid, cq in self.consumer_queues.items():
@@ -119,4 +125,4 @@ class Distributor:
                 try:
                     cq.stop_consuming()
                 except Exception as e:
-                    print(f"[DISTRIBUTOR] Error al detener consumo de la query {qid}: {e}")
+                    logging.error(f"[DISTRIBUTOR] Error al detener consumo de la query {qid}: {e}")
