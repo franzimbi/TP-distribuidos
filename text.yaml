@@ -1,0 +1,26 @@
+name: tp0
+services:
+  
+ distributor:
+  build:
+   context: .
+   dockerfile: distributor/Dockerfile
+  restart: on-failure
+  environment:
+   - PYTHONUNBUFFERED=1
+   - PRODUCE_QUEUE_Q1=q11
+   - CONSUME_QUEUE_Q1=q14
+   - PRODUCE_QUEUE_Q3=q31
+   - CONSUME_QUEUE_Q3=q34
+   - PRODUCE_QUEUE_Q4=q41
+   - CONSUME_QUEUE_Q4=q46
+   - JOIN_QUEUE_Q3.1=j31
+   - JOIN_QUEUE_Q4.1=j41
+   - JOIN_QUEUE_Q3.2=j32
+   - JOIN_QUEUE_Q4.2=j42
+  networks:
+   - mynet
+  volumes:
+   - ./config.ini:/app/config.ini
+
+
