@@ -46,8 +46,10 @@ class Reducer:
                 for store, users in self.top_users.items():
                     for user, qty in users.items():
                         rows.append((store, user))
-                rows.sort(key=lambda x: (int(float(x[0])), int(float(x[1]))))
-                self.send_last_batch(batch, rows)
+                logging.debug(f"[REDUCER] Processed rows: {rows}")
+                rows = [(str(int(float(s))), str(int(float(u)))) for (s, u) in rows]
+                rows.sort(key=lambda x: (int(x[0]), int(x[1])))
+                self.send_last_batch(batch, rows)   
             except Exception as e:
                 logging.error(f"[REDUCER] Error sending last batch: {e}")
 
