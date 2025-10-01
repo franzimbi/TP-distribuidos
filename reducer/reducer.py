@@ -41,12 +41,15 @@ class Reducer:
             self.top_users[store] = {k: self.top_users[store][k] for k in top_keys}
 
         if batch.is_last_batch():
-            rows = []
-            for store, users in self.top_users.items():
-                for user, qty in users.items():
-                    rows.append((store, user))
-            rows.sort(key=lambda x: (int(x[0]), int(x[1])))
-            self.send_last_batch(batch, rows)
+            try:
+                rows = []
+                for store, users in self.top_users.items():
+                    for user, qty in users.items():
+                        rows.append((store, user))
+                rows.sort(key=lambda x: (int(float(x[0])), int(float(x[1]))))
+                self.send_last_batch(batch, rows)
+            except Exception as e:
+                logging.error(f"[REDUCER] Error sending last batch: {e}")
 
     def send_last_batch(self, batch, rows):
         batch_result = Batch(batch.id(), batch.get_query_id(), type_file=batch.type())
