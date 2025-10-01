@@ -12,14 +12,12 @@ def main():
     rk = os.getenv("ROUTING_KEY", "rk.1to1")
     msg = os.getenv("MEG_SEND", "exchange 1 a 1 OK")
     cant = int(os.getenv("CANT_MSG", "3"))
-    queue_name = os.getenv("QUEUE_NAME")
 
     producer = MessageMiddlewareExchange(
         host=host,
         exchange_name=exchange,
         route_keys=[rk],
         exchange_type=exchange_type,
-        queue_name=queue_name
     )
 
     try:

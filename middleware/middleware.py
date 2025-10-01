@@ -67,13 +67,15 @@ class MessageMiddlewareExchange(MessageMiddleware):
             exchange_type=exchange_type,
             durable=True
         )
+
         if self.queue:
             self.channel.queue_declare(queue=self.queue, durable=True, exclusive=False, auto_delete=False)
-            for route_key in self.route_keys:
-                self.channel.queue_bind(queue=self.queue, exchange=self.exchange, routing_key=route_key)
 
     def start_consuming(self, on_message_callback):
         try:
+            for route_key in self.route_keys:
+                self.channel.queue_bind(queue=self.queue, exchange=self.exchange, routing_key=route_key)
+
             self.channel.basic_consume(queue=self.queue, on_message_callback=on_message_callback, auto_ack=True)
             self.channel.start_consuming()
 

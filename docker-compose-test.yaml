@@ -1,34 +1,21 @@
-version: '3.8'
 services:
   rabbitmq:
     build:
       context: ./middleware
       dockerfile: Dockerfile
     environment:
-      - RABBITMQ_LOGS=-  # mantiene logs en stdout
+      - RABBITMQ_LOGS=-
       - RABBITMQ_LOG_LEVEL=error
     ports:
-      - 15672:15672
+      - "15672:15672"
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:15672" ]
       interval: 10s
       timeout: 5s
       retries: 10
+    profiles: ["queues", "exchange"]
 
-  producer-test1:
-    build:
-      context: .
-      dockerfile: test/producer/Dockerfile
-    restart: on-failure
-    depends_on:
-      - rabbitmq
-    links:
-      - rabbitmq
-    environment:
-      - PYTHONUNBUFFERED=1
-      - QUEUE_PRODUCE=input_test1
-      - CANT_MSG=1
-      - MEG_SEND='test 1 a 1 de tp escalabilidad'
+  # ---------- QUEUES ----------
 
   consumer-test1:
     build:
@@ -36,28 +23,30 @@ services:
       dockerfile: test/consumer/Dockerfile
     restart: on-failure
     depends_on:
-      - rabbitmq
-    links:
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
     environment:
       - PYTHONUNBUFFERED=1
       - QUEUE_PRODUCE=input_test1
-      - MEG_SEND='test 1 a 1 de tp escalabilidad'
+      - MEG_SEND="test 1 a 1 de tp escalabilidad"
+    profiles: ["queues"]
 
-  producer-test2:
+  producer-test1:
     build:
       context: .
       dockerfile: test/producer/Dockerfile
     restart: on-failure
     depends_on:
-      - rabbitmq
-    links:
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
+      consumer-test1:
+        condition: service_started
     environment:
       - PYTHONUNBUFFERED=1
-      - QUEUE_PRODUCE=input_test2
-      - CANT_MSG=5
-      - MEG_SEND='test 1 a N de tp escalabilidad'
+      - QUEUE_PRODUCE=input_test1
+      - CANT_MSG=1
+      - MEG_SEND="test 1 a 1 de tp escalabilidad"
+    profiles: ["queues"]
 
   consumer-test2.1:
     build:
@@ -65,13 +54,13 @@ services:
       dockerfile: test/consumer/Dockerfile
     restart: on-failure
     depends_on:
-      - rabbitmq
-    links:
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
     environment:
       - PYTHONUNBUFFERED=1
       - QUEUE_PRODUCE=input_test2
-      - MEG_SEND='test 1 a N de tp escalabilidad'
+      - MEG_SEND="test 1 a N de tp escalabilidad"
+    profiles: ["queues"]
 
   consumer-test2.2:
     build:
@@ -79,13 +68,13 @@ services:
       dockerfile: test/consumer/Dockerfile
     restart: on-failure
     depends_on:
-      - rabbitmq
-    links:
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
     environment:
       - PYTHONUNBUFFERED=1
       - QUEUE_PRODUCE=input_test2
-      - MEG_SEND='test 1 a N de tp escalabilidad'
+      - MEG_SEND="test 1 a N de tp escalabilidad"
+    profiles: ["queues"]
 
   consumer-test2.3:
     build:
@@ -93,13 +82,13 @@ services:
       dockerfile: test/consumer/Dockerfile
     restart: on-failure
     depends_on:
-      - rabbitmq
-    links:
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
     environment:
       - PYTHONUNBUFFERED=1
       - QUEUE_PRODUCE=input_test2
-      - MEG_SEND='test 1 a N de tp escalabilidad'
+      - MEG_SEND="test 1 a N de tp escalabilidad"
+    profiles: ["queues"]
 
   consumer-test2.4:
     build:
@@ -107,13 +96,13 @@ services:
       dockerfile: test/consumer/Dockerfile
     restart: on-failure
     depends_on:
-      - rabbitmq
-    links:
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
     environment:
       - PYTHONUNBUFFERED=1
       - QUEUE_PRODUCE=input_test2
-      - MEG_SEND='test 1 a N de tp escalabilidad'
+      - MEG_SEND="test 1 a N de tp escalabilidad"
+    profiles: ["queues"]
 
   consumer-test2.5:
     build:
@@ -121,32 +110,40 @@ services:
       dockerfile: test/consumer/Dockerfile
     restart: on-failure
     depends_on:
-      - rabbitmq
-    links:
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
     environment:
       - PYTHONUNBUFFERED=1
       - QUEUE_PRODUCE=input_test2
-      - MEG_SEND='test 1 a N de tp escalabilidad'
+      - MEG_SEND="test 1 a N de tp escalabilidad"
+    profiles: ["queues"]
 
-  producer-exch-1to1:
+  producer-test2:
     build:
       context: .
-      dockerfile: test/exchange/producer/Dockerfile
+      dockerfile: test/producer/Dockerfile
     restart: on-failure
     depends_on:
-      - rabbitmq
-    links:
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
+      consumer-test2.1:
+        condition: service_started
+      consumer-test2.2:
+        condition: service_started
+      consumer-test2.3:
+        condition: service_started
+      consumer-test2.4:
+        condition: service_started
+      consumer-test2.5:
+        condition: service_started
     environment:
       - PYTHONUNBUFFERED=1
-      - RABBIT_HOST=rabbitmq
-      - EXCHANGE=ex_test_1to1
-      - EXCHANGE_TYPE=direct
-      - ROUTING_KEY=rk.1to1
-      - QUEUE_NAME=q_ex_test_1to1
-      - CANT_MSG=3
-      - MEG_SEND=exchange 1 a 1 OK
+      - QUEUE_PRODUCE=input_test2
+      - CANT_MSG=5
+      - MEG_SEND="test 1 a N de tp escalabilidad"
+    profiles: ["queues"]
+
+  # ---------- EXCHANGE ----------
 
   consumer-exch-1to1:
     build:
@@ -154,9 +151,8 @@ services:
       dockerfile: test/exchange/consumer/Dockerfile
     restart: on-failure
     depends_on:
-      - rabbitmq
-    links:
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
     environment:
       - PYTHONUNBUFFERED=1
       - RABBIT_HOST=rabbitmq
@@ -164,5 +160,107 @@ services:
       - EXCHANGE_TYPE=direct
       - ROUTING_KEY=rk.1to1
       - QUEUE_NAME=q_ex_test_1to1
-      - EXPECTED=exchange 1 a 1 OK
+      - EXPECTED="exchange 1 a 1 OK"
       - MAX_MSG=3
+    profiles: ["exchange"]
+
+  producer-exch-1to1:
+    build:
+      context: .
+      dockerfile: test/exchange/producer/Dockerfile
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      consumer-exch-1to1:
+        condition: service_started
+    environment:
+      - PYTHONUNBUFFERED=1
+      - RABBIT_HOST=rabbitmq
+      - EXCHANGE=ex_test_1to1
+      - EXCHANGE_TYPE=direct
+      - ROUTING_KEY=rk.1to1
+      - CANT_MSG=3
+      - MEG_SEND="exchange 1 a 1 OK"
+    profiles: ["exchange"]
+
+  consumer-exch-1ton.1:
+    build:
+      context: .
+      dockerfile: test/exchange/consumer/Dockerfile
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - PYTHONUNBUFFERED=1
+      - RABBIT_HOST=rabbitmq
+      - EXCHANGE=ex_broadcast
+      - EXCHANGE_TYPE=fanout
+      - ROUTING_KEY=ignored
+      - QUEUE_NAME=q_ex_1toN.c1
+      - EXPECTED="broadcast OK"
+      - MAX_MSG=5
+    profiles: ["exchange"]
+
+  consumer-exch-1ton.2:
+    build:
+      context: .
+      dockerfile: test/exchange/consumer/Dockerfile
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - PYTHONUNBUFFERED=1
+      - RABBIT_HOST=rabbitmq
+      - EXCHANGE=ex_broadcast
+      - EXCHANGE_TYPE=fanout
+      - ROUTING_KEY=ignored
+      - QUEUE_NAME=q_ex_1toN.c2
+      - EXPECTED="broadcast OK"
+      - MAX_MSG=5
+    profiles: ["exchange"]
+
+  consumer-exch-1ton.3:
+    build:
+      context: .
+      dockerfile: test/exchange/consumer/Dockerfile
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - PYTHONUNBUFFERED=1
+      - RABBIT_HOST=rabbitmq
+      - EXCHANGE=ex_broadcast
+      - EXCHANGE_TYPE=fanout
+      - ROUTING_KEY=ignored
+      - QUEUE_NAME=q_ex_1toN.c3
+      - EXPECTED="broadcast OK"
+      - MAX_MSG=5
+    profiles: ["exchange"]
+
+  producer-exch-1ton:
+    build:
+      context: .
+      dockerfile: test/exchange/producer/Dockerfile
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      consumer-exch-1ton.1:
+        condition: service_started
+      consumer-exch-1ton.2:
+        condition: service_started
+      consumer-exch-1ton.3:
+        condition: service_started
+    environment:
+      - PYTHONUNBUFFERED=1
+      - RABBIT_HOST=rabbitmq
+      - EXCHANGE=ex_broadcast
+      - EXCHANGE_TYPE=fanout
+      - ROUTING_KEY=ignored
+      - CANT_MSG=5
+      - MEG_SEND="broadcast OK"
+    profiles: ["exchange"]
