@@ -39,10 +39,8 @@ class Coordinator:
             msg = body.decode('utf-8')
             if len(body) <= 4:
                 if msg == END_MESSAGE:
-                    print(f"\n[Coordinator] llego {msg}")
                     self.finished_nodes += 1
                     if self.finished_nodes == self.num_nodes:
-                        print(f"\n[Coordinator] finished {self.finished_nodes}/{self.num_nodes}")
                         self._send_downstream_end()
                         self.end_batch = None
                         self.finished_nodes = 0
@@ -51,7 +49,6 @@ class Coordinator:
                     logging.error(f"[Coordinator] Unknown text message: {msg}")
                 return
         except UnicodeDecodeError as e:
-            print(f"\n\n[Coordinator] llego end batch")
             batch = Batch()
             batch.decode(body)
             if batch.is_last_batch():
@@ -66,7 +63,6 @@ class Coordinator:
 
     def _send_downstream_end(self):
         self.downstream_queue.send(self.end_batch.encode())
-        print(f'[Coordinator] \n\nmande end batch')
 
     def close(self):
         self.consumer_queue.stop_consuming()

@@ -60,7 +60,6 @@ class Join:
             target=self.coordinator_consumer.start_consuming,
             args=(self.coordinator_callback,), daemon=True
         )
-        logging.info(f'\n[JOIN] arranco hilo coordinador listerner')
         self.conection_coordinator.start()
 
         self.consumer_queue.start_consuming(self.callback)
@@ -89,11 +88,9 @@ class Join:
 
     def coordinator_callback(self, ch, method, properties, body):
         msg = body.decode('utf-8')
-        logging.info(f'\n\n[JOIN] llego msg {msg}')
         if str(msg) == str(FLUSH_MESSAGE):
             with self.lock:
                 self.coordinator_producer.send(END_MESSAGE)
-                print(f'\n\n[JOIN] mande {END_MESSAGE} al coordinador')
         else:
             logging.error(f"[FILTER] Unknown command from coordinator: {msg}")
 
@@ -107,7 +104,6 @@ class Join:
                 logging.error(
                     f'action: join_batch_with_dicctionary | result: fail | error: {e} | dic: {self.join_dictionary}')
             if batch.is_last_batch():
-                logging.info(f'\n\n[JOIN] llego ultimo batch, lo mando al coordinador')
                 self.coordinator_producer.send(batch.encode())
                 return
             self.producer_queue.send(batch.encode())

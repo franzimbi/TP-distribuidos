@@ -29,8 +29,6 @@ def main():
             continue
         producers.append(aux)
 
-    print(
-        f"\n\n\n[Coordinator] arranque con consume:{consumer} y producer:{producers} para downstream:{downstream_q}\n")
     coordinator = Coordinator(num_nodes, consumer, producers, downstream_q)
     coordinator.start()
 
