@@ -24,8 +24,6 @@ def filter_by_time(batch: Batch):
     return batch
 
 def filter_by_amount(batch: Batch):
-    if batch.is_last_batch():
-        print(F"[FILTER] recibi last batch en f2 {batch}")
     index = batch.index_of('final_amount')
     filtered = []
     for row in batch:

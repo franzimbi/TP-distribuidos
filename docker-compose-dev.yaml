@@ -53,7 +53,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - CONSUME_QUEUE=q11
-      - PRODUCE_QUEUE=q14
+      - PRODUCE_QUEUE=q12
       
       - COORDINATOR_PRODUCE_QUEUE=Q1C1
       - COORDINATOR_CONSUME_QUEUE=F11
@@ -74,7 +74,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - CONSUME_QUEUE=q11
-      - PRODUCE_QUEUE=q14
+      - PRODUCE_QUEUE=q12
       
       - COORDINATOR_PRODUCE_QUEUE=Q1C1
       - COORDINATOR_CONSUME_QUEUE=F12
@@ -102,45 +102,144 @@ services:
       - PRODUCE_QUEUE_1=F11
       - PRODUCE_QUEUE_2=F12
 
-      - DOWNSTREAM_QUEUE=q14
+      - DOWNSTREAM_QUEUE=q12
 
     volumes:
       - ./config.ini:/app/config.ini
 
 
-#  filter-q1.2:
-#    build:
-#      context: .
-#      dockerfile: filter/Dockerfile
-#    restart: on-failure
-#    depends_on:
-#      - rabbitmq
-#    links:
-#      - rabbitmq
-#    environment:
-#      - PYTHONUNBUFFERED=1
-#      - CONSUME_QUEUE=q12
-#      - PRODUCE_QUEUE=q13
-#      - FILTER_NAME=byamount
-#    volumes:
-#      - ./config.ini:/app/config.ini
-#
-#  filter-q1.3:
-#    build:
-#      context: .
-#      dockerfile: filter/Dockerfile
-#    restart: on-failure
-#    depends_on:
-#      - rabbitmq
-#    links:
-#      - rabbitmq
-#    environment:
-#      - PYTHONUNBUFFERED=1
-#      - CONSUME_QUEUE=q13
-#      - PRODUCE_QUEUE=q14
-#      - FILTER_NAME=bycolumn
-#    volumes:
-#      - ./config.ini:/app/config.ini
+  filter-q1.f2.1:
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+    links:
+      - rabbitmq
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=q12
+      - PRODUCE_QUEUE=q13
+      
+      - COORDINATOR_PRODUCE_QUEUE=Q1C2
+      - COORDINATOR_CONSUME_QUEUE=F21
+      
+      - FILTER_NAME=byamount
+    volumes:
+      - ./config.ini:/app/config.ini
+
+  filter-q1.f2.2:
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+    links:
+      - rabbitmq
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=q12
+      - PRODUCE_QUEUE=q13
+      
+      - COORDINATOR_PRODUCE_QUEUE=Q1C2
+      - COORDINATOR_CONSUME_QUEUE=F22
+      
+      - FILTER_NAME=byamount
+    volumes:
+      - ./config.ini:/app/config.ini
+
+  coordinator-q1.2:
+    build:
+      context: .
+      dockerfile: coordinator/Dockerfile
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+      - filter-q1.f1.1
+      - filter-q1.f1.2
+
+    links:
+      - rabbitmq
+    environment:
+      - PYTHONUNBUFFERED=1
+      - NUM_NODES=2
+      - CONSUME_QUEUE=Q1C2
+      - PRODUCE_QUEUE_1=F21
+      - PRODUCE_QUEUE_2=F22
+
+      - DOWNSTREAM_QUEUE=q13
+
+    volumes:
+      - ./config.ini:/app/config.ini
+
+
+  filter-q1.f3.1:
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+    links:
+      - rabbitmq
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=q13
+      - PRODUCE_QUEUE=q14
+      
+      - COORDINATOR_PRODUCE_QUEUE=Q1C3
+      - COORDINATOR_CONSUME_QUEUE=F31
+
+      - FILTER_NAME=bycolumn
+    volumes:
+      - ./config.ini:/app/config.ini
+
+  filter-q1.f3.2:
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+    links:
+      - rabbitmq
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=q13
+      - PRODUCE_QUEUE=q14
+      
+      - COORDINATOR_PRODUCE_QUEUE=Q1C3
+      - COORDINATOR_CONSUME_QUEUE=F32
+
+      - FILTER_NAME=bycolumn
+    volumes:
+      - ./config.ini:/app/config.ini
+
+  coordinator-q1.3:
+    build:
+      context: .
+      dockerfile: coordinator/Dockerfile
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+      - filter-q1.f3.1
+      - filter-q1.f3.2
+
+    links:
+      - rabbitmq
+    environment:
+      - PYTHONUNBUFFERED=1
+      - NUM_NODES=2
+      - CONSUME_QUEUE=Q1C3
+      - PRODUCE_QUEUE_1=F31
+      - PRODUCE_QUEUE_2=F32
+
+      - DOWNSTREAM_QUEUE=q14
+
+    volumes:
+      - ./config.ini:/app/config.ini
 
 
 # # QUERIE #3
