@@ -22,6 +22,12 @@ services:
         - PRODUCE_QUEUE_Q1=q11
         - CONSUME_QUEUE_Q1=q14
 
+        - PRODUCE_QUEUE_Q2_1=q211
+        - CONSUME_QUEUE_Q2_1=q221
+
+#        - PRODUCE_QUEUE_Q2_2=q212
+#        - CONSUME_QUEUE_Q2_2=q252
+
         - PRODUCE_QUEUE_Q3=q31
         - CONSUME_QUEUE_Q3=q34
         - JOIN_QUEUE_Q3.1=j31
@@ -38,8 +44,87 @@ services:
       volumes:
         - ./config.ini:/app/config.ini
 
+#QUERIE 2
+#
+#  filter-q2.f1.1:
+#     build:
+#       context: .
+#       dockerfile: filter/Dockerfile
+#     restart: on-failure
+#     environment:
+#       - PYTHONUNBUFFERED=1
+#       - CONSUME_QUEUE=q211
+#       - PRODUCE_QUEUE=q221
+#
+#       - COORDINATOR_PRODUCE_QUEUE=Q2C1
+#       - COORDINATOR_CONSUME_QUEUE=Q2F11
+#
+#       - FILTER_NAME=bytime
+#     networks:
+#       - mynet
+#     volumes:
+#       - ./config.ini:/app/config.ini
+#
+#  filter-q2.f1.2:
+#    build:
+#      context: .
+#      dockerfile: filter/Dockerfile
+#    restart: on-failure
+#    environment:
+#      - PYTHONUNBUFFERED=1
+#      - CONSUME_QUEUE=q211
+#      - PRODUCE_QUEUE=q221
+#
+#      - COORDINATOR_PRODUCE_QUEUE=Q2C1
+#      - COORDINATOR_CONSUME_QUEUE=Q2F12
+#
+#      - FILTER_NAME=bytime
+#    networks:
+#      - mynet
+#    volumes:
+#      - ./config.ini:/app/config.ini
+#
+#  coordinator-q2.1:
+#    build:
+#      context: .
+#      dockerfile: coordinator/Dockerfile
+#    restart: on-failure
+#    depends_on:
+#      - filter-q2.f1.1
+#      - filter-q2.f1.2
+#    environment:
+#      - PYTHONUNBUFFERED=1
+#      - NUM_NODES=2
+#      - CONSUME_QUEUE=Q2C1
+#      - PRODUCE_QUEUE_1=Q2F11
+#      - PRODUCE_QUEUE_2=Q2F12
+#
+#      - DOWNSTREAM_QUEUE=q221
+#    networks:
+#      - mynet
+#    volumes:
+#      - ./config.ini:/app/config.ini
 
-# QUERIE #1
+#  aggregator-q2.1:
+#    build:
+#      context: .
+#      dockerfile: aggregator/Dockerfile
+#    restart: on-failure
+#
+#    environment:
+#      - PYTHONUNBUFFERED=1
+#
+#      - CONSUME_QUEUE=q221
+#      - PRODUCE_QUEUE=q231
+#      - KEY_COLUMNS=store_id,user_id
+#      - COUNT_NAME=purchases_qty
+#      - AGGREGATOR_NAME=counter
+#    volumes:
+#      - ./config.ini:/app/config.ini
+#    networks:
+#      - mynet
+
+  # QUERIE #1
   filter-q1.f1.1:
     build:
       context: .
@@ -220,6 +305,8 @@ services:
       - mynet
     volumes:
       - ./config.ini:/app/config.ini
+
+
 
 # QUERIE #3
   aggregator-q3:
