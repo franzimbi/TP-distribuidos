@@ -13,7 +13,8 @@ coordinator_producer =  str(os.getenv("COORDINATOR_PRODUCE_QUEUE"))
 filters = {
     'bytime': filter_by_time,
     'byamount': filter_by_amount,
-    'bycolumn': filter_by_column
+    'bycolumn': filter_by_column,
+    'byyear': filter_by_2024_2025
 }
 
 # consumer = MessageMiddlewareQueue(host="rabbitmq", queue_name=queue_consumer)

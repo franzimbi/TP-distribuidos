@@ -23,6 +23,25 @@ def filter_by_time(batch: Batch):
     batch.replace_all_rows(filtered)
     return batch
 
+def filter_by_2024_2025(batch: Batch):
+    idx = batch.index_of('created_at')
+    year1 = 2024
+    year2 = 2025
+    if idx is None:
+        return batch
+    
+    filtered = []
+    for row in batch:
+        try:
+            year = int(row[idx][:4])
+            if year == year1 or year == year2:
+                filtered.append(row)
+        except ValueError:
+            continue
+    batch.replace_all_rows(filtered)
+    return batch
+
+
 def filter_by_amount(batch: Batch):
     index = batch.index_of('final_amount')
     filtered = []

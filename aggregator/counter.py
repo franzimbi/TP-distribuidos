@@ -46,9 +46,9 @@ class Counter:
                 continue
             store_id = str(store_id).strip()
             try:
-                year = int(created_at[:4])
-                if year not in (2024, 2025):
-                    continue
+                # year = int(created_at[:4])
+                # if year not in (2024, 2025):
+                #     continue
                 user_id = str(int(float(user_id_raw)))
                 key = (store_id, user_id)
                 self._accumulator[key] = self._accumulator.get(key, 0) + 1

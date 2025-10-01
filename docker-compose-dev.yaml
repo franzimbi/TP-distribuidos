@@ -32,7 +32,7 @@ services:
         - JOIN_QUEUE_Q3=j31
 
         - PRODUCE_QUEUE_Q4=q41
-        - CONSUME_QUEUE_Q4=q45
+        - CONSUME_QUEUE_Q4=q46
         - JOIN_QUEUE_Q4_1=j41
         - JOIN_QUEUE_Q4_2=j42
 
@@ -342,6 +342,67 @@ services:
 
 
 # QUERIE #4
+
+  filter-q4.f1.1:
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+    links:
+      - rabbitmq
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=q41
+      - PRODUCE_QUEUE=q42
+      
+      - COORDINATOR_PRODUCE_QUEUE=Q4C1
+      - COORDINATOR_CONSUME_QUEUE=Q4F11
+      - FILTER_NAME=byyear
+
+  filter-q4.f1.2:
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+    links:
+      - rabbitmq
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=q41
+      - PRODUCE_QUEUE=q42
+      
+      - COORDINATOR_PRODUCE_QUEUE=Q4C1
+      - COORDINATOR_CONSUME_QUEUE=Q4F12
+      - FILTER_NAME=byyear
+
+  coordinator-q4.1:
+    build:
+      context: .
+      dockerfile: coordinator/Dockerfile
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+      - filter-q4.f1.1
+      - filter-q4.f1.2
+
+    links:
+      - rabbitmq
+    environment:
+      - PYTHONUNBUFFERED=1
+      - NUM_NODES=2
+      - CONSUME_QUEUE=Q4C1
+      - PRODUCE_QUEUE_1=Q4F11
+      - PRODUCE_QUEUE_2=Q4F12
+
+      - DOWNSTREAM_QUEUE=q42
+
+    volumes:
+      - ./config.ini:/app/config.ini
+
   aggregator-q4:
       build:
         context: .
@@ -354,8 +415,8 @@ services:
       environment:
         - PYTHONUNBUFFERED=1
 
-        - CONSUME_QUEUE=q41
-        - PRODUCE_QUEUE=q42
+        - CONSUME_QUEUE=q42
+        - PRODUCE_QUEUE=q43
         - AGGREGATOR_NAME=counter
       volumes:
         - ./config.ini:/app/config.ini
@@ -372,8 +433,8 @@ services:
       environment:
         - PYTHONUNBUFFERED=1
 
-        - CONSUME_QUEUE=q42
-        - PRODUCE_QUEUE=q43
+        - CONSUME_QUEUE=q43
+        - PRODUCE_QUEUE=q44
         - TOP=3
         - COLUMN_NAME=store_id,user_id,purchases_qty
       volumes:
@@ -390,8 +451,8 @@ services:
       - rabbitmq
     environment:
       - PYTHONUNBUFFERED=1
-      - CONSUME_QUEUE=q43
-      - PRODUCE_QUEUE=q44
+      - CONSUME_QUEUE=q44
+      - PRODUCE_QUEUE=q45
 
       - JOIN_QUEUE=j41
       - COLUMN_NAME=birthdate
@@ -411,8 +472,8 @@ services:
       - rabbitmq
     environment:
       - PYTHONUNBUFFERED=1
-      - CONSUME_QUEUE=q44
-      - PRODUCE_QUEUE=q45
+      - CONSUME_QUEUE=q45
+      - PRODUCE_QUEUE=q46
 
       - JOIN_QUEUE=j42
       - COLUMN_NAME=store_name
