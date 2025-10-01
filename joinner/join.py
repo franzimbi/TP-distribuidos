@@ -45,7 +45,7 @@ class Join:
         aux = self.join_queue
         self.join_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=aux)
         self.join_queue.start_consuming(self.callback_to_receive_join_data)
-        logging.debug("\n\naction: receive_join_data | status: finished | entries: %d",
+        logging.debug("action: receive_join_data | status: finished | entries: %d",
                       len(self.join_dictionary))
         # self.join_queue.close()
 
@@ -101,7 +101,7 @@ class Join:
                 batch.change_header_name_value(self.column_id, self.column_name, self.join_dictionary)
             except (ValueError, KeyError) as e:
                 logging.error(
-                    f'action: join_batch_with_dicctionary | result: fail | error: {e} | dic: {self.join_dictionary}')
+                    f'action: join_batch_with_dicctionary | result: fail | error: {e}')
             if batch.is_last_batch():
                 self.coordinator_producer.send(batch.encode())
                 return
