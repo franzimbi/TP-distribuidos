@@ -44,6 +44,7 @@ class Join:
     def start(self, consumer, producer, coordinator_consumer, coordinator_producer):
         aux = self.join_queue
         self.join_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=aux)
+        print("[JOIN] \n\nReceiving join data...\n")
         self.join_queue.start_consuming(self.callback_to_receive_join_data)
         logging.debug("\n\naction: receive_join_data | status: finished | entries: %d",
                       len(self.join_dictionary))

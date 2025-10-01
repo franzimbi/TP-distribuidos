@@ -21,6 +21,8 @@ Q4queue_consumer = os.getenv("CONSUME_QUEUE_Q4")
 Q4queue_producer = os.getenv("PRODUCE_QUEUE_Q4")
 Q4queue_joiner_users = os.getenv("JOIN_QUEUE_Q4_1")
 Q4queue_joiner_stores = os.getenv("JOIN_QUEUE_Q4_2")
+Q4queue_joiner_users2 = os.getenv("JOIN_QUEUE_Q4_1_2")
+Q4queue_joiner_stores2 = os.getenv("JOIN_QUEUE_Q4_2_2")
 
 shutdown = threading.Event()
 
@@ -29,8 +31,8 @@ class Distributor:
     def __init__(self):
         self.number_of_clients = 0
         self.clients = {}  # key: client_id, value: socket
-        self.files_types_for_queries = {'t': [1, 3], 's': [3,32],
-                                        'u': []}  # key: type_file, value: list of query_ids
+        self.files_types_for_queries = {'t': [1,3,4], 's': [3,32,42,44],
+                                        'u': [4,43]}  # key: type_file, value: list of query_ids
 
         self.producer_queues = {}  # key: query_id, value: MessageMiddlewareQueue
         self.consumer_queues = {}  # ""
@@ -46,10 +48,12 @@ class Distributor:
         self.joiner_queues[3] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q31queue_joiner)
         self.joiner_queues[32] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q32queue_joiner)
 
-        # self.producer_queues[4] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q4queue_producer)
-        # self.consumer_queues[4] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q4queue_consumer)
-        # self.joiner_queues[4] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q4queue_joiner_users)
-        # self.joiner_queues[42] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q4queue_joiner_stores)
+        self.producer_queues[4] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q4queue_producer)
+        self.consumer_queues[4] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q4queue_consumer)
+        self.joiner_queues[4] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q4queue_joiner_users)
+        self.joiner_queues[42] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q4queue_joiner_stores)
+        self.joiner_queues[43] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q4queue_joiner_users2)
+        self.joiner_queues[44] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q4queue_joiner_stores2)
 
     def graceful_quit(self, signum, frame):
         logging.info(f'signum {signum} activado')

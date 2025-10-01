@@ -30,7 +30,9 @@ services:
         - PRODUCE_QUEUE_Q4=q41
         - CONSUME_QUEUE_Q4=q46
         - JOIN_QUEUE_Q4_1=j41
+        - JOIN_QUEUE_Q4_1_2=j412
         - JOIN_QUEUE_Q4_2=j42
+        - JOIN_QUEUE_Q4_2_2=j422
       networks:
         - mynet
       volumes:
@@ -236,7 +238,7 @@ services:
       volumes:
         - ./config.ini:/app/config.ini
 
-  joiner-q3.1:
+  joiner-q3.j1.1:
     build:
       context: .
       dockerfile: joinner/Dockerfile
@@ -258,7 +260,7 @@ services:
     volumes:
       - ./config.ini:/app/config.ini
 
-  joiner-q3.2:
+  joiner-q3.j1.2:
     build:
       context: .
       dockerfile: joinner/Dockerfile
@@ -286,8 +288,8 @@ services:
       dockerfile: coordinator/Dockerfile
     restart: on-failure
     depends_on:
-      - joiner-q3.1
-      - joiner-q3.2
+      - joiner-q3.j1.1
+      - joiner-q3.j1.2
 
     environment:
       - PYTHONUNBUFFERED=1
@@ -364,144 +366,234 @@ services:
 
 # QUERIE #4
 
-#  filter-q4.f1.1:
-#    build:
-#      context: .
-#      dockerfile: filter/Dockerfile
-#    restart: on-failure
-#    depends_on:
-#      - rabbitmq
-#    links:
-#      - rabbitmq
-#    environment:
-#      - PYTHONUNBUFFERED=1
-#      - CONSUME_QUEUE=q41
-#      - PRODUCE_QUEUE=q42
-#
-#      - COORDINATOR_PRODUCE_QUEUE=Q4C1
-#      - COORDINATOR_CONSUME_QUEUE=Q4F11
-#      - FILTER_NAME=byyear
-#
-#  filter-q4.f1.2:
-#    build:
-#      context: .
-#      dockerfile: filter/Dockerfile
-#    restart: on-failure
-#    depends_on:
-#      - rabbitmq
-#    links:
-#      - rabbitmq
-#    environment:
-#      - PYTHONUNBUFFERED=1
-#      - CONSUME_QUEUE=q41
-#      - PRODUCE_QUEUE=q42
-#
-#      - COORDINATOR_PRODUCE_QUEUE=Q4C1
-#      - COORDINATOR_CONSUME_QUEUE=Q4F12
-#      - FILTER_NAME=byyear
-#
-#  coordinator-q4.1:
-#    build:
-#      context: .
-#      dockerfile: coordinator/Dockerfile
-#    restart: on-failure
-#    depends_on:
-#      - rabbitmq
-#      - filter-q4.f1.1
-#      - filter-q4.f1.2
-#
-#    links:
-#      - rabbitmq
-#    environment:
-#      - PYTHONUNBUFFERED=1
-#      - NUM_NODES=2
-#      - CONSUME_QUEUE=Q4C1
-#      - PRODUCE_QUEUE_1=Q4F11
-#      - PRODUCE_QUEUE_2=Q4F12
-#
-#      - DOWNSTREAM_QUEUE=q42
-#
-#    volumes:
-#      - ./config.ini:/app/config.ini
-#
-#  aggregator-q4:
-#      build:
-#        context: .
-#        dockerfile: aggregator/Dockerfile
-#      restart: on-failure
-#      depends_on:
-#        - rabbitmq
-#      links:
-#        - rabbitmq
-#      environment:
-#        - PYTHONUNBUFFERED=1
-#
-#        - CONSUME_QUEUE=q42
-#        - PRODUCE_QUEUE=q43
-#        - AGGREGATOR_NAME=counter
-#      volumes:
-#        - ./config.ini:/app/config.ini
-#
-#  reducer-q4:
-#      build:
-#        context: .
-#        dockerfile: reducer/Dockerfile
-#      restart: on-failure
-#      depends_on:
-#        - rabbitmq
-#      links:
-#        - rabbitmq
-#      environment:
-#        - PYTHONUNBUFFERED=1
-#
-#        - CONSUME_QUEUE=q43
-#        - PRODUCE_QUEUE=q44
-#        - TOP=3
-#        - COLUMN_NAME=store_id,user_id,purchases_qty
-#      volumes:
-#        - ./config.ini:/app/config.ini
-#
-#  joiner-q4.1:
-#    build:
-#      context: .
-#      dockerfile: joinner/Dockerfile
-#    restart: on-failure
-#    depends_on:
-#      - rabbitmq
-#    links:
-#      - rabbitmq
-#    environment:
-#      - PYTHONUNBUFFERED=1
-#      - CONSUME_QUEUE=q44
-#      - PRODUCE_QUEUE=q45
-#
-#      - JOIN_QUEUE=j41
-#      - COLUMN_NAME=birthdate
-#      - COLUMN_ID=user_id
-#      - USE_DISKCACHE='True' # string vacio == false, cualquier otro valor == true
-#    volumes:
-#      - ./config.ini:/app/config.ini
-#
-#  joiner-q4.2:
-#    build:
-#      context: .
-#      dockerfile: joinner/Dockerfile
-#    restart: on-failure
-#    depends_on:
-#      - rabbitmq
-#    links:
-#      - rabbitmq
-#    environment:
-#      - PYTHONUNBUFFERED=1
-#      - CONSUME_QUEUE=q45
-#      - PRODUCE_QUEUE=q46
-#
-#      - JOIN_QUEUE=j42
-#      - COLUMN_NAME=store_name
-#      - COLUMN_ID=store_id
-#      - USE_DISKCACHE='' # string vacio == false, cualquier otro valor == true
-#    volumes:
-#      - ./config.ini:/app/config.ini
+  filter-q4.f1.1:
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    restart: on-failure
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=q41
+      - PRODUCE_QUEUE=q42
+
+      - COORDINATOR_PRODUCE_QUEUE=Q4C1
+      - COORDINATOR_CONSUME_QUEUE=Q4F11
+      - FILTER_NAME=byyear
+    networks:
+      - mynet
+
+  filter-q4.f1.2:
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    restart: on-failure
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=q41
+      - PRODUCE_QUEUE=q42
+
+      - COORDINATOR_PRODUCE_QUEUE=Q4C1
+      - COORDINATOR_CONSUME_QUEUE=Q4F12
+      - FILTER_NAME=byyear
+    networks:
+      - mynet
+
+  coordinator-q4.f1:
+    build:
+      context: .
+      dockerfile: coordinator/Dockerfile
+    restart: on-failure
+    depends_on:
+      - filter-q4.f1.1
+      - filter-q4.f1.2
+    environment:
+      - PYTHONUNBUFFERED=1
+      - NUM_NODES=2
+      - CONSUME_QUEUE=Q4C1
+      - PRODUCE_QUEUE_1=Q4F11
+      - PRODUCE_QUEUE_2=Q4F12
+
+      - DOWNSTREAM_QUEUE=q42
+
+    volumes:
+      - ./config.ini:/app/config.ini
+    networks:
+      - mynet
+
+  aggregator-q4:
+      build:
+        context: .
+        dockerfile: aggregator/Dockerfile
+      restart: on-failure
+
+      environment:
+        - PYTHONUNBUFFERED=1
+
+        - CONSUME_QUEUE=q42
+        - PRODUCE_QUEUE=q43
+        - AGGREGATOR_NAME=counter
+      volumes:
+        - ./config.ini:/app/config.ini
+      networks:
+        - mynet
+
+  reducer-q4:
+      build:
+        context: .
+        dockerfile: reducer/Dockerfile
+      restart: on-failure
+
+      environment:
+        - PYTHONUNBUFFERED=1
+
+        - CONSUME_QUEUE=q43
+        - PRODUCE_QUEUE=q44
+        - TOP=3
+        - COLUMN_NAME=store_id,user_id,purchases_qty
+      volumes:
+        - ./config.ini:/app/config.ini
+      networks:
+        - mynet
+
+  joiner-q4.j1.1:
+    build:
+      context: .
+      dockerfile: joinner/Dockerfile
+    restart: on-failure
+
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=q44
+      - PRODUCE_QUEUE=q45
+
+      - JOIN_QUEUE=j41
+      - COORDINATOR_PRODUCE_QUEUE=Q4C2
+      - COORDINATOR_CONSUME_QUEUE=Q4J11
+
+      - COLUMN_NAME=birthdate
+      - COLUMN_ID=user_id
+      - USE_DISKCACHE='True' # string vacio == false, cualquier otro valor == true
+    volumes:
+      - ./config.ini:/app/config.ini
+    networks:
+      - mynet
+
+  joiner-q4.j1.2:
+    build:
+      context: .
+      dockerfile: joinner/Dockerfile
+    restart: on-failure
+
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=q44
+      - PRODUCE_QUEUE=q45
+
+      - JOIN_QUEUE=j412
+      - COORDINATOR_PRODUCE_QUEUE=Q4C2
+      - COORDINATOR_CONSUME_QUEUE=Q4J12
+
+      - COLUMN_NAME=birthdate
+      - COLUMN_ID=user_id
+      - USE_DISKCACHE='True' # string vacio == false, cualquier otro valor == true
+    volumes:
+      - ./config.ini:/app/config.ini
+    networks:
+      - mynet
+
+  coordinator-q4.j1:
+    build:
+      context: .
+      dockerfile: coordinator/Dockerfile
+    restart: on-failure
+    depends_on:
+      - joiner-q4.j1.1
+      - joiner-q4.j1.2
+
+    environment:
+      - PYTHONUNBUFFERED=1
+      - NUM_NODES=2
+      - CONSUME_QUEUE=Q4C2
+      - PRODUCE_QUEUE_1=Q4J11
+      - PRODUCE_QUEUE_2=Q4J12
+
+      - DOWNSTREAM_QUEUE=q45
+
+    volumes:
+      - ./config.ini:/app/config.ini
+    networks:
+      - mynet
+
+
+  joiner-q4.j2.1:
+    build:
+      context: .
+      dockerfile: joinner/Dockerfile
+    restart: on-failure
+
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=q45
+      - PRODUCE_QUEUE=q46
+
+      - JOIN_QUEUE=j42
+      - COORDINATOR_PRODUCE_QUEUE=Q4C3
+      - COORDINATOR_CONSUME_QUEUE=Q4J21
+
+      - COLUMN_NAME=store_name
+      - COLUMN_ID=store_id
+      - USE_DISKCACHE='' # string vacio == false, cualquier otro valor == true
+    volumes:
+      - ./config.ini:/app/config.ini
+    networks:
+      - mynet
+
+  joiner-q4.j2.2:
+    build:
+      context: .
+      dockerfile: joinner/Dockerfile
+    restart: on-failure
+
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=q45
+      - PRODUCE_QUEUE=q46
+
+      - JOIN_QUEUE=j422
+      - COORDINATOR_PRODUCE_QUEUE=Q4C3
+      - COORDINATOR_CONSUME_QUEUE=Q4J22
+
+      - COLUMN_NAME=store_name
+      - COLUMN_ID=store_id
+      - USE_DISKCACHE='' # string vacio == false, cualquier otro valor == true
+    volumes:
+      - ./config.ini:/app/config.ini
+    networks:
+      - mynet
+
+  coordinator-q4.j2:
+    build:
+      context: .
+      dockerfile: coordinator/Dockerfile
+    restart: on-failure
+    depends_on:
+      - joiner-q4.j2.1
+      - joiner-q4.j2.2
+
+    environment:
+      - PYTHONUNBUFFERED=1
+      - NUM_NODES=2
+      - CONSUME_QUEUE=Q4C3
+      - PRODUCE_QUEUE_1=Q4J21
+      - PRODUCE_QUEUE_2=Q4J22
+
+      - DOWNSTREAM_QUEUE=q46
+
+    volumes:
+      - ./config.ini:/app/config.ini
+    networks:
+      - mynet
+
 
 # cliente
 
