@@ -1,0 +1,20 @@
+services:
+  rabbitmq:
+      build:
+        context: ./middleware
+        dockerfile: Dockerfile
+      ports:
+        - 5672:5672       # para el tp
+        - 15672:15672     # UI
+      networks:
+        - mynet
+      healthcheck:
+        test: [ "CMD", "curl", "-f", "http://localhost:15672" ]
+        interval: 10s
+        timeout: 5s
+        retries: 10
+
+networks:
+  mynet:
+    driver: bridge
+

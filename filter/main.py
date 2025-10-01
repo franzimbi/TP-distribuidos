@@ -7,8 +7,8 @@ from filter import Filter
 filter_type = str(os.getenv("FILTER_NAME"))
 queue_consumer = str(os.getenv("CONSUME_QUEUE"))
 queue_producer = str(os.getenv("PRODUCE_QUEUE"))
-coordinator_consumer =  str(os.getenv("COORDINATOR_CONSUME_QUEUE"))
-coordinator_producer =  str(os.getenv("COORDINATOR_PRODUCE_QUEUE"))
+coordinator_consumer = str(os.getenv("COORDINATOR_CONSUME_QUEUE"))
+coordinator_producer = str(os.getenv("COORDINATOR_PRODUCE_QUEUE"))
 
 filters = {
     'bytime': filter_by_time,
@@ -24,8 +24,6 @@ filters = {
 
 print(f"[{filter_type}] Escuchando en cola: {queue_consumer}, enviando a: {queue_producer}")
 
-
 filter_by_env = filters[filter_type]
 this_filter = Filter(queue_consumer, queue_producer, filter_by_env, coordinator_consumer, coordinator_producer)
 this_filter.start()
-

@@ -14,7 +14,9 @@ def initialize_config():
     try:
         config_params["CONSUME_QUEUE"] = os.getenv('CONSUME_QUEUE', config["DEFAULT"]["CONSUME_QUEUE"])
         config_params["PRODUCE_QUEUE"] = os.getenv('PRODUCE_QUEUE', config["DEFAULT"]["PRODUCE_QUEUE"])
-        config_params["JOIN_QUEUE"] = os.getenv('JOIN_QUEUE', config["DEFAULT"]["JOIN_QUEUE"])
+        config_params["JOIN_QUEUE"] = str(os.getenv('JOIN_QUEUE'))
+        config_params["COORDINATOR_CONSUME_QUEUE"] = str(os.getenv('COORDINATOR_CONSUME_QUEUE'))
+        config_params["COORDINATOR_PRODUCE_QUEUE"] = str(os.getenv('COORDINATOR_PRODUCE_QUEUE'))
 
         config_params["COLUMN_ID"] = os.getenv('COLUMN_ID', config["DEFAULT"]["COLUMN_ID"])
         config_params["COLUMN_NAME"] = os.getenv('COLUMN_NAME', config["DEFAULT"]["COLUMN_NAME"])
@@ -45,6 +47,9 @@ def main():
 
     queue_consumer = config_params["CONSUME_QUEUE"]
     queue_producer = config_params["PRODUCE_QUEUE"]
+    coordinator_consumer = config_params["COORDINATOR_CONSUME_QUEUE"]
+    coordinator_producer = config_params["COORDINATOR_PRODUCE_QUEUE"]
+
     join_queue = config_params["JOIN_QUEUE"]
     logging_level = config_params["logging_level"]
     listen_backlog = config_params["listen_backlog"]
@@ -55,7 +60,7 @@ def main():
         f"join_queue:{join_queue} | listen_backlog: {listen_backlog} | logging_level: {logging_level}")
 
     this_join = Join(join_queue, config_params["COLUMN_ID"], config_params["COLUMN_NAME"], config_params["USE_DISKCACHE"])
-    this_join.start(queue_consumer, queue_producer)
+    this_join.start(queue_consumer, queue_producer, coordinator_consumer, coordinator_producer)
 
 
 if __name__ == "__main__":

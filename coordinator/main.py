@@ -14,6 +14,10 @@ def initialize_log(logging_level):
 
 
 def main():
+    logging_level = os.getenv("logging_level")
+    listen_backlog = os.getenv("listen_backlog")
+    initialize_log(logging_level)
+
     num_nodes = int(os.getenv("NUM_NODES", "1"))
     consumer = str(os.getenv(f"CONSUME_QUEUE"))
     downstream_q = str(os.getenv("DOWNSTREAM_QUEUE", "downstream"))
@@ -25,7 +29,8 @@ def main():
             continue
         producers.append(aux)
 
-
+    print(
+        f"\n\n\n[Coordinator] arranque con consume:{consumer} y producer:{producers} para downstream:{downstream_q}\n")
     coordinator = Coordinator(num_nodes, consumer, producers, downstream_q)
     coordinator.start()
 

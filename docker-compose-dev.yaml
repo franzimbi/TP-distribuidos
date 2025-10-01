@@ -1,26 +1,21 @@
-version: '3.8'
 services:
-  rabbitmq:
-    build:
-      context: ./middleware
-      dockerfile: Dockerfile
-    ports:
-      - 15672:15672
-    healthcheck:
-        test: ["CMD", "curl", "-f", "http://localhost:15672"]
-        interval: 10s
-        timeout: 5s
-        retries: 10
+#  rabbitmq:
+#    build:
+#      context: ./middleware
+#      dockerfile: Dockerfile
+#    ports:
+#      - 15672:15672
+#    healthcheck:
+#        test: ["CMD", "curl", "-f", "http://localhost:15672"]
+#        interval: 10s
+#        timeout: 5s
+#        retries: 10
 
   distributor:
       build:
         context: .
         dockerfile: distributor/Dockerfile
       restart: on-failure
-      depends_on:
-        - rabbitmq
-      links:
-        - rabbitmq
       environment:
         - PYTHONUNBUFFERED=1
 
@@ -29,13 +24,15 @@ services:
 
         - PRODUCE_QUEUE_Q3=q31
         - CONSUME_QUEUE_Q3=q34
-        - JOIN_QUEUE_Q3=j31
+        - JOIN_QUEUE_Q3.1=j31
+        - JOIN_QUEUE_Q3.2=j32
 
         - PRODUCE_QUEUE_Q4=q41
         - CONSUME_QUEUE_Q4=q46
         - JOIN_QUEUE_Q4_1=j41
         - JOIN_QUEUE_Q4_2=j42
-
+      networks:
+        - mynet
       volumes:
         - ./config.ini:/app/config.ini
 
@@ -46,10 +43,6 @@ services:
       context: .
       dockerfile: filter/Dockerfile
     restart: on-failure
-    depends_on:
-      - rabbitmq
-    links:
-      - rabbitmq
     environment:
       - PYTHONUNBUFFERED=1
       - CONSUME_QUEUE=q11
@@ -59,6 +52,8 @@ services:
       - COORDINATOR_CONSUME_QUEUE=F11
       
       - FILTER_NAME=bytime
+    networks:
+      - mynet
     volumes:
       - ./config.ini:/app/config.ini
   
@@ -67,10 +62,6 @@ services:
       context: .
       dockerfile: filter/Dockerfile
     restart: on-failure
-    depends_on:
-      - rabbitmq
-    links:
-      - rabbitmq
     environment:
       - PYTHONUNBUFFERED=1
       - CONSUME_QUEUE=q11
@@ -80,6 +71,8 @@ services:
       - COORDINATOR_CONSUME_QUEUE=F12
       
       - FILTER_NAME=bytime
+    networks:
+      - mynet
     volumes:
       - ./config.ini:/app/config.ini
 
@@ -89,12 +82,8 @@ services:
       dockerfile: coordinator/Dockerfile
     restart: on-failure
     depends_on:
-      - rabbitmq
       - filter-q1.f1.1
       - filter-q1.f1.2
-
-    links:
-      - rabbitmq
     environment:
       - PYTHONUNBUFFERED=1
       - NUM_NODES=2
@@ -103,7 +92,8 @@ services:
       - PRODUCE_QUEUE_2=F12
 
       - DOWNSTREAM_QUEUE=q12
-
+    networks:
+      - mynet
     volumes:
       - ./config.ini:/app/config.ini
 
@@ -113,10 +103,6 @@ services:
       context: .
       dockerfile: filter/Dockerfile
     restart: on-failure
-    depends_on:
-      - rabbitmq
-    links:
-      - rabbitmq
     environment:
       - PYTHONUNBUFFERED=1
       - CONSUME_QUEUE=q12
@@ -126,6 +112,8 @@ services:
       - COORDINATOR_CONSUME_QUEUE=F21
       
       - FILTER_NAME=byamount
+    networks:
+      - mynet
     volumes:
       - ./config.ini:/app/config.ini
 
@@ -134,10 +122,6 @@ services:
       context: .
       dockerfile: filter/Dockerfile
     restart: on-failure
-    depends_on:
-      - rabbitmq
-    links:
-      - rabbitmq
     environment:
       - PYTHONUNBUFFERED=1
       - CONSUME_QUEUE=q12
@@ -147,6 +131,8 @@ services:
       - COORDINATOR_CONSUME_QUEUE=F22
       
       - FILTER_NAME=byamount
+    networks:
+      - mynet
     volumes:
       - ./config.ini:/app/config.ini
 
@@ -156,12 +142,9 @@ services:
       dockerfile: coordinator/Dockerfile
     restart: on-failure
     depends_on:
-      - rabbitmq
       - filter-q1.f1.1
       - filter-q1.f1.2
 
-    links:
-      - rabbitmq
     environment:
       - PYTHONUNBUFFERED=1
       - NUM_NODES=2
@@ -170,7 +153,8 @@ services:
       - PRODUCE_QUEUE_2=F22
 
       - DOWNSTREAM_QUEUE=q13
-
+    networks:
+      - mynet
     volumes:
       - ./config.ini:/app/config.ini
 
@@ -180,10 +164,6 @@ services:
       context: .
       dockerfile: filter/Dockerfile
     restart: on-failure
-    depends_on:
-      - rabbitmq
-    links:
-      - rabbitmq
     environment:
       - PYTHONUNBUFFERED=1
       - CONSUME_QUEUE=q13
@@ -193,6 +173,8 @@ services:
       - COORDINATOR_CONSUME_QUEUE=F31
 
       - FILTER_NAME=bycolumn
+    networks:
+      - mynet
     volumes:
       - ./config.ini:/app/config.ini
 
@@ -201,10 +183,6 @@ services:
       context: .
       dockerfile: filter/Dockerfile
     restart: on-failure
-    depends_on:
-      - rabbitmq
-    links:
-      - rabbitmq
     environment:
       - PYTHONUNBUFFERED=1
       - CONSUME_QUEUE=q13
@@ -214,6 +192,8 @@ services:
       - COORDINATOR_CONSUME_QUEUE=F32
 
       - FILTER_NAME=bycolumn
+    networks:
+      - mynet
     volumes:
       - ./config.ini:/app/config.ini
 
@@ -223,12 +203,9 @@ services:
       dockerfile: coordinator/Dockerfile
     restart: on-failure
     depends_on:
-      - rabbitmq
       - filter-q1.f3.1
       - filter-q1.f3.2
 
-    links:
-      - rabbitmq
     environment:
       - PYTHONUNBUFFERED=1
       - NUM_NODES=2
@@ -237,7 +214,8 @@ services:
       - PRODUCE_QUEUE_2=F32
 
       - DOWNSTREAM_QUEUE=q14
-
+    networks:
+      - mynet
     volumes:
       - ./config.ini:/app/config.ini
 
@@ -248,35 +226,80 @@ services:
         context: .
         dockerfile: aggregator/Dockerfile
       restart: on-failure
-      depends_on:
-        - rabbitmq
-      links:
-        - rabbitmq
       environment:
         - PYTHONUNBUFFERED=1
         - CONSUME_QUEUE=q32
         - PRODUCE_QUEUE=q33
         - AGGREGATOR_NAME=tpv_by_semester_store
+      networks:
+        - mynet
       volumes:
         - ./config.ini:/app/config.ini
 
-  joiner-q3:
+  joiner-q3.1:
     build:
       context: .
       dockerfile: joinner/Dockerfile
     restart: on-failure
-    depends_on:
-      - rabbitmq
-    links:
-      - rabbitmq
     environment:
       - PYTHONUNBUFFERED=1
       - CONSUME_QUEUE=q33
       - PRODUCE_QUEUE=q34
+
       - JOIN_QUEUE=j31
+      - COORDINATOR_PRODUCE_QUEUE=Q3C2
+      - COORDINATOR_CONSUME_QUEUE=Q3j1
+
       - COLUMN_NAME=store_name
       - COLUMN_ID=store_id
       - USE_DISKCACHE='' # string vacio == false, cualquier otro valor == true
+    networks:
+      - mynet
+    volumes:
+      - ./config.ini:/app/config.ini
+
+  joiner-q3.2:
+    build:
+      context: .
+      dockerfile: joinner/Dockerfile
+    restart: on-failure
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=q33
+      - PRODUCE_QUEUE=q34
+
+      - JOIN_QUEUE=j32
+      - COORDINATOR_PRODUCE_QUEUE=Q3C2
+      - COORDINATOR_CONSUME_QUEUE=Q3j2
+
+      - COLUMN_NAME=store_name
+      - COLUMN_ID=store_id
+      - USE_DISKCACHE='' # string vacio == false, cualquier otro valor == true
+    networks:
+      - mynet
+    volumes:
+      - ./config.ini:/app/config.ini
+
+  coordinator-q3.2:
+    build:
+      context: .
+      dockerfile: coordinator/Dockerfile
+    restart: on-failure
+    depends_on:
+      - joiner-q3.1
+      - joiner-q3.2
+
+    environment:
+      - PYTHONUNBUFFERED=1
+      - NUM_NODES=2
+
+      - CONSUME_QUEUE=Q3C2
+      - PRODUCE_QUEUE_1=Q3j1
+      - PRODUCE_QUEUE_2=Q3j2
+
+      - DOWNSTREAM_QUEUE=q34
+    networks:
+      - mynet
     volumes:
       - ./config.ini:/app/config.ini
 
@@ -285,10 +308,7 @@ services:
       context: .
       dockerfile: filter/Dockerfile
     restart: on-failure
-    depends_on:
-      - rabbitmq
-    links:
-      - rabbitmq
+
     environment:
       - PYTHONUNBUFFERED=1
       - CONSUME_QUEUE=q31
@@ -297,16 +317,16 @@ services:
       - COORDINATOR_PRODUCE_QUEUE=Q3C1
       - COORDINATOR_CONSUME_QUEUE=Q3F11
       - FILTER_NAME=bytime
+    networks:
+      - mynet
+    volumes:
+      - ./config.ini:/app/config.ini
 
   filter-q3.f1.2:
     build:
       context: .
       dockerfile: filter/Dockerfile
     restart: on-failure
-    depends_on:
-      - rabbitmq
-    links:
-      - rabbitmq
     environment:
       - PYTHONUNBUFFERED=1
       - CONSUME_QUEUE=q31
@@ -315,6 +335,10 @@ services:
       - COORDINATOR_PRODUCE_QUEUE=Q3C1
       - COORDINATOR_CONSUME_QUEUE=Q3F12
       - FILTER_NAME=bytime
+    networks:
+      - mynet
+    volumes:
+      - ./config.ini:/app/config.ini
 
   coordinator-q3.1:
     build:
@@ -322,12 +346,8 @@ services:
       dockerfile: coordinator/Dockerfile
     restart: on-failure
     depends_on:
-      - rabbitmq
       - filter-q3.f1.1
       - filter-q3.f1.2
-
-    links:
-      - rabbitmq
     environment:
       - PYTHONUNBUFFERED=1
       - NUM_NODES=2
@@ -336,151 +356,152 @@ services:
       - PRODUCE_QUEUE_2=Q3F12
 
       - DOWNSTREAM_QUEUE=q32
-
+    networks:
+      - mynet
     volumes:
       - ./config.ini:/app/config.ini
 
 
 # QUERIE #4
 
-  filter-q4.f1.1:
-    build:
-      context: .
-      dockerfile: filter/Dockerfile
-    restart: on-failure
-    depends_on:
-      - rabbitmq
-    links:
-      - rabbitmq
-    environment:
-      - PYTHONUNBUFFERED=1
-      - CONSUME_QUEUE=q41
-      - PRODUCE_QUEUE=q42
-      
-      - COORDINATOR_PRODUCE_QUEUE=Q4C1
-      - COORDINATOR_CONSUME_QUEUE=Q4F11
-      - FILTER_NAME=byyear
-
-  filter-q4.f1.2:
-    build:
-      context: .
-      dockerfile: filter/Dockerfile
-    restart: on-failure
-    depends_on:
-      - rabbitmq
-    links:
-      - rabbitmq
-    environment:
-      - PYTHONUNBUFFERED=1
-      - CONSUME_QUEUE=q41
-      - PRODUCE_QUEUE=q42
-      
-      - COORDINATOR_PRODUCE_QUEUE=Q4C1
-      - COORDINATOR_CONSUME_QUEUE=Q4F12
-      - FILTER_NAME=byyear
-
-  coordinator-q4.1:
-    build:
-      context: .
-      dockerfile: coordinator/Dockerfile
-    restart: on-failure
-    depends_on:
-      - rabbitmq
-      - filter-q4.f1.1
-      - filter-q4.f1.2
-
-    links:
-      - rabbitmq
-    environment:
-      - PYTHONUNBUFFERED=1
-      - NUM_NODES=2
-      - CONSUME_QUEUE=Q4C1
-      - PRODUCE_QUEUE_1=Q4F11
-      - PRODUCE_QUEUE_2=Q4F12
-
-      - DOWNSTREAM_QUEUE=q42
-
-    volumes:
-      - ./config.ini:/app/config.ini
-
-  aggregator-q4:
-      build:
-        context: .
-        dockerfile: aggregator/Dockerfile
-      restart: on-failure
-      depends_on:
-        - rabbitmq
-      links:
-        - rabbitmq
-      environment:
-        - PYTHONUNBUFFERED=1
-
-        - CONSUME_QUEUE=q42
-        - PRODUCE_QUEUE=q43
-        - AGGREGATOR_NAME=counter
-      volumes:
-        - ./config.ini:/app/config.ini
-
-  reducer-q4:
-      build:
-        context: .
-        dockerfile: reducer/Dockerfile
-      restart: on-failure
-      depends_on:
-        - rabbitmq
-      links:
-        - rabbitmq
-      environment:
-        - PYTHONUNBUFFERED=1
-
-        - CONSUME_QUEUE=q43
-        - PRODUCE_QUEUE=q44
-        - TOP=3
-        - COLUMN_NAME=store_id,user_id,purchases_qty
-      volumes:
-        - ./config.ini:/app/config.ini
-
-  joiner-q4.1:
-    build:
-      context: .
-      dockerfile: joinner/Dockerfile
-    restart: on-failure
-    depends_on:
-      - rabbitmq
-    links:
-      - rabbitmq
-    environment:
-      - PYTHONUNBUFFERED=1
-      - CONSUME_QUEUE=q44
-      - PRODUCE_QUEUE=q45
-
-      - JOIN_QUEUE=j41
-      - COLUMN_NAME=birthdate
-      - COLUMN_ID=user_id
-      - USE_DISKCACHE='True' # string vacio == false, cualquier otro valor == true
-    volumes:
-      - ./config.ini:/app/config.ini
-
-  joiner-q4.2:
-    build:
-      context: .
-      dockerfile: joinner/Dockerfile
-    restart: on-failure
-    depends_on:
-      - rabbitmq
-    links:
-      - rabbitmq
-    environment:
-      - PYTHONUNBUFFERED=1
-      - CONSUME_QUEUE=q45
-      - PRODUCE_QUEUE=q46
-
-      - JOIN_QUEUE=j42
-      - COLUMN_NAME=store_name
-      - COLUMN_ID=store_id
-      - USE_DISKCACHE='' # string vacio == false, cualquier otro valor == true
-    volumes:
-      - ./config.ini:/app/config.ini
+#  filter-q4.f1.1:
+#    build:
+#      context: .
+#      dockerfile: filter/Dockerfile
+#    restart: on-failure
+#    depends_on:
+#      - rabbitmq
+#    links:
+#      - rabbitmq
+#    environment:
+#      - PYTHONUNBUFFERED=1
+#      - CONSUME_QUEUE=q41
+#      - PRODUCE_QUEUE=q42
+#
+#      - COORDINATOR_PRODUCE_QUEUE=Q4C1
+#      - COORDINATOR_CONSUME_QUEUE=Q4F11
+#      - FILTER_NAME=byyear
+#
+#  filter-q4.f1.2:
+#    build:
+#      context: .
+#      dockerfile: filter/Dockerfile
+#    restart: on-failure
+#    depends_on:
+#      - rabbitmq
+#    links:
+#      - rabbitmq
+#    environment:
+#      - PYTHONUNBUFFERED=1
+#      - CONSUME_QUEUE=q41
+#      - PRODUCE_QUEUE=q42
+#
+#      - COORDINATOR_PRODUCE_QUEUE=Q4C1
+#      - COORDINATOR_CONSUME_QUEUE=Q4F12
+#      - FILTER_NAME=byyear
+#
+#  coordinator-q4.1:
+#    build:
+#      context: .
+#      dockerfile: coordinator/Dockerfile
+#    restart: on-failure
+#    depends_on:
+#      - rabbitmq
+#      - filter-q4.f1.1
+#      - filter-q4.f1.2
+#
+#    links:
+#      - rabbitmq
+#    environment:
+#      - PYTHONUNBUFFERED=1
+#      - NUM_NODES=2
+#      - CONSUME_QUEUE=Q4C1
+#      - PRODUCE_QUEUE_1=Q4F11
+#      - PRODUCE_QUEUE_2=Q4F12
+#
+#      - DOWNSTREAM_QUEUE=q42
+#
+#    volumes:
+#      - ./config.ini:/app/config.ini
+#
+#  aggregator-q4:
+#      build:
+#        context: .
+#        dockerfile: aggregator/Dockerfile
+#      restart: on-failure
+#      depends_on:
+#        - rabbitmq
+#      links:
+#        - rabbitmq
+#      environment:
+#        - PYTHONUNBUFFERED=1
+#
+#        - CONSUME_QUEUE=q42
+#        - PRODUCE_QUEUE=q43
+#        - AGGREGATOR_NAME=counter
+#      volumes:
+#        - ./config.ini:/app/config.ini
+#
+#  reducer-q4:
+#      build:
+#        context: .
+#        dockerfile: reducer/Dockerfile
+#      restart: on-failure
+#      depends_on:
+#        - rabbitmq
+#      links:
+#        - rabbitmq
+#      environment:
+#        - PYTHONUNBUFFERED=1
+#
+#        - CONSUME_QUEUE=q43
+#        - PRODUCE_QUEUE=q44
+#        - TOP=3
+#        - COLUMN_NAME=store_id,user_id,purchases_qty
+#      volumes:
+#        - ./config.ini:/app/config.ini
+#
+#  joiner-q4.1:
+#    build:
+#      context: .
+#      dockerfile: joinner/Dockerfile
+#    restart: on-failure
+#    depends_on:
+#      - rabbitmq
+#    links:
+#      - rabbitmq
+#    environment:
+#      - PYTHONUNBUFFERED=1
+#      - CONSUME_QUEUE=q44
+#      - PRODUCE_QUEUE=q45
+#
+#      - JOIN_QUEUE=j41
+#      - COLUMN_NAME=birthdate
+#      - COLUMN_ID=user_id
+#      - USE_DISKCACHE='True' # string vacio == false, cualquier otro valor == true
+#    volumes:
+#      - ./config.ini:/app/config.ini
+#
+#  joiner-q4.2:
+#    build:
+#      context: .
+#      dockerfile: joinner/Dockerfile
+#    restart: on-failure
+#    depends_on:
+#      - rabbitmq
+#    links:
+#      - rabbitmq
+#    environment:
+#      - PYTHONUNBUFFERED=1
+#      - CONSUME_QUEUE=q45
+#      - PRODUCE_QUEUE=q46
+#
+#      - JOIN_QUEUE=j42
+#      - COLUMN_NAME=store_name
+#      - COLUMN_ID=store_id
+#      - USE_DISKCACHE='' # string vacio == false, cualquier otro valor == true
+#    volumes:
+#      - ./config.ini:/app/config.ini
 
 # cliente
 
@@ -490,10 +511,8 @@ services:
       dockerfile: client/Dockerfile
     restart: on-failure
     depends_on:
-      - rabbitmq
       - distributor
     links:
-      - rabbitmq
       - distributor
     environment:
       - PYTHONUNBUFFERED=1
@@ -503,3 +522,10 @@ services:
       - ./csvs_files:/app/csvs_files
       - ./results:/app/results
       - ./config.ini:/app/config.ini
+    networks:
+      - mynet
+
+networks:
+  mynet:
+    external: false
+    driver: bridge
