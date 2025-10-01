@@ -1,5 +1,7 @@
 from common.batch import Batch
 import logging
+import signal
+import sys
 from middleware.middleware import MessageMiddlewareQueue
 
 logging.basicConfig(level=logging.INFO)
@@ -16,22 +18,26 @@ class Counter:
         self.count_name = count_name
         self.qid = None
 
+        signal.signal(signal.SIGTERM, self.graceful_quit)
+    
+    def graceful_quit(self, signum, frame):
+        try:
+            print("Recibida señal SIGTERM, cerrando counter...")
+            self.stop()
+        except Exception as e:
+            logging.error(f"Error cerrando counter: {e}")
+        sys.exit(0)
+
     def start(self):
         self._consumer_queue.start_consuming(self.callback)
 
+
     def stop(self):
-        try:
-            self._consumer_queue.stop_consuming()
-        except Exception:
-            pass
-        try:
-            self._consumer_queue.close()
-        except Exception:
-            pass
-        try:
-            self._producer_queue.close()
-        except Exception:
-            pass
+
+        self._consumer_queue.stop_consuming()
+        self._consumer_queue.close()
+        self._producer_queue.close()
+        
 
     def callback(self, ch, method, properties, message):
         batch = Batch()

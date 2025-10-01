@@ -16,7 +16,8 @@ def main():
         level=get_env("LOGGING_LEVEL", default="INFO"),
         datefmt='%Y-%m-%d %H:%M:%S',
     )
-
+    logging.getLogger("pika").setLevel(logging.WARNING)
+    
     consume = get_env("CONSUME_QUEUE", required=True)
     produce = get_env("PRODUCE_QUEUE", required=True)
     name    = get_env("AGGREGATOR_NAME", required=True).strip().lower()
@@ -40,11 +41,9 @@ def main():
             count_name  = get_env("COUNT_NAME",  required=True),
         )
 
-    try:
-        worker.start()
-    except KeyboardInterrupt:
-        try: worker.stop()
-        except Exception: pass
+   
+    worker.start()
+
 
 if __name__ == "__main__":
     main()

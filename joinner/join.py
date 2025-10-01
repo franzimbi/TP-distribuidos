@@ -38,6 +38,7 @@ class Join:
         try:
             print("Recibida señal SIGTERM, cerrando joiner...")
             self.close()
+            print("Joiner cerrado correctamente.")
         except Exception as e:
             logging.error(f"Error cerrando joiner: {e}")
         sys.exit(0)

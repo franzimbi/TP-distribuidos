@@ -1,4 +1,6 @@
 import logging
+import signal
+import sys
 from datetime import datetime
 from middleware.middleware import MessageMiddlewareQueue
 from common.batch import Batch
@@ -41,22 +43,24 @@ class Aggregator:
         self.accumulator = {}
         self._qid = None
 
+        signal.signal(signal.SIGTERM, self.graceful_quit)
+
+    def graceful_quit(self, signum, frame):
+        try:
+            print("Recibida señal SIGTERM, cerrando aggregator...")
+            self.stop()
+        except Exception as e:
+            logging.error(f"Error cerrando aggregator: {e}")
+        sys.exit(0)
+
     def start(self):
         self._consume_queue.start_consuming(self.callback)
 
     def stop(self):
-        try:
-            self._consume_queue.stop_consuming()
-        except Exception:
-            pass
-        try:
-            self._consume_queue.close()
-        except Exception:
-            pass
-        try:
-            self._produce_queue.close()
-        except Exception:
-            pass
+        self._consume_queue.stop_consuming()
+        self._consume_queue.close()
+        self._produce_queue.close()
+        
 
     def callback(self, ch, method, properties, message):
         batch = Batch(); batch.decode(message)
