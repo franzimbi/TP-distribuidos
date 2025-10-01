@@ -4,14 +4,41 @@ from middleware.middleware import MessageMiddlewareQueue
 from common.batch import Batch
 
 BUFFER_SIZE = 150
-OUT_HEADER = ["year_semester", "store_id", "tpv"]
 
+def year_month(ts: str) -> str:
+    d = datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")
+    return f"{d.year}_{d.month:02d}"
 
-class TPVBySemesterStore:
-    def __init__(self, consume_queue, produce_queue):
+def year_semester(ts: str) -> str:
+    d = datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")
+    return f"{d.year}_{'S1' if d.month <= 6 else 'S2'}"
+
+BUCKET = {
+    "month": year_month,
+    "semester": year_semester,
+}
+
+class Aggregator:
+    def __init__(self, consume_queue, produce_queue, *,
+                 key_col: str,
+                 value_col: str,
+                 bucket_kind: str,
+                 bucket_name: str,
+                 time_col: str = "created_at",
+                 out_value_name: str = "tpv"):
         self._consume_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=consume_queue)
         self._produce_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=produce_queue)
-        self._acc = {}
+
+        self._key_col = key_col
+        self._value_col = value_col
+        self._time_col = time_col
+        self._out_value_name = out_value_name
+
+        kind = bucket_kind.lower().strip()
+        self._bucket_fn = BUCKET[kind]
+        self._bucket_name = bucket_name.strip()
+
+        self.accumulator = {}
         self._qid = None
 
     def start(self):
@@ -31,56 +58,46 @@ class TPVBySemesterStore:
         except Exception:
             pass
 
-    def _year_semester(self, created_at_str: str) -> str:
-        dt = datetime.strptime(created_at_str, "%Y-%m-%d %H:%M:%S")
-        return f"{dt.year}_{'S1' if dt.month <= 6 else 'S2'}"
-
     def callback(self, ch, method, properties, message):
-        batch = Batch();
-        batch.decode(message)
+        batch = Batch(); batch.decode(message)
 
         if self._qid is None:
             self._qid = batch.get_query_id()
 
         for row in batch.iter_per_header():
             try:
-                year_sem = self._year_semester(row["created_at"])
-                store_id = row["store_id"]
-                amount = float(row["final_amount"])
-                key = (year_sem, store_id)
-                self._acc[key] = self._acc.get(key, 0.0) + amount
+                bucket = self._bucket_fn(row[self._time_col])
+                key = row[self._key_col]
+                value = float(row[self._value_col])
+                acc_key = (bucket, key)
+                self.accumulator[acc_key] = self.accumulator.get(acc_key, 0.0) + value
             except Exception:
-                logging.error(f"[aggregator] fila mal formada: {row}")
+                logging.error(f"[aggregator] row malformed: {row}")
                 continue
-
+                
         if batch.is_last_batch():
             self._flush(batch)
             return
 
     def _flush(self, src_batch):
-        if not self._acc:
+        if not self.accumulator:
             return
 
-        rows = [[ys, str(sid), f"{tpv:.2f}"] for (ys, sid), tpv in self._acc.items()]
-        rows.sort(key=lambda r: (r[0], int(r[1])) if r[1].isdigit() else (r[0], r[1]))
-
-        qid = (self._qid or 0)
-        out_id = src_batch.id() if src_batch else 0
-
-        total_rows = len(rows)
-        sent_batches = 0
-
-        for i in range(0, total_rows, BUFFER_SIZE):
+        header = [self._bucket_name, self._key_col, self._out_value_name]
+        rows = [[bucket, str(key), f"{total:.2f}"] for (bucket, key), total in self.accumulator.items()]
+       
+        for i in range(0, len(rows), BUFFER_SIZE):
             chunk = rows[i:i + BUFFER_SIZE]
-            is_last_chunk = i + BUFFER_SIZE >= total_rows
-            outb = Batch(
-                id=out_id,
-                query_id=qid,
+            is_last_chunk = i + BUFFER_SIZE >= len(rows)
+            out_batch = Batch(
+                id=src_batch.id(),
+                query_id=self._qid,
                 last=is_last_chunk,
                 type_file=src_batch.type(),
-                header=list(OUT_HEADER),
+                header=header,
                 rows=chunk
             )
-            self._produce_queue.send(outb.encode())
-            sent_batches += 1
-        self._acc.clear()
+            self._produce_queue.send(out_batch.encode())
+
+        self.accumulator.clear()
+        self._qid = None
