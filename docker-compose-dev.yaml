@@ -28,7 +28,9 @@ services:
         - JOIN_QUEUE_Q21_2=j212
 
         - PRODUCE_QUEUE_Q2_2=q212
-        - CONSUME_QUEUE_Q2_2=q232
+        - CONSUME_QUEUE_Q2_2=q252
+        - JOIN_QUEUE_Q22_1=j221
+        - JOIN_QUEUE_Q22_2=j222
 
         - PRODUCE_QUEUE_Q3=q31
         - CONSUME_QUEUE_Q3=q34
@@ -304,6 +306,92 @@ services:
     networks:
       - mynet
 
+
+  reducer-q22:
+      build:
+        context: .
+        dockerfile: reducer/Dockerfile
+      restart: on-failure
+
+      environment:
+        - PYTHONUNBUFFERED=1
+
+        - CONSUME_QUEUE=q232
+        - PRODUCE_QUEUE=q242
+        - TOP=1
+        - COLUMN_NAME=year_month,item_id,total_earnings
+      volumes:
+        - ./config.ini:/app/config.ini
+      networks:
+        - mynet
+
+
+  joiner-q22.j1.1:
+      build:
+        context: .
+        dockerfile: joinner/Dockerfile
+      restart: on-failure
+      environment:
+        - PYTHONUNBUFFERED=1
+        - CONSUME_QUEUE=q242
+        - PRODUCE_QUEUE=q252
+
+        - JOIN_QUEUE=j221
+        - COORDINATOR_PRODUCE_QUEUE=Q22C2
+        - COORDINATOR_CONSUME_QUEUE=Q22j1
+
+        - COLUMN_NAME=item_name
+        - COLUMN_ID=item_id
+        - USE_DISKCACHE='' # string vacio == false, cualquier otro valor == true
+      networks:
+        - mynet
+      volumes:
+        - ./config.ini:/app/config.ini
+
+  joiner-q22.j1.2:
+      build:
+        context: .
+        dockerfile: joinner/Dockerfile
+      restart: on-failure
+      environment:
+        - PYTHONUNBUFFERED=1
+        - CONSUME_QUEUE=q242
+        - PRODUCE_QUEUE=q252
+
+        - JOIN_QUEUE=j222
+        - COORDINATOR_PRODUCE_QUEUE=Q22C2
+        - COORDINATOR_CONSUME_QUEUE=Q22j2
+
+        - COLUMN_NAME=item_name
+        - COLUMN_ID=item_id
+        - USE_DISKCACHE='' # string vacio == false, cualquier otro valor == true
+      networks:
+        - mynet
+      volumes:
+        - ./config.ini:/app/config.ini
+
+  coordinator-q22.2:
+    build:
+      context: .
+      dockerfile: coordinator/Dockerfile
+    restart: on-failure
+    depends_on:
+      - joiner-q22.j1.1
+      - joiner-q22.j1.2
+
+    environment:
+      - PYTHONUNBUFFERED=1
+      - NUM_NODES=2
+
+      - CONSUME_QUEUE=Q22C2
+      - PRODUCE_QUEUE_1=Q22j1
+      - PRODUCE_QUEUE_2=Q22j2
+
+      - DOWNSTREAM_QUEUE=q252
+    networks:
+      - mynet
+    volumes:
+      - ./config.ini:/app/config.ini
 
   # QUERY #1
   filter-q1.f1.1:
