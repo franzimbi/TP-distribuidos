@@ -109,8 +109,8 @@ class Distributor:
         if batch.id() % COUNT_OF_PRINTS == 0 or batch.id() == 0:
             logging.debug(
                 f"[DISTRIBUTOR] Distribuyendo batch {batch.id()} de tipo {batch.type()} a las queries {queries}.")
-        if batch.is_last_batch():
-            print(f"che, toy distribuyendo el batch final {batch.id()} de tipo {batch.type()} a las queries {queries}.")
+        # if batch.is_last_batch():
+        #     print(f"che, toy distribuyendo el batch final {batch.id()} de tipo {batch.type()} a las queries {queries}.")
         for query_id in queries:
             batch.set_query_id(query_id)
             if batch.type() == 't' or batch.type() == 'i': # la proxima veo d hacer algo mas objetoso para evitar estos ifs ~pedro
@@ -124,13 +124,13 @@ class Distributor:
 
             q.send(batch.encode())
             if batch.is_last_batch():
-                print(f"ya en el batch final {batch.id()} de tipo {batch.type()} a la query {query_id}.")
+                logging.info(f"[DISTRIBUTOR] Distribuido batch final {batch.id()} de tipo {batch.type()} a la query {query_id}.")
 
     def callback(self, ch, method, properties, body: bytes):
         batch = Batch()
         batch.decode(body)
-        if batch.id() % COUNT_OF_PRINTS == 0 or batch.id() == 0:
-            logging.debug(f"[DISTRIBUTOR] ENVIANDO batch {batch.id()} de tipo {batch.type()} de la query {batch.get_query_id()} AL CLIENTE.")
+        # if batch.id() % COUNT_OF_PRINTS == 0 or batch.id() == 0:
+        #     logging.debug(f"[DISTRIBUTOR] ENVIANDO batch {batch.id()} de tipo {batch.type()} de la query {batch.get_query_id()} AL CLIENTE.")
         client_id = 1  # por ahora fijo pq un solo cliente
         client_socket = self.clients.get(client_id)
         try:

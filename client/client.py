@@ -36,11 +36,11 @@ class Client:
     def graceful_shutdown(self, signum, frame):
         self.shutdown_event.set()
         try:
-            print("Recibida señal SIGTERM, cerrando client...")
+            logging.info("[CLIENT] Recibida señal SIGTERM, cerrando...")
             self.socket.shutdown(socket.SHUT_RDWR)
             self.socket.close()
             self.close()
-            print("Client cerrado correctamente.")
+            logging.info("[CLIENT] Client cerrado correctamente.")
         except Exception as e:
             logging.error(f"[CLIENT] Error al cerrar: {e}")
         sys.exit(0)

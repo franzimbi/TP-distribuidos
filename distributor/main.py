@@ -107,7 +107,7 @@ def main():
 
                 if batch.is_last_batch():
                     contador += 1
-                    print(f"\n[DISTRIBUTOR] Cliente {addr} terminó de ENVIAR {batch.type()}(esperando resultados de workers).\n")
+                    logging.info(f"\n[DISTRIBUTOR] Cliente {addr} terminó de ENVIAR {batch.type()}(esperando resultados de workers).\n")
                     continue
 
         except Exception as e:

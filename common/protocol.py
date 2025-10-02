@@ -11,7 +11,7 @@ def send_batches_from_csv(path, batch_size, connection: socket, type_file, query
         if filename.endswith('.csv'):    
             with open(path + '/' + filename, 'r', encoding='utf-8', errors='replace') as f:
                 #printear el nombre del archivo que se esta leyendo
-                print(f"[PROTOCOL] Leyendo archivo: {filename}")
+                # logging.info(f"[PROTOCOL] Leyendo archivo: {filename}")
                 headers = next(f)
                 try:
                     current_batch.set_header(headers)
@@ -56,7 +56,6 @@ def recv_batch(socket):
 
     batch = Batch()
     batch.decode(data)
-    # print(f"[PROTOCOL] Recibido batch: {batch.id()} de tipo {batch.type()} con {len(batch)} filas.")
     
     return batch
 
