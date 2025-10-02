@@ -30,7 +30,6 @@ class Reducer:
 
     def callback(self, ch, method, properties, message):
         batch = Batch(); batch.decode(message)
-        logging.debug(f"[REDUCER] Recibido batch {batch.id()} de tipo {batch.type()} con {len(batch)} filas.")
         for i in batch.iter_per_header():
             store = i[self._columns[0]]
             user = i[self._columns[1]]
@@ -43,14 +42,12 @@ class Reducer:
             self.top_users[store] = {k: self.top_users[store][k] for k in top_keys}
 
         if batch.is_last_batch():
-            print(f"[REDUCER] Recibido batch final {batch.id()} de tipo {batch.type()}. Procesando resultados...")
             try:
                 rows = []
                 for store, users in self.top_users.items():
                     for user, qty in users.items():
-                        rows.append((store, user))
-                logging.debug(f"[REDUCER] Processed rows: {rows}")
-                rows = [(str(int(float(s))), str(int(float(u)))) for (s, u) in rows]
+                        rows.append((store, user, qty))
+                rows = [(str(int(float(s))), str(int(float(u))), str(float(v))) for (s, u, v) in rows]
                 rows.sort(key=lambda x: (int(x[0]), int(x[1])))
                 self.send_last_batch(batch, rows)   
             except Exception as e:
@@ -58,10 +55,10 @@ class Reducer:
 
     def send_last_batch(self, batch, rows):
         batch_result = Batch(batch.id(), batch.get_query_id(), type_file=batch.type())
-        batch_result.set_header([self._columns[0], self._columns[1]])
+        batch_result.set_header([self._columns[0], self._columns[1], self._columns[2]])
         batch_result.set_last_batch()
-        for store, user in rows:
-            batch_result.add_row([store, user])
+        for store, user, qty in rows:
+            batch_result.add_row([store, user, str(qty)])
         self._producer_queue.send(batch_result.encode())
 
     def close(self):
@@ -69,3 +66,4 @@ class Reducer:
         self._consumer_queue.close()
         self._producer_queue.close()
         print("Queues cerradas")
+
