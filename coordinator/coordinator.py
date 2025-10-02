@@ -17,7 +17,7 @@ class Coordinator:
         self.producer_queues = {}
 
         for i in range(len(producers)):
-            self.producer_queues[i + 1] = MessageMiddlewareQueue(host='rabbitmq', queue_name=producers[i])
+            self.producer_queues[i] = MessageMiddlewareQueue(host='rabbitmq', queue_name=producers[i])
 
         signal.signal(signal.SIGTERM, self.graceful_shutdown)
 
@@ -41,6 +41,7 @@ class Coordinator:
             if len(body) <= 4:
                 if msg == END_MESSAGE:
                     self.finished_nodes += 1
+                    print(f"[Coordinator] Nodo finalizó. Total nodos finalizados: {self.finished_nodes}/{self.num_nodes}")
                     if self.finished_nodes == self.num_nodes:
                         self._send_downstream_end()
                         self.end_batch = None
@@ -54,6 +55,8 @@ class Coordinator:
             batch.decode(body)
             if batch.is_last_batch():
                 self.end_batch = batch
+                #imprimo el batch q llego
+                print(f"[Coordinator] Recibido batch final {batch.id()} de tipo {batch.type()} de la query {batch.get_query_id()}.")
                 self._broadcast_flush()
             else:
                 logging.error(f"[COORDINATOR] Received batch {batch.id()} without last_batch flag. Ignoring.")
@@ -61,8 +64,10 @@ class Coordinator:
     def _broadcast_flush(self):
         for _, producer in self.producer_queues.items():
             producer.send(FLUSH_MESSAGE)
+            print("FLUSH enviado a un worker")
 
     def _send_downstream_end(self):
+        print(f"vot a enviar el batch final downstream {self.end_batch}")
         self.downstream_queue.send(self.end_batch.encode())
 
     def close(self):

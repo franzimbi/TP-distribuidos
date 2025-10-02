@@ -22,13 +22,13 @@ services:
         - PRODUCE_QUEUE_Q1=q11
         - CONSUME_QUEUE_Q1=q14
 
-        - PRODUCE_QUEUE_Q2_1=q211
-        - CONSUME_QUEUE_Q2_1=q251
+        - PRODUCE_QUEUE_Q21=q211
+        - CONSUME_QUEUE_Q21=q251
         - JOIN_QUEUE_Q21_1=j211
-        - JOIN_QUEUE_Q21_2=j212
 
 #        - PRODUCE_QUEUE_Q2_2=q212
 #        - CONSUME_QUEUE_Q2_2=q252
+#        - JOIN_QUEUE_Q2_2=j212
 
         - PRODUCE_QUEUE_Q3=q31
         - CONSUME_QUEUE_Q3=q34
@@ -150,49 +150,28 @@ services:
       networks:
         - mynet
 
+
   joiner-q21.j1.1:
-      build:
-        context: .
-        dockerfile: joinner/Dockerfile
-      restart: on-failure
-      environment:
-        - PYTHONUNBUFFERED=1
-        - CONSUME_QUEUE=q241
-        - PRODUCE_QUEUE=q251
+    build:
+      context: .
+      dockerfile: joinner/Dockerfile
+    restart: on-failure
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=q241
+      - PRODUCE_QUEUE=q251
 
-        - JOIN_QUEUE=j211
-        - COORDINATOR_PRODUCE_QUEUE=Q21C2
-        - COORDINATOR_CONSUME_QUEUE=Q21j1
+      - JOIN_QUEUE=j211
+      - COORDINATOR_PRODUCE_QUEUE=Q21C1
+      - COORDINATOR_CONSUME_QUEUE=Q21j1
 
-        - COLUMN_NAME=item_name
-        - COLUMN_ID=item_id
-        - USE_DISKCACHE='' # string vacio == false, cualquier otro valor == true
-      networks:
-        - mynet
-      volumes:
-        - ./config.ini:/app/config.ini
-
-  joiner-q21.j1.2:
-      build:
-        context: .
-        dockerfile: joinner/Dockerfile
-      restart: on-failure
-      environment:
-        - PYTHONUNBUFFERED=1
-        - CONSUME_QUEUE=q241
-        - PRODUCE_QUEUE=q251
-
-        - JOIN_QUEUE=j212
-        - COORDINATOR_PRODUCE_QUEUE=Q21C2
-        - COORDINATOR_CONSUME_QUEUE=Q21j2
-
-        - COLUMN_NAME=item_name
-        - COLUMN_ID=item_id
-        - USE_DISKCACHE='' # string vacio == false, cualquier otro valor == true
-      networks:
-        - mynet
-      volumes:
-        - ./config.ini:/app/config.ini
+      - COLUMN_NAME=item_name
+      - COLUMN_ID=item_id
+      - USE_DISKCACHE='' # string vacio == false, cualquier otro valor == true
+    networks:
+      - mynet
+    volumes:
+      - ./config.ini:/app/config.ini
 
   coordinator-q21.2:
     build:
@@ -201,21 +180,22 @@ services:
     restart: on-failure
     depends_on:
       - joiner-q21.j1.1
-      - joiner-q21.j1.2
 
     environment:
       - PYTHONUNBUFFERED=1
-      - NUM_NODES=2
+      - NUM_NODES=1
 
-      - CONSUME_QUEUE=Q21C2
+      - CONSUME_QUEUE=Q21C1
       - PRODUCE_QUEUE_1=Q21j1
-      - PRODUCE_QUEUE_2=Q21j2
 
       - DOWNSTREAM_QUEUE=q251
     networks:
       - mynet
     volumes:
       - ./config.ini:/app/config.ini
+
+
+
 
   # QUERIE #1
   filter-q1.f1.1:

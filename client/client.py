@@ -13,11 +13,13 @@ STORES_PATH = '/stores'
 TRANSACTION_PATH = '/transactions'
 TRANSACTION_ITEMS_PATH = '/transaction_items'
 USERS_PATH = '/users'
+MENU_ITEM_PATH = '/menu_items'
 
 STORES_TYPE_FILE = 's'
 TRANSACTION_TYPE_FILE = 't'
 TRANSACTION_ITEMS_TYPE_FILE = 'i'
 USERS_TYPE_FILE = 'u'
+MENU_ITEM_TYPE_FILE = 'm'
 
 class Client:
 
@@ -48,6 +50,8 @@ class Client:
         # send_batches_from_csv(path_input+STORES_PATH, BATCH_SIZE, self.socket, STORES_TYPE_FILE, 3)
 
         # send_batches_from_csv(path_input+USERS_PATH, BATCH_SIZE, self.socket, USERS_TYPE_FILE, 4)
+
+        send_batches_from_csv(path_input+MENU_ITEM_PATH, BATCH_SIZE, self.socket, MENU_ITEM_TYPE_FILE, 21)
 
         self.sender_transaction_items = threading.Thread(
             target=send_batches_from_csv,

@@ -18,7 +18,7 @@ def main():
     listen_backlog = os.getenv("listen_backlog")
     initialize_log(logging_level)
 
-    num_nodes = int(os.getenv("NUM_NODES", "1"))
+    num_nodes = int(os.getenv("NUM_NODES"))
     consumer = str(os.getenv(f"CONSUME_QUEUE"))
     downstream_q = str(os.getenv("DOWNSTREAM_QUEUE", "downstream"))
     producers = []
