@@ -3,7 +3,7 @@ import os
 import socket
 import threading
 from common.protocol import recv_batch
-from distributor import Distributor, shutdown
+from distributor import Distributor
 from configparser import ConfigParser
 import logging
 import signal
@@ -58,7 +58,7 @@ def main():
     shutdown = threading.Event()
 
     def graceful_quit(signum, frame):
-        print("Recibida señal SIGTERM, cerrando distributor...")
+        logging.info("Recibida señal SIGTERM, cerrando distributor...")
         shutdown.set()
         try:
             server_socket.shutdown(socket.SHUT_RDWR)
@@ -67,25 +67,25 @@ def main():
             pass
         for t in client_threads:
             t.join()
-        print("Joinee todos los hilos de clientes")
+        logging.info("Joinee todos los hilos de clientes")
 
         distributor.stop_consuming_from_all_workers()
-        print("\nhice stop consuming from all threads")
+        logging.info("\nhice stop consuming from all threads")
 
         accept_thread.join(timeout=2.0)
-        print("joinee accept thread")
+        logging.info("joinee accept thread")
         q1_consumer_thread.join(timeout=2.0)
-        print("joinee q1_consumer thread")
+        logging.info("joinee q1_consumer thread")
         q21_consumer_thread.join(timeout=2.0)
-        print("joinee q2_consumer thread")
+        logging.info("joinee q2_consumer thread")
         q22_consumer_thread.join(timeout=2.0)
-        print("joinee q22_consumer thread")
+        logging.info("joinee q22_consumer thread")
         q3_consumer_thread.join(timeout=2.0)
-        print("joinee q3_consumer thread")
+        logging.info("joinee q3_consumer thread")
         q4_consumer_thread.join()
-        print("joinee q4_consumer thread")
+        logging.info("joinee q4_consumer thread")
 
-        print("[DISTRIBUTOR] Apagado limpio.")
+        logging.info("[DISTRIBUTOR] Apagado limpio.")
         sys.exit(0)
 
     signal.signal(signal.SIGTERM, graceful_quit)
@@ -101,7 +101,6 @@ def main():
                 batch = recv_batch(sock)
                 if first_batch_type is None:
                     first_batch_type = batch.type()
-                    # distributor.set_client_queries_for_type(client_id, first_batch_type)
                     logging.debug(f"[DISTRIBUTOR] Cliente {addr} inició tipo={first_batch_type}")
 
                 distributor.distribute_batch_to_workers(batch)
@@ -109,7 +108,6 @@ def main():
                 if batch.is_last_batch():
                     contador += 1
                     print(f"\n[DISTRIBUTOR] Cliente {addr} terminó de ENVIAR {batch.type()}(esperando resultados de workers).\n")
-                    # break #mejor sacar este break para que cuando el cliente cierre la conexion, el except pueda cerrar todo
                     continue
 
         except Exception as e:
@@ -123,7 +121,6 @@ def main():
 
     def accept_clients():
         while not shutdown.is_set():
-            #joinea threads muertos
             for t in client_threads[:]:
                 if not t.is_alive():
                     t.join() #
@@ -166,25 +163,25 @@ def main():
         pass
     finally:
         distributor.stop_consuming_from_all_workers()
-        print("\nhice stop consuming from all threads")
+        logging.info("\nhice stop consuming from all threads")
         try:
             server_socket.close()
         except Exception:
             pass
         accept_thread.join(timeout=2.0)
-        print("joinee accept thread")
+        logging.info("joinee accept thread")
         q1_consumer_thread.join(timeout=2.0)
-        print("joinee q1_consumer thread")
+        logging.info("joinee q1_consumer thread")
         q21_consumer_thread.join(timeout=2.0)
-        print("joinee q21_consumer thread")
+        logging.info("joinee q21_consumer thread")
         q22_consumer_thread.join(timeout=2.0)
-        print("joinee q22_consumer thread")
+        logging.info("joinee q22_consumer thread")
         q3_consumer_thread.join(timeout=2.0)
-        print("joinee q3_consumer thread")
+        logging.info("joinee q3_consumer thread")
         q4_consumer_thread.join()
-        print("joinee q4_consumer thread")
+        logging.info("joinee q4_consumer thread")
 
-        print("[DISTRIBUTOR] Apagado limpio.")
+        logging.info("[DISTRIBUTOR] Apagado limpio.")
 
 if __name__ == "__main__":
     main()

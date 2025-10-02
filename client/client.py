@@ -54,13 +54,6 @@ class Client:
         send_batches_from_csv(path_input+MENU_ITEM_PATH, BATCH_SIZE, self.socket, MENU_ITEM_TYPE_FILE, 21)
 
         send_batches_from_csv(path_input+TRANSACTION_ITEMS_PATH, BATCH_SIZE, self.socket, TRANSACTION_ITEMS_TYPE_FILE, 21)
-        
-        # self.sender_transaction_items = threading.Thread(
-        #     target=send_batches_from_csv,
-        #     args=(path_input+TRANSACTION_ITEMS_PATH, BATCH_SIZE, self.socket, TRANSACTION_ITEMS_TYPE_FILE, 21),
-        #     daemon=True
-        # )
-        # self.sender_transaction_items.start()
 
         self.sender_transaction = threading.Thread(
             target=send_batches_from_csv,
