@@ -3,12 +3,15 @@ import os
 from middleware.middleware import MessageMiddlewareQueue
 from filters import *
 from filter import Filter
+import logging
 
 filter_type = str(os.getenv("FILTER_NAME"))
 queue_consumer = str(os.getenv("CONSUME_QUEUE"))
 queue_producer = str(os.getenv("PRODUCE_QUEUE"))
 coordinator_consumer = str(os.getenv("COORDINATOR_CONSUME_QUEUE"))
 coordinator_producer = str(os.getenv("COORDINATOR_PRODUCE_QUEUE"))
+
+logging.getLogger("pika").setLevel(logging.CRITICAL)
 
 filters = {
     'bytime': filter_by_time,
