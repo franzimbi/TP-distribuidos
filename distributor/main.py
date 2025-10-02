@@ -74,14 +74,16 @@ def main():
 
         accept_thread.join(timeout=2.0)
         print("joinee accept thread")
-        # q1_consumer_thread.join(timeout=2.0)
-        # print("joinee q1_consumer thread")
+        q1_consumer_thread.join(timeout=2.0)
+        print("joinee q1_consumer thread")
         q21_consumer_thread.join(timeout=2.0)
         print("joinee q2_consumer thread")
-        # q3_consumer_thread.join(timeout=2.0)
-        # print("joinee q3_consumer thread")
-        # q4_consumer_thread.join()
-        # print("joinee q4_consumer thread")
+        q22_consumer_thread.join(timeout=2.0)
+        print("joinee q22_consumer thread")
+        q3_consumer_thread.join(timeout=2.0)
+        print("joinee q3_consumer thread")
+        q4_consumer_thread.join()
+        print("joinee q4_consumer thread")
 
         print("[DISTRIBUTOR] Apagado limpio.")
         sys.exit(0)
@@ -111,7 +113,7 @@ def main():
                     continue
 
         except Exception as e:
-            logging.debug(f"cliente {addr}: cerro la conexion")
+            logging.debug(f"conexion con {addr}: se cerro: {e}")
             try:
                 sock.close()
             except OSError:
@@ -121,7 +123,7 @@ def main():
 
     def accept_clients():
         while not shutdown.is_set():
-            #joinear threads muertos
+            #joinea threads muertos
             for t in client_threads[:]:
                 if not t.is_alive():
                     t.join() #
@@ -139,8 +141,8 @@ def main():
             t.start()
             client_threads.append(t)
 
-    # q1_consumer_thread = threading.Thread(target=distributor.start_consuming_from_workers, args=(1,), daemon=True)
-    # q1_consumer_thread.start()
+    q1_consumer_thread = threading.Thread(target=distributor.start_consuming_from_workers, args=(1,), daemon=True)
+    q1_consumer_thread.start()
     
     q21_consumer_thread = threading.Thread(target=distributor.start_consuming_from_workers, args=(21,), daemon=True)
     q21_consumer_thread.start()
@@ -148,18 +150,18 @@ def main():
     q22_consumer_thread = threading.Thread(target=distributor.start_consuming_from_workers, args=(22,), daemon=True)
     q22_consumer_thread.start()    
 
-    # q3_consumer_thread = threading.Thread(target=distributor.start_consuming_from_workers, args=(3,), daemon=True)
-    # q3_consumer_thread.start()
+    q3_consumer_thread = threading.Thread(target=distributor.start_consuming_from_workers, args=(3,), daemon=True)
+    q3_consumer_thread.start()
 
-    # q4_consumer_thread = threading.Thread(target=distributor.start_consuming_from_workers, args=(4,), daemon=True)
-    # q4_consumer_thread.start()
+    q4_consumer_thread = threading.Thread(target=distributor.start_consuming_from_workers, args=(4,), daemon=True)
+    q4_consumer_thread.start()
 
     accept_thread = threading.Thread(target=accept_clients, daemon=True)
     accept_thread.start()
 
     try:
         while True:
-            accept_thread.join() # no agrueguen timeout aca, crean un busy loop alpedo
+            accept_thread.join()
     except KeyboardInterrupt:
         pass
     finally:
@@ -171,14 +173,16 @@ def main():
             pass
         accept_thread.join(timeout=2.0)
         print("joinee accept thread")
-        # q1_consumer_thread.join(timeout=2.0)
-        # print("joinee q1_consumer thread")
+        q1_consumer_thread.join(timeout=2.0)
+        print("joinee q1_consumer thread")
         q21_consumer_thread.join(timeout=2.0)
-        print("joinee q2_consumer thread")
-        # q3_consumer_thread.join(timeout=2.0)
-        # print("joinee q3_consumer thread")
-        # q4_consumer_thread.join()
-        # print("joinee q4_consumer thread")
+        print("joinee q21_consumer thread")
+        q22_consumer_thread.join(timeout=2.0)
+        print("joinee q22_consumer thread")
+        q3_consumer_thread.join(timeout=2.0)
+        print("joinee q3_consumer thread")
+        q4_consumer_thread.join()
+        print("joinee q4_consumer thread")
 
         print("[DISTRIBUTOR] Apagado limpio.")
 

@@ -41,10 +41,11 @@ class Distributor:
     def __init__(self):
         self.number_of_clients = 0
         self.clients = {}  # key: client_id, value: socket
-        # self.files_types_for_queries = {'t': [1,3,4], 's': [3,32,42,44],
-        #                                 'u': [4,43]}  # key: type_file, value: list of query_ids
-        self.files_types_for_queries = {'t': [], 's': [],
-                                'u': [], 'i': [21,22], 'm': [21,212,22,222]}
+        self.files_types_for_queries = {'t': [1,3,4], 's': [3,32,42,44],
+                                        'u': [4,43], 'i': [21,22], 'm': [21,212,22,222]}  
+        
+        # self.files_types_for_queries = {'t': [], 's': [],
+        #                         'u': [], 'i': [21,22], 'm': [21,212,22,222]}
         self.producer_queues = {}  # key: query_id, value: MessageMiddlewareQueue
         self.consumer_queues = {}  # ""
         self.joiner_queues = {}  # ""

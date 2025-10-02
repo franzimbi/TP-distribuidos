@@ -7,7 +7,7 @@ import signal
 from common.protocol import send_batches_from_csv, recv_batch
 
 BATCH_SIZE = 150
-AMOUNT_OF_QUERIES = 2
+AMOUNT_OF_QUERIES = 5
 
 STORES_PATH = '/stores'
 TRANSACTION_PATH = '/transactions'
@@ -47,25 +47,27 @@ class Client:
 
     def start(self, path_input, path_output):
     
-        # send_batches_from_csv(path_input+STORES_PATH, BATCH_SIZE, self.socket, STORES_TYPE_FILE, 3)
+        send_batches_from_csv(path_input+STORES_PATH, BATCH_SIZE, self.socket, STORES_TYPE_FILE, 3)
 
-        # send_batches_from_csv(path_input+USERS_PATH, BATCH_SIZE, self.socket, USERS_TYPE_FILE, 4)
+        send_batches_from_csv(path_input+USERS_PATH, BATCH_SIZE, self.socket, USERS_TYPE_FILE, 4)
 
         send_batches_from_csv(path_input+MENU_ITEM_PATH, BATCH_SIZE, self.socket, MENU_ITEM_TYPE_FILE, 21)
 
-        self.sender_transaction_items = threading.Thread(
-            target=send_batches_from_csv,
-            args=(path_input+TRANSACTION_ITEMS_PATH, BATCH_SIZE, self.socket, TRANSACTION_ITEMS_TYPE_FILE, 21),
-            daemon=True
-        )
-        self.sender_transaction_items.start()
-
-        # self.sender_transaction = threading.Thread(
+        send_batches_from_csv(path_input+TRANSACTION_ITEMS_PATH, BATCH_SIZE, self.socket, TRANSACTION_ITEMS_TYPE_FILE, 21)
+        
+        # self.sender_transaction_items = threading.Thread(
         #     target=send_batches_from_csv,
-        #     args=(path_input+TRANSACTION_PATH, BATCH_SIZE, self.socket, TRANSACTION_TYPE_FILE, 1),
+        #     args=(path_input+TRANSACTION_ITEMS_PATH, BATCH_SIZE, self.socket, TRANSACTION_ITEMS_TYPE_FILE, 21),
         #     daemon=True
         # )
-        # self.sender_transaction.start()
+        # self.sender_transaction_items.start()
+
+        self.sender_transaction = threading.Thread(
+            target=send_batches_from_csv,
+            args=(path_input+TRANSACTION_PATH, BATCH_SIZE, self.socket, TRANSACTION_TYPE_FILE, 1),
+            daemon=True
+        )
+        self.sender_transaction.start()
         
         self.receiver_thread = threading.Thread(
             target=self.receiver, args=(path_output,), daemon=True
