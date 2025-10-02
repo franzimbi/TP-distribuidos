@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import pika
+import logging
 
 
 class MessageMiddlewareMessageError(Exception):
@@ -109,6 +110,7 @@ class MessageMiddlewareQueue(MessageMiddleware):
         self._channel = self._connection.channel()
         self._queue_name = queue_name
         self._channel.queue_declare(queue=queue_name)
+        logging.getLogger("pika").propagate = False
 
     def start_consuming(self, on_message_callback):
         try:
@@ -118,8 +120,22 @@ class MessageMiddlewareQueue(MessageMiddleware):
                 auto_ack=True
             )
             self._channel.start_consuming()
-        except pika.exceptions.AMQPConnectionError as e:
-            raise MessageMiddlewareDisconnectedError() from e
+        except Exception as e:
+            # loguea el error en vez de levantarlo
+            logging.debug(f"[Middleware] Error en start_consuming: {e}")
+        finally:
+            # cerrar canal y conexión de forma segura
+            try:
+                if self._channel and self._channel.is_open:
+                    self._channel.close()
+            except Exception:
+                pass
+            try:
+                if self._connection and self._connection.is_open:
+                    self._connection.close()
+            except Exception:
+                pass
+            logging.debug("[Middleware] cerrado correctamente")
 
     def stop_consuming(self):
         try:

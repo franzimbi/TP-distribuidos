@@ -5,7 +5,7 @@ from common.batch import Batch
 import logging
 
 def send_batches_from_csv(path, batch_size, connection: socket, type_file, query_id):
-    print(f"[PROTOCOL] Enviando batches desde {path} de tipo {type_file} para query {query_id}")
+    logging.debug(f"[PROTOCOL] Enviando batches desde {path} de tipo {type_file} para query {query_id}")
     current_batch = Batch(type_file=type_file)
     for filename in os.listdir(path):
         if filename.endswith('.csv'):    

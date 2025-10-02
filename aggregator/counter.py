@@ -21,9 +21,9 @@ class Counter:
         signal.signal(signal.SIGTERM, self.graceful_quit)
     
     def graceful_quit(self, signum, frame):
-        print("Recibida señal SIGTERM, cerrando counter...")
+        logging.debug("Recibida señal SIGTERM, cerrando counter...")
         self.stop()
-        print("Counter cerrado correctamente.")
+        logging.debug("Counter cerrado correctamente.")
         sys.exit(0)
 
     def start(self):

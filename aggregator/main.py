@@ -22,7 +22,7 @@ def main():
     produce = get_env("PRODUCE_QUEUE", required=True)
     name    = get_env("AGGREGATOR_NAME", required=True).strip().lower()
 
-    logging.info(f"[{name}] {consume} -> {produce}")
+    logging.debug(f"[{name}] {consume} -> {produce}")
 
     if name == "sum":
         worker = Aggregator(

@@ -46,9 +46,9 @@ class Aggregator:
         signal.signal(signal.SIGTERM, self.graceful_quit)
 
     def graceful_quit(self, signum, frame):
-        print("Recibida señal SIGTERM, cerrando aggregator...")
+        logging.debug("Recibida señal SIGTERM, cerrando aggregator...")
         self.stop()
-        print("Aggregator cerrado correctamente.")
+        logging.debug("Aggregator cerrado correctamente.")
         sys.exit(0)
 
     def start(self):

@@ -18,7 +18,9 @@ def initialize_config():
     try:
         config_params["port"] = int(os.getenv('SYSTEM_PORT', config["DEFAULT"]["SYSTEM_PORT"]))
         config_params["host"] = str(os.getenv('SYSTEM_HOST', config["DEFAULT"]["SYSTEM_HOST"]))
-        config_params["listen_backlog"] = int(os.getenv('SERVER_LISTEN_BACKLOG', config["DEFAULT"]["SYSTEM_LISTEN_BACKLOG"]))
+
+        config_params["listen_backlog"] = int(
+            os.getenv('SERVER_LISTEN_BACKLOG', config["DEFAULT"]["SYSTEM_LISTEN_BACKLOG"]))
         config_params["logging_level"] = os.getenv('LOGGING_LEVEL', config["DEFAULT"]["LOGGING_LEVEL"])
     except KeyError as e:
         raise KeyError("Key was not found. Error: {} .Aborting server".format(e))
@@ -58,7 +60,7 @@ def main():
     shutdown = threading.Event()
 
     def graceful_quit(signum, frame):
-        logging.info("Recibida señal SIGTERM, cerrando distributor...")
+        logging.debug("Recibida señal SIGTERM, cerrando distributor...")
         shutdown.set()
         try:
             server_socket.shutdown(socket.SHUT_RDWR)
@@ -67,25 +69,25 @@ def main():
             pass
         for t in client_threads:
             t.join()
-        logging.info("Joinee todos los hilos de clientes")
+        logging.debug("Joinee todos los hilos de clientes")
 
         distributor.stop_consuming_from_all_workers()
-        logging.info("\nhice stop consuming from all threads")
+        logging.debug("\nhice stop consuming from all threads")
 
         accept_thread.join(timeout=2.0)
-        logging.info("joinee accept thread")
+        logging.debug("joinee accept thread")
         q1_consumer_thread.join(timeout=2.0)
-        logging.info("joinee q1_consumer thread")
+        logging.debug("joinee q1_consumer thread")
         q21_consumer_thread.join(timeout=2.0)
-        logging.info("joinee q2_consumer thread")
+        logging.debug("joinee q2_consumer thread")
         q22_consumer_thread.join(timeout=2.0)
-        logging.info("joinee q22_consumer thread")
+        logging.debug("joinee q22_consumer thread")
         q3_consumer_thread.join(timeout=2.0)
-        logging.info("joinee q3_consumer thread")
+        logging.debug("joinee q3_consumer thread")
         q4_consumer_thread.join()
-        logging.info("joinee q4_consumer thread")
+        logging.debug("joinee q4_consumer thread")
 
-        logging.info("[DISTRIBUTOR] Apagado limpio.")
+        logging.debug("[DISTRIBUTOR] Apagado limpio.")
         sys.exit(0)
 
     signal.signal(signal.SIGTERM, graceful_quit)
@@ -107,11 +109,11 @@ def main():
 
                 if batch.is_last_batch():
                     contador += 1
-                    logging.info(f"\n[DISTRIBUTOR] Cliente {addr} terminó de ENVIAR {batch.type()}(esperando resultados de workers).\n")
+                    logging.info(f"\n[DISTRIBUTOR] Cliente {addr} terminó de ENVIAR {batch.type()}.\n")
                     continue
 
         except Exception as e:
-            logging.debug(f"conexion con {addr}: se cerro: {e}")
+            logging.debug(f"conexion con {addr}: se cerro")
             try:
                 sock.close()
             except OSError:
@@ -131,8 +133,11 @@ def main():
             except OSError as e:
                 if e.errno == 9:
                     break  # el socket se cerro
-                else:
-                    raise
+            except Exception as e:
+                # opcional: loggear otros errores
+                break
+                # else:
+                #     raise
 
             t = threading.Thread(target=handle_client, args=(sock, addr), daemon=True)
             t.start()
@@ -163,7 +168,6 @@ def main():
         pass
     finally:
         distributor.stop_consuming_from_all_workers()
-        logging.info("\nhice stop consuming from all threads")
         try:
             server_socket.close()
         except Exception:

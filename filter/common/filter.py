@@ -31,10 +31,11 @@ class Filter:
 
     def graceful_shutdown(self, signum, frame):
         try:
-            print("Recibida señal SIGTERM, cerrando filter...")
+            logging.debug("Recibida señal SIGTERM, cerrando filter...")
             self.close()
         except Exception as e:
-            logging.error(f"[FILTER] Error al cerrar: {e}")
+            pass
+            # logging.error(f"[FILTER] Error al cerrar: {e}")
         sys.exit(0)
 
     def start(self):
@@ -68,7 +69,6 @@ class Filter:
                 self._buffer.set_query_id(batch.get_query_id())
                 self._buffer.set_header(result.get_header()) #setteamos header por las dudas
                 self._coordinator_produce_queue.send(self._buffer.encode())
-                print(f"[FILTER] Enviando batch final {self._buffer.id()} de tipo {self._buffer.type()} de la query {self._buffer.get_query_id()}.")
                 self._buffer = Batch(type_file=batch.type())
                 return
                 # self.received_end = True
@@ -82,17 +82,14 @@ class Filter:
 
     def coordinator_callback(self, ch, method, properties, body):
         msg = body.decode('utf-8')
-        print(f"[FILTER] Mensaje recibido del coordinator: {msg}")
         if str(msg) == str(FLUSH_MESSAGE):
             with self.lock:
                 if not self._buffer.is_empty():
                     self._produce_queue.send(self._buffer.encode())
                     self._buffer = Batch()
                     self._coordinator_produce_queue.send(END_MESSAGE)
-                    print("[FILTER] envie end message despues de flush.")
                 else:
                     self._coordinator_produce_queue.send(END_MESSAGE)
-                    print("[FILTER] envie end message.")
         else:
             logging.error(f"[FILTER] Unknown command from coordinator: {msg}")
                     
@@ -103,7 +100,7 @@ class Filter:
         self._coordinator_consume_queue.stop_consuming()
         self._coordinator_consume_queue.close()
         self._coordinator_produce_queue.close()
-        print("Queues cerradas")
+        logging.debug("Queues cerradas")
         self.conection_coordinator.join()
-        print("Hilo de conexion con coordinator joineado")
-        print("[FILTER] Apagado limpio.")
+        logging.debug("Hilo de conexion con coordinator joineado")
+        logging.debug("[FILTER] Apagado limpio.")

@@ -124,7 +124,7 @@ class Distributor:
 
             q.send(batch.encode())
             if batch.is_last_batch():
-                logging.info(f"[DISTRIBUTOR] Distribuido batch final {batch.id()} de tipo {batch.type()} a la query {query_id}.")
+                logging.debug(f"[DISTRIBUTOR] Distribuido batch final {batch.id()} de tipo {batch.type()} a la query {query_id}.")
 
     def callback(self, ch, method, properties, body: bytes):
         batch = Batch()
@@ -149,8 +149,9 @@ class Distributor:
         try:
             cq.start_consuming(self.callback)
         except Exception as e:
-            if not shutdown.is_set():
-                logging.error(f"[DISTRIBUTOR] Error en consumo de workers: {e}")
+            pass
+            # if not shutdown.is_set():
+            #     logging.error(f"[DISTRIBUTOR] Error en consumo de workers: {e}")
 
     def stop_consuming_from_all_workers(self):
         for qid, cq in self.consumer_queues.items():
@@ -158,4 +159,5 @@ class Distributor:
                 try:
                     cq.stop_consuming()
                 except Exception as e:
-                    logging.error(f"[DISTRIBUTOR] Error al detener consumo de la query {qid}: {e}")
+                    pass
+                    # logging.error(f"[DISTRIBUTOR] Error al detener consumo de la query {qid}: {e}")

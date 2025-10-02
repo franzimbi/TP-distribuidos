@@ -31,16 +31,18 @@ class Join:
         self.lock = threading.Lock()
 
         signal.signal(signal.SIGTERM, self.graceful_quit)
+        signal.signal(signal.SIGINT, self.graceful_quit)
 
         # recibe de join_queue los datos y arma el diccionario de id-valor
 
     def graceful_quit(self, signum, frame):
         try:
-            print("Recibida señal SIGTERM, cerrando joiner...")
+            logging.debug("Recibida señal SIGTERM, cerrando joiner...")
             self.close()
-            print("Joiner cerrado correctamente.")
+            logging.debug("Joiner cerrado correctamente.")
         except Exception as e:
-            logging.error(f"Error cerrando joiner: {e}")
+            sys.exit(0)
+            pass
         sys.exit(0)
 
     def start(self, consumer, producer, coordinator_consumer, coordinator_producer):
@@ -91,7 +93,7 @@ class Join:
         msg = body.decode('utf-8')
         if str(msg) == str(FLUSH_MESSAGE):
             with self.lock:
-                print(f"[JOIN] Recibido comando FLUSH del coordinator. Enviando datos al siguiente nodo.")
+                logging.debug(f"[JOIN] Recibido comando FLUSH del coordinator. Enviando datos al siguiente nodo.")
                 self.coordinator_producer.send(END_MESSAGE)
         else:
             logging.error(f"[FILTER] Unknown command from coordinator: {msg}")
@@ -100,35 +102,95 @@ class Join:
         with self.lock:
             batch = Batch()
             batch.decode(message)
-            print(f"[JOIN] Procesando batch {batch.id()} de tipo {batch.type()} de la query {batch.get_query_id()}.")
+            logging.debug(f"[JOIN] Procesando batch {batch.id()} de tipo {batch.type()} de la query {batch.get_query_id()}.")
             try:
                 batch.change_header_name_value(self.column_id, self.column_name, self.join_dictionary)
             except (ValueError, KeyError) as e:
                 logging.error(
                     f'action: join_batch_with_dicctionary | result: fail | error: {e}')
             if batch.is_last_batch():
-                print(f"[JOIN] Recibido batch final {batch.id()} de tipo {batch.type()} de la query {batch.get_query_id()}.")
                 self.coordinator_producer.send(batch.encode())
                 return
             self.producer_queue.send(batch.encode())
 
     def close(self):
-        try:
-            if self.consumer_queue:
-                self.consumer_queue.stop_consuming()
-                self.consumer_queue.close()
-            if self.producer_queue:
-                self.producer_queue.close()
-            if self.join_queue:
-                self.join_queue.close()
-            if self.coordinator_consumer:
-                self.coordinator_consumer.stop_consuming()
-                self.coordinator_consumer.close()
-            if self.coordinator_producer:
-                self.coordinator_producer.close()
-        except:
-            pass
-        if self.conection_coordinator:
-            self.conection_coordinator.join()
-        if isinstance(self.join_dictionary, Cache):
-            self.join_dictionary.close()
+        # try:
+        #     if self.consumer_queue:
+        #         self.consumer_queue.stop_consuming()
+        #         self.consumer_queue.close()
+        #     if self.producer_queue:
+        #         self.producer_queue.close()
+        #     if self.join_queue:
+        #         self.join_queue.close()
+        #     if self.coordinator_consumer:
+        #         self.coordinator_consumer.stop_consuming()
+        #         self.coordinator_consumer.close()
+        #     if self.coordinator_producer:
+        #         self.coordinator_producer.close()
+        # except:
+        #     pass
+        # if self.conection_coordinator:
+        #     self.conection_coordinator.join()
+        # if isinstance(self.join_dictionary, Cache):
+        #     self.join_dictionary.close()
+        def close(self):
+            # Intentamos parar y cerrar todos los queues
+            try:
+                if self.consumer_queue:
+                    try:
+                        self.consumer_queue.stop_consuming()
+                    except Exception:
+                        pass
+                    try:
+                        self.consumer_queue.close()
+                    except Exception:
+                        pass
+
+                if self.producer_queue:
+                    try:
+                        self.producer_queue.close()
+                    except Exception:
+                        pass
+
+                if self.join_queue:
+                    try:
+                        self.join_queue.stop_consuming()
+                    except Exception:
+                        pass
+                    try:
+                        self.join_queue.close()
+                    except Exception:
+                        pass
+
+                if self.coordinator_consumer:
+                    try:
+                        self.coordinator_consumer.stop_consuming()
+                    except Exception:
+                        pass
+                    try:
+                        self.coordinator_consumer.close()
+                    except Exception:
+                        pass
+
+                if self.coordinator_producer:
+                    try:
+                        self.coordinator_producer.close()
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
+            # Join del thread del coordinator si existe
+            if getattr(self, "conection_coordinator", None):
+                try:
+                    self.conection_coordinator.join(timeout=2)
+                except Exception:
+                    pass
+
+            # Cerrar cache si corresponde
+            if isinstance(self.join_dictionary, Cache):
+                try:
+                    self.join_dictionary.close()
+                except Exception:
+                    pass
+

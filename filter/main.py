@@ -11,6 +11,12 @@ queue_producer = str(os.getenv("PRODUCE_QUEUE"))
 coordinator_consumer = str(os.getenv("COORDINATOR_CONSUME_QUEUE"))
 coordinator_producer = str(os.getenv("COORDINATOR_PRODUCE_QUEUE"))
 
+
+logging.basicConfig(
+    format='%(asctime)s %(levelname)-8s %(message)s',
+    level=os.getenv('LOGGING_LEVEL'),
+    datefmt='%Y-%m-%d %H:%M:%S',)
+
 logging.getLogger("pika").setLevel(logging.CRITICAL)
 
 filters = {
@@ -25,7 +31,7 @@ filters = {
 # coordinator_consumer_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=coordinator_consumer)
 # coordinator_producer_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=coordinator_producer)
 
-print(f"[{filter_type}] Escuchando en cola: {queue_consumer}, enviando a: {queue_producer}")
+# print(f"[{filter_type}] Escuchando en cola: {queue_consumer}, enviando a: {queue_producer}")
 
 filter_by_env = filters[filter_type]
 this_filter = Filter(queue_consumer, queue_producer, filter_by_env, coordinator_consumer, coordinator_producer)
