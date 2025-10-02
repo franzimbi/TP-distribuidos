@@ -106,6 +106,7 @@ def main():
 
                 if batch.is_last_batch():
                     contador += 1
+                    print(f"\n[DISTRIBUTOR] Cliente {addr} terminó de ENVIAR {batch.type()}(esperando resultados de workers).\n")
                     # break #mejor sacar este break para que cuando el cliente cierre la conexion, el except pueda cerrar todo
                     continue
 

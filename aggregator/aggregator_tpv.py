@@ -46,11 +46,9 @@ class Aggregator:
         signal.signal(signal.SIGTERM, self.graceful_quit)
 
     def graceful_quit(self, signum, frame):
-        try:
-            print("Recibida señal SIGTERM, cerrando aggregator...")
-            self.stop()
-        except Exception as e:
-            logging.error(f"Error cerrando aggregator: {e}")
+        print("Recibida señal SIGTERM, cerrando aggregator...")
+        self.stop()
+        print("Aggregator cerrado correctamente.")
         sys.exit(0)
 
     def start(self):
@@ -64,7 +62,10 @@ class Aggregator:
 
     def callback(self, ch, method, properties, message):
         batch = Batch(); batch.decode(message)
-
+        if batch.id() % 50000 == 0 or batch.id() == 0:
+            print(f"[AGGREGATOR] Procesando batch {batch.id()} de tipo {batch.type()} de la query {batch.get_query_id()}.")
+        if batch.is_last_batch():
+            print(f"[AGGREGATOR] Recibido batch final {batch.id()} de tipo {batch.type()} de la query {batch.get_query_id()}.")
         if self._qid is None:
             self._qid = batch.get_query_id()
 

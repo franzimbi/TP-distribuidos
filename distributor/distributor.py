@@ -7,13 +7,13 @@ from middleware.middleware import MessageMiddlewareQueue
 from common.protocol import send_batch
 from common.batch import Batch
 
-COUNT_OF_PRINTS = 30000
+COUNT_OF_PRINTS = 10000
 
 Q1queue_consumer = os.getenv("CONSUME_QUEUE_Q1")
 Q1queue_producer = os.getenv("PRODUCE_QUEUE_Q1")
 
 Q2queue_producer = os.getenv("PRODUCE_QUEUE_Q2_1") #q211
-Q2queue_consumer = os.getenv("CONSUME_QUEUE_Q2_1") #q221 esta deberia cambiar desp
+Q2queue_consumer = os.getenv("CONSUME_QUEUE_Q2_1") #q231 esta deberia cambiar desp
 
 Q3queue_consumer = os.getenv("CONSUME_QUEUE_Q3")
 Q3queue_producer = os.getenv("PRODUCE_QUEUE_Q3")
@@ -96,12 +96,12 @@ class Distributor:
         if batch.id() % COUNT_OF_PRINTS == 0 or batch.id() == 0:
             logging.debug(
                 f"[DISTRIBUTOR] Distribuyendo batch {batch.id()} de tipo {batch.type()} a las queries {queries}.")
+        if batch.is_last_batch():
+            print(f"che, toy distribuyendo el batch final {batch.id()} de tipo {batch.type()} a las queries {queries}.")
         for query_id in queries:
-            print(f"[DISTRIBUTOR] Distribuyendo batch {batch.id()} de tipo {batch.type()} a la query {query_id}.")
             batch.set_query_id(query_id)
             if batch.type() == 't' or batch.type() == 'i': # la proxima veo d hacer algo mas objetoso para evitar estos ifs ~pedro
                 q = self.producer_queues[query_id]
-                print(f"[DISTRIBUTOR] Envie batch {batch.id()} de tipo {batch.type()} a la cola de workers de la query {query_id}.")
             if batch.type() == 's':
                 q = self.joiner_queues[query_id]
             if batch.type() == 'u':
@@ -111,6 +111,8 @@ class Distributor:
     def callback(self, ch, method, properties, body: bytes):
         batch = Batch()
         batch.decode(body)
+        if batch.id() % COUNT_OF_PRINTS == 0 or batch.id() == 0:
+            logging.debug(f"[DISTRIBUTOR] ENVIANDO batch {batch.id()} de tipo {batch.type()} de la query {batch.get_query_id()} AL CLIENTE.")
         client_id = 1  # por ahora fijo pq un solo cliente
         client_socket = self.clients.get(client_id)
         try:
