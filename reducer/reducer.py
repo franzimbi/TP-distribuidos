@@ -30,11 +30,11 @@ class Reducer:
 
     def callback(self, ch, method, properties, message):
         batch = Batch(); batch.decode(message)
-
+        logging.debug(f"[REDUCER] Recibido batch {batch.id()} de tipo {batch.type()} con {len(batch)} filas.")
         for i in batch.iter_per_header():
             store = i[self._columns[0]]
             user = i[self._columns[1]]
-            qty = int(i[self._columns[2]])
+            qty = int(float(i[self._columns[2]]))
             if store not in self.top_users:
                 self.top_users[store] = {}
 
@@ -43,6 +43,7 @@ class Reducer:
             self.top_users[store] = {k: self.top_users[store][k] for k in top_keys}
 
         if batch.is_last_batch():
+            print(f"[REDUCER] Recibido batch final {batch.id()} de tipo {batch.type()}. Procesando resultados...")
             try:
                 rows = []
                 for store, users in self.top_users.items():
