@@ -145,6 +145,9 @@ def main():
     q21_consumer_thread = threading.Thread(target=distributor.start_consuming_from_workers, args=(21,), daemon=True)
     q21_consumer_thread.start()
 
+    q22_consumer_thread = threading.Thread(target=distributor.start_consuming_from_workers, args=(22,), daemon=True)
+    q22_consumer_thread.start()    
+
     # q3_consumer_thread = threading.Thread(target=distributor.start_consuming_from_workers, args=(3,), daemon=True)
     # q3_consumer_thread.start()
 

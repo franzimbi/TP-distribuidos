@@ -13,9 +13,13 @@ Q1queue_consumer = os.getenv("CONSUME_QUEUE_Q1")
 Q1queue_producer = os.getenv("PRODUCE_QUEUE_Q1")
 
 Q21queue_producer = os.getenv("PRODUCE_QUEUE_Q2_1") #q211
-Q21queue_consumer = os.getenv("CONSUME_QUEUE_Q2_1") #q231 esta deberia cambiar desp
+Q21queue_consumer = os.getenv("CONSUME_QUEUE_Q2_1") 
 Q21queue_joiner = os.getenv("JOIN_QUEUE_Q21_1") #j211
 Q21queue_joiner2 = os.getenv("JOIN_QUEUE_Q21_2") #j212
+
+Q22queue_producer = os.getenv("PRODUCE_QUEUE_Q2_2") #q212
+Q22queue_consumer = os.getenv("CONSUME_QUEUE_Q2_2") 
+#Q22queue_joiner2
 
 Q3queue_consumer = os.getenv("CONSUME_QUEUE_Q3")
 Q3queue_producer = os.getenv("PRODUCE_QUEUE_Q3")
@@ -39,7 +43,7 @@ class Distributor:
         # self.files_types_for_queries = {'t': [1,3,4], 's': [3,32,42,44],
         #                                 'u': [4,43]}  # key: type_file, value: list of query_ids
         self.files_types_for_queries = {'t': [], 's': [],
-                                'u': [], 'i': [21], 'm': [21,212]}
+                                'u': [], 'i': [21,22], 'm': [21,212]}
         self.producer_queues = {}  # key: query_id, value: MessageMiddlewareQueue
         self.consumer_queues = {}  # ""
         self.joiner_queues = {}  # ""
@@ -53,6 +57,10 @@ class Distributor:
         self.consumer_queues[21] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q21queue_consumer)
         self.joiner_queues[21] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q21queue_joiner)
         self.joiner_queues[212] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q21queue_joiner2)
+
+        self.producer_queues[22] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q22queue_producer)
+        self.consumer_queues[22] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q22queue_consumer)
+        # self.joiner_queues[22] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q22queue_joiner2)
 
         self.producer_queues[3] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q3queue_producer)
         self.consumer_queues[3] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q3queue_consumer)

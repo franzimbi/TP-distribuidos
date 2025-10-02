@@ -27,8 +27,8 @@ services:
         - JOIN_QUEUE_Q21_1=j211
         - JOIN_QUEUE_Q21_2=j212
 
-#        - PRODUCE_QUEUE_Q2_2=q212
-#        - CONSUME_QUEUE_Q2_2=q252
+        - PRODUCE_QUEUE_Q2_2=q212
+        - CONSUME_QUEUE_Q2_2=q232
 
         - PRODUCE_QUEUE_Q3=q31
         - CONSUME_QUEUE_Q3=q34
@@ -46,7 +46,7 @@ services:
       volumes:
         - ./config.ini:/app/config.ini
 
-#QUERIE 21
+#QUERY 21
 
   filter-q21.f1.1:
     build:
@@ -217,7 +217,95 @@ services:
     volumes:
       - ./config.ini:/app/config.ini
 
-  # QUERIE #1
+#Query 22
+
+  filter-q22.f1.1:
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    restart: on-failure
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=q212
+      - PRODUCE_QUEUE=q222
+
+      - COORDINATOR_PRODUCE_QUEUE=Q22C1
+      - COORDINATOR_CONSUME_QUEUE=Q22F11
+
+      - FILTER_NAME=byyear
+    networks:
+      - mynet
+    volumes:
+      - ./config.ini:/app/config.ini
+
+  filter-q22.f1.2:
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    restart: on-failure
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=q212
+      - PRODUCE_QUEUE=q222
+
+      - COORDINATOR_PRODUCE_QUEUE=Q22C1
+      - COORDINATOR_CONSUME_QUEUE=Q22F12
+
+      - FILTER_NAME=byyear
+    networks:
+      - mynet
+    volumes:
+      - ./config.ini:/app/config.ini
+
+  coordinator-q22.1:
+    build:
+      context: .
+      dockerfile: coordinator/Dockerfile
+    restart: on-failure
+    depends_on:
+      - filter-q22.f1.1
+      - filter-q22.f1.2
+    environment:
+      - PYTHONUNBUFFERED=1
+      - NUM_NODES=2
+      - CONSUME_QUEUE=Q22C1
+      - PRODUCE_QUEUE_1=Q22F11
+      - PRODUCE_QUEUE_2=Q22F12
+
+      - DOWNSTREAM_QUEUE=q222
+    networks:
+      - mynet
+    volumes:
+      - ./config.ini:/app/config.ini
+
+
+  aggregator-q22.1:
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    restart: on-failure
+
+    environment:
+      - PYTHONUNBUFFERED=1
+
+      - CONSUME_QUEUE=q222
+      - PRODUCE_QUEUE=q232
+      - COUNT_NAME=earnings
+      - AGGREGATOR_NAME=sum
+
+      - KEY_COLUMN=item_id
+      - VALUE_COLUMN=subtotal
+      - BUCKET_KIND=month
+      - BUCKET_NAME=year_month
+      - TIME_COL=created_at
+      - OUT_VALUE=total_earnings
+    volumes:
+      - ./config.ini:/app/config.ini
+    networks:
+      - mynet
+
+
+  # QUERY #1
   filter-q1.f1.1:
     build:
       context: .
