@@ -53,15 +53,25 @@ def main():
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_socket.bind((host, port))
     server_socket.listen()
-    server_socket.settimeout(1.0)
+
+    client_threads = []
+    shutdown = threading.Event()
 
     def graceful_quit(signum, frame):
-        distributor.stop_consuming_from_all_workers()
-        print("\nhice stop consuming from all threads")
+        print("Recibida señal SIGTERM, cerrando distributor...")
+        shutdown.set()
         try:
+            server_socket.shutdown(socket.SHUT_RDWR)
             server_socket.close()
         except Exception:
             pass
+        for t in client_threads:
+            t.join()
+        print("Joinee todos los hilos de clientes")
+
+        distributor.stop_consuming_from_all_workers()
+        print("\nhice stop consuming from all threads")
+
         accept_thread.join(timeout=2.0)
         print("joinee accept thread")
         q1_consumer_thread.join(timeout=2.0)
@@ -83,9 +93,8 @@ def main():
         first_batch_type = None
 
         try:
-            while True:
+            while not shutdown.is_set():
                 batch = recv_batch(sock)
-
                 if first_batch_type is None:
                     first_batch_type = batch.type()
                     # distributor.set_client_queries_for_type(client_id, first_batch_type)
@@ -108,22 +117,24 @@ def main():
             distributor.remove_client(client_id)
 
     def accept_clients():
-        threads = []
         while not shutdown.is_set():
-            threads = [t for t in threads if t.is_alive()]
+            #joinear threads muertos
+            for t in client_threads[:]:
+                if not t.is_alive():
+                    t.join() #
+                    client_threads.remove(t)
+
             try:
                 sock, addr = server_socket.accept()
-            except socket.timeout:
-                continue
+            except OSError as e:
+                if e.errno == 9:
+                    break  # el socket se cerro
+                else:
+                    raise
+
             t = threading.Thread(target=handle_client, args=(sock, addr), daemon=True)
             t.start()
-            threads.append(t)
-            for t in threads: #desp d aceptar un cliente, me aseguro d limpiar los threads muertos
-                t.join(timeout=1.0)
-                if not t.is_alive():
-                    threads.remove(t) 
-        for t in threads:
-            t.join()
+            client_threads.append(t)
 
     q1_consumer_thread = threading.Thread(target=distributor.start_consuming_from_workers, args=(1,), daemon=True)
     q1_consumer_thread.start()
