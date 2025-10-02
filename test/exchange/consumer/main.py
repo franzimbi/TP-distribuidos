@@ -4,6 +4,7 @@ import time
 from middleware.middleware import MessageMiddlewareExchange
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
+logging.getLogger("pika").setLevel(logging.WARNING)
 log = logging.getLogger(__name__)
 
 def main():
