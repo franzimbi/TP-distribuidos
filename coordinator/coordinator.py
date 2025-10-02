@@ -33,11 +33,14 @@ class Coordinator:
         sys.exit(0)
 
     def start(self):
+        print("[Coordinator] Iniciando consumo...")
         self.consumer_queue.start_consuming(self.callback)
 
     def callback(self, ch, method, properties, body):
+        print(f"[Coordinator] consumi algo !!")
         try:
             msg = body.decode('utf-8')
+            print(f"[Coordinator] Recibido mensaje de texto: {msg}")
             if len(body) <= 4:
                 if msg == END_MESSAGE:
                     self.finished_nodes += 1
@@ -47,12 +50,15 @@ class Coordinator:
                         self.end_batch = None
                         self.finished_nodes = 0
                         return
-                else:
-                    logging.error(f"[Coordinator] Unknown text message: {msg}")
-                return
+            else:
+                raise UnicodeDecodeError("utf-8", body, 0, len(body), "No es END_MESSAGE")
+            return
         except UnicodeDecodeError as e:
+            print(f"[Coordinator] No era un mensaje de texto, asumo que es un batch. Error: {e}")
+            
             batch = Batch()
             batch.decode(body)
+            print(f"[Coordinator] Recibido batch {batch.id()} de tipo {batch.type()} de la query {batch.get_query_id()} y last_batch={batch.is_last_batch()}.")
             if batch.is_last_batch():
                 self.end_batch = batch
                 #imprimo el batch q llego

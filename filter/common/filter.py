@@ -70,6 +70,7 @@ class Filter:
                 self._coordinator_produce_queue.send(self._buffer.encode())
                 print(f"[FILTER] Enviando batch final {self._buffer.id()} de tipo {self._buffer.type()} de la query {self._buffer.get_query_id()}.")
                 self._buffer = Batch(type_file=batch.type())
+                return
                 # self.received_end = True
 
             if len(self._buffer) >= BUFFER_SIZE:

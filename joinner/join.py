@@ -91,6 +91,7 @@ class Join:
         msg = body.decode('utf-8')
         if str(msg) == str(FLUSH_MESSAGE):
             with self.lock:
+                print(f"[JOIN] Recibido comando FLUSH del coordinator. Enviando datos al siguiente nodo.")
                 self.coordinator_producer.send(END_MESSAGE)
         else:
             logging.error(f"[FILTER] Unknown command from coordinator: {msg}")
@@ -99,12 +100,14 @@ class Join:
         with self.lock:
             batch = Batch()
             batch.decode(message)
+            print(f"[JOIN] Procesando batch {batch.id()} de tipo {batch.type()} de la query {batch.get_query_id()}.")
             try:
                 batch.change_header_name_value(self.column_id, self.column_name, self.join_dictionary)
             except (ValueError, KeyError) as e:
                 logging.error(
                     f'action: join_batch_with_dicctionary | result: fail | error: {e}')
             if batch.is_last_batch():
+                print(f"[JOIN] Recibido batch final {batch.id()} de tipo {batch.type()} de la query {batch.get_query_id()}.")
                 self.coordinator_producer.send(batch.encode())
                 return
             self.producer_queue.send(batch.encode())

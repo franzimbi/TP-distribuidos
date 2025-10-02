@@ -975,6 +975,7 @@ services:
       - DISTRIBUTOR_PORT=5000
     volumes:
       - ./csvs_files:/app/csvs_files
+      - ./csvs_files_reduced:/app/csvs_files_reduced
       - ./results:/app/results
       - ./config.ini:/app/config.ini
     networks:
