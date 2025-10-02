@@ -12,6 +12,9 @@ COUNT_OF_PRINTS = 30000
 Q1queue_consumer = os.getenv("CONSUME_QUEUE_Q1")
 Q1queue_producer = os.getenv("PRODUCE_QUEUE_Q1")
 
+Q2queue_producer = os.getenv("PRODUCE_QUEUE_Q2_1") #q211
+Q2queue_consumer = os.getenv("CONSUME_QUEUE_Q2_1") #q221 esta deberia cambiar desp
+
 Q3queue_consumer = os.getenv("CONSUME_QUEUE_Q3")
 Q3queue_producer = os.getenv("PRODUCE_QUEUE_Q3")
 Q31queue_joiner = os.getenv("JOIN_QUEUE_Q3.1")
@@ -31,9 +34,10 @@ class Distributor:
     def __init__(self):
         self.number_of_clients = 0
         self.clients = {}  # key: client_id, value: socket
-        self.files_types_for_queries = {'t': [1,3,4], 's': [3,32,42,44],
-                                        'u': [4,43]}  # key: type_file, value: list of query_ids
-
+        # self.files_types_for_queries = {'t': [1,3,4], 's': [3,32,42,44],
+        #                                 'u': [4,43]}  # key: type_file, value: list of query_ids
+        self.files_types_for_queries = {'t': [], 's': [],
+                                'u': [], 'i': [21]}
         self.producer_queues = {}  # key: query_id, value: MessageMiddlewareQueue
         self.consumer_queues = {}  # ""
         self.joiner_queues = {}  # ""
@@ -42,6 +46,9 @@ class Distributor:
 
         self.producer_queues[1] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q1queue_producer)
         self.consumer_queues[1] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q1queue_consumer)
+
+        self.producer_queues[21] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q2queue_producer)
+        self.consumer_queues[21] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q2queue_consumer)
 
         self.producer_queues[3] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q3queue_producer)
         self.consumer_queues[3] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q3queue_consumer)
@@ -90,9 +97,11 @@ class Distributor:
             logging.debug(
                 f"[DISTRIBUTOR] Distribuyendo batch {batch.id()} de tipo {batch.type()} a las queries {queries}.")
         for query_id in queries:
+            print(f"[DISTRIBUTOR] Distribuyendo batch {batch.id()} de tipo {batch.type()} a la query {query_id}.")
             batch.set_query_id(query_id)
-            if batch.type() == 't':  # la proxima veo d hacer algo mas objetoso para evitar estos ifs ~pedro
+            if batch.type() == 't' or batch.type() == 'i': # la proxima veo d hacer algo mas objetoso para evitar estos ifs ~pedro
                 q = self.producer_queues[query_id]
+                print(f"[DISTRIBUTOR] Envie batch {batch.id()} de tipo {batch.type()} a la cola de workers de la query {query_id}.")
             if batch.type() == 's':
                 q = self.joiner_queues[query_id]
             if batch.type() == 'u':

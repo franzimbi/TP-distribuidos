@@ -108,7 +108,7 @@ class MessageMiddlewareQueue(MessageMiddleware):
         self._connection = pika.BlockingConnection(pika.ConnectionParameters(host=host))
         self._channel = self._connection.channel()
         self._queue_name = queue_name
-        self._channel.queue_declare(queue=queue_name, durable=True)
+        self._channel.queue_declare(queue=queue_name)
 
     def start_consuming(self, on_message_callback):
         try:

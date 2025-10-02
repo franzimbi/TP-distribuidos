@@ -45,65 +45,65 @@ services:
         - ./config.ini:/app/config.ini
 
 #QUERIE 2
-#
-#  filter-q2.f1.1:
-#     build:
-#       context: .
-#       dockerfile: filter/Dockerfile
-#     restart: on-failure
-#     environment:
-#       - PYTHONUNBUFFERED=1
-#       - CONSUME_QUEUE=q211
-#       - PRODUCE_QUEUE=q221
-#
-#       - COORDINATOR_PRODUCE_QUEUE=Q2C1
-#       - COORDINATOR_CONSUME_QUEUE=Q2F11
-#
-#       - FILTER_NAME=bytime
-#     networks:
-#       - mynet
-#     volumes:
-#       - ./config.ini:/app/config.ini
-#
-#  filter-q2.f1.2:
-#    build:
-#      context: .
-#      dockerfile: filter/Dockerfile
-#    restart: on-failure
-#    environment:
-#      - PYTHONUNBUFFERED=1
-#      - CONSUME_QUEUE=q211
-#      - PRODUCE_QUEUE=q221
-#
-#      - COORDINATOR_PRODUCE_QUEUE=Q2C1
-#      - COORDINATOR_CONSUME_QUEUE=Q2F12
-#
-#      - FILTER_NAME=bytime
-#    networks:
-#      - mynet
-#    volumes:
-#      - ./config.ini:/app/config.ini
-#
-#  coordinator-q2.1:
-#    build:
-#      context: .
-#      dockerfile: coordinator/Dockerfile
-#    restart: on-failure
-#    depends_on:
-#      - filter-q2.f1.1
-#      - filter-q2.f1.2
-#    environment:
-#      - PYTHONUNBUFFERED=1
-#      - NUM_NODES=2
-#      - CONSUME_QUEUE=Q2C1
-#      - PRODUCE_QUEUE_1=Q2F11
-#      - PRODUCE_QUEUE_2=Q2F12
-#
-#      - DOWNSTREAM_QUEUE=q221
-#    networks:
-#      - mynet
-#    volumes:
-#      - ./config.ini:/app/config.ini
+
+  filter-q21.f1.1:
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    restart: on-failure
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=q211
+      - PRODUCE_QUEUE=q221
+
+      - COORDINATOR_PRODUCE_QUEUE=Q21C1
+      - COORDINATOR_CONSUME_QUEUE=Q21F11
+
+      - FILTER_NAME=byyear
+    networks:
+      - mynet
+    volumes:
+      - ./config.ini:/app/config.ini
+
+  filter-q21.f1.2:
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    restart: on-failure
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=q211
+      - PRODUCE_QUEUE=q221
+
+      - COORDINATOR_PRODUCE_QUEUE=Q21C1
+      - COORDINATOR_CONSUME_QUEUE=Q21F12
+
+      - FILTER_NAME=byyear
+    networks:
+      - mynet
+    volumes:
+      - ./config.ini:/app/config.ini
+
+  coordinator-q2.1:
+    build:
+      context: .
+      dockerfile: coordinator/Dockerfile
+    restart: on-failure
+    depends_on:
+      - filter-q21.f1.1
+      - filter-q21.f1.2
+    environment:
+      - PYTHONUNBUFFERED=1
+      - NUM_NODES=2
+      - CONSUME_QUEUE=Q21C1
+      - PRODUCE_QUEUE_1=Q21F11
+      - PRODUCE_QUEUE_2=Q21F12
+
+      - DOWNSTREAM_QUEUE=q221
+    networks:
+      - mynet
+    volumes:
+      - ./config.ini:/app/config.ini
 
 #  aggregator-q2.1:
 #    build:
