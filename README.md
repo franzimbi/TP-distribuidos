@@ -10,3 +10,6 @@ los tests se corren por separado con:
 
 
 el informe.pdf se encuentra en el repositorio mismo.
+
+
+postmortem: https://docs.google.com/document/d/1W8rVGx_UyDwOFDXXjlk2zloUZhXQBSJuJRk8WAIfSJk/edit?usp=sharing
