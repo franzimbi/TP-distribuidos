@@ -7,92 +7,102 @@ import yaml
 #     print("Uso: python3 generador.py N")
 #     sys.exit(1)
 
-def crear_distributor(n):
-    join_queues = []
-    for i in range(1, n + 1):
-        join_queues.append(f"JOIN_QUEUE_Q3.{i}=j3{i}")
-        for j in range(1, n + 1):
-            join_queues.append(f"JOIN_QUEUE_Q4.{i}.{j}=j4{i}{j}")
-    join_queues[0] = "- " + join_queues[0]
-    join_envs = "\n   - ".join(join_queues)
+def crear_distributor():
+    data = {
+        'build': {
+            'context': '.',
+            'dockerfile': 'distributor/Dockerfile',
+        },
+        'restart': 'on-failure',
+        'environment': [
+            'PYTHONUNBUFFERED = 1',
+            'Q1result=Q1result',
+            'Q21result=Q21result',
+            'Q22result=Q22result',
+            'Q3result=Q3result',
+            'Q4result=Q4result',
+            'transactionsExchange=transactionsExchange',
+            'itemsExchange=itemsExchange',
+            'productsExchange=productsExchange',
+            'storesExchange=storesExchange',
+            'usersExchange=usersExchange',
+        ],
+        'networks': [
+            'mynet'
+        ],
+        'volumes': [
+            './config.ini:/app/config.ini'
+        ],
+    }
+    return data
 
-    return f"""  
- distributor:
-  build:
-   context: .
-   dockerfile: distributor/Dockerfile
-  restart: on-failure
-  environment:
-   - PYTHONUNBUFFERED=1
-   - PRODUCE_QUEUE_Q1=q11
-   - CONSUME_QUEUE_Q1=q14
-   - PRODUCE_QUEUE_Q3=q31
-   - CONSUME_QUEUE_Q3=q34
-   - PRODUCE_QUEUE_Q4=q41
-   - CONSUME_QUEUE_Q4=q46
-   {join_envs}
-  networks:
-   - mynet
-  volumes:
-   - ./config.ini:/app/config.ini
-"""
 
+def crear_filters(nombre, cantidad, entrada, salida, type):
+    filters = {}
+    queues_to_coordinator = ''
+    for i in range(1, cantidad + 1):
+        filter_name = f'filter{nombre}_{i}'
+        conection_coordinator = f'{filter_name}_receive_from_coordinator_{nombre}'
+        queues_to_coordinator += f',{conection_coordinator}'
+        filters[filter_name] = {
+            'build': {
+                'context': '.',
+                'dockerfile': 'filter/Dockerfile',
+            },
+            'depends_on': [
+                'distributor'
+            ],
+            'restart': 'on-failure',
+            'environment': [
+                'PYTHONUNBUFFERED=1',
+                'tipoEntrada=' + entrada,
+                'queueEntrada=entradaFilter' + nombre + '_' + str(i),
+                'tipoSalida=queue',
+                # 'queuesSalida=' + salida,
+                'queue_to_send_coordinator=coodinator_' + str(nombre) + '_' + 'unique_queue',
+                'queue_to_receive_coordinator=' + conection_coordinator,
+                'filter_name=' + type
+            ],
+            'networks': [
+                'mynet'
+            ],
+            'volumes': [
+                './config.ini:/app/config.ini'
+            ],
+        }
+    coordinator_name = f'coordinator_{nombre}'
+    filters[coordinator_name] = {
+        'build': {
+            'context': '.',
+            'dockerfile': 'filter/Dockerfile',
+        },
+        'restart': 'on-failure',
+        'environment': [
+            'PYTHONUNBUFFERED=1',
+            'consume_queue=coodinator_' + str(nombre) + '_' + 'unique_queue',
+            'num_nodes=' + str(cantidad),
+            'queues_to_send_to_nodes=' + queues_to_coordinator,
+            # 'tipoSalida=queue',
+            'queue_to_send_last_batch=' + salida,
+        ],
+        'networks': [
+            'mynet'
+        ],
+        'volumes': [
+            './config.ini:/app/config.ini'
+        ],
+    }
 
-def crear_filtros_q1(name, n, type_filter):
-    result = ""
-    for i in range(1, n + 1):
-        result += f"""
- filter-q1.f{name}.{i}:
-  build:
-   context: .
-   dockerfile: filter/Dockerfile
-  restart: on-failure
-  environment:
-   - PYTHONUNBUFFERED=1
-   - CONSUME_QUEUE=q1{name}
-   - PRODUCE_QUEUE=q1{str(int(name)+1)}
-
-   - COORDINATOR_PRODUCE_QUEUE=Q1C{name}
-   - COORDINATOR_CONSUME_QUEUE=F{name}{i}
-
-   - FILTER_NAME={type_filter}
-  networks:
-   - mynet
-  volumes:
-   - ./config.ini:/app/config.ini
-"""
-    # coodinador
-
-    result += f"""
- coordinator-q1.{name}:
-  build:
-   context: .
-   dockerfile: coordinator/Dockerfile
-  restart: on-failure
-  depends_on:
-"""
-    aux = "\n".join([f"    - filter-q1.f{name}.{i}" for i in range(1, n+1)])
-    result += aux
-    result += f"""
-  environment:
-   - PYTHONUNBUFFERED=1
-   - NUM_NODES={n}
-   - CONSUME_QUEUE=Q1C1
-"""
-    produces_q = "\n".join([f"    - PRODUCE_QUEUE_{i}=F{name}{i}" for i in range(1, n+1)])
-    result += produces_q
-    result += f"""
-   - DOWNSTREAM_QUEUE=q12
-  networks:
-   - mynet
-  volumes:
-   - ./config.ini:/app/config.ini
-"""
-    return result
+    return filters
 
 
 with open('text.yaml', 'w') as f:
-    f.write('services:\n')
-    f.write(crear_distributor(2))
-    f.write(crear_filtros_q1(1, 2, 'bytime'))
-    f.write(crear_filtros_q1(2, 2, 'byamount'))
+    services = {'distributor': crear_distributor()}
+    services.update(crear_filters(nombre='Anio1', cantidad=2, entrada='exchange,itemsExchange',
+                                  salida='Queue_begin2_1,Queue_begin2_2', type='byyear'))
+    services.update(crear_filters(nombre='Anio2', cantidad=2, entrada='exchange,transactionExchange',
+                                  salida='Queue_begin_4,Queue_begin_3_y_1', type='byyear'))
+    services.update(crear_filters(nombre='Hora1', cantidad=2, entrada='queue,Queue_begin_3_y_1',
+                                  salida='Queue_3, Queue_1', type='bytime'))
+    data = {'services': services}
+    yaml.dump(data, f, sort_keys=False, default_flow_style=False)

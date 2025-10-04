@@ -70,7 +70,7 @@ class MessageMiddlewareExchange(MessageMiddleware):
         )
 
         if self.queue:
-            self.channel.queue_declare(queue=self.queue, durable=True, exclusive=False, auto_delete=False)
+            self.channel.queue_declare(queue=self.queue, durable=False, exclusive=False, auto_delete=True)
 
     def start_consuming(self, on_message_callback):
         try:
@@ -102,7 +102,22 @@ class MessageMiddlewareExchange(MessageMiddleware):
             raise MessageMiddlewareCloseError() from e
 
     def delete(self):
-        pass
+        try:
+            # Si hay una cola declarada, la eliminamos
+            if self.queue:
+                self.channel.queue_delete(queue=self.queue)
+
+            # También eliminamos el exchange asociado
+            if self.exchange:
+                self.channel.exchange_delete(exchange=self.exchange)
+
+        except pika.exceptions.AMQPConnectionError as e:
+            # Error de conexión (por ejemplo, RabbitMQ no está disponible)
+            raise MessageMiddlewareDisconnectedError() from e
+
+        except Exception as e:
+            # Cualquier otro error (por ejemplo, la cola no existe, o canal cerrado)
+            raise MessageMiddlewareDeleteError() from e
 
 class MessageMiddlewareQueue(MessageMiddleware):
     def __init__(self, host, queue_name):
