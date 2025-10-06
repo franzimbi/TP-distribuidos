@@ -9,8 +9,8 @@ from common.batch import Batch
 
 COUNT_OF_PRINTS = 10000
 
-transactionsExchange = os.getenv('transactionsExchange')
-itemsExchange = os.getenv('itemsExchange')
+transactionsQueue = os.getenv('transactionsQueue')
+itemsQueue = os.getenv('itemsQueue')
 productsExchange = os.getenv('productsExchange')
 storesExchange = os.getenv('storesExchange')
 usersExchange = os.getenv('usersExchange')
@@ -30,10 +30,9 @@ class Distributor:
         self.clients = {}  # key: client_id, value: socket
         signal.signal(signal.SIGTERM, self.graceful_quit)
 
-        self.transactions = MessageMiddlewareExchange(host='rabbitmq', exchange_name=transactionsExchange,
-                                                      route_keys='', exchange_type='fanout', queue_name='transactions')
-        self.transaction_items = MessageMiddlewareExchange(host='rabbitmq', exchange_name=itemsExchange, route_keys='',
-                                                           exchange_type='fanout', queue_name='items')
+        self.transactions = MessageMiddlewareQueue(host='rabbitmq', queue_name=transactionsQueue)
+        self.transaction_items = MessageMiddlewareQueue(host='rabbitmq', queue_name=itemsQueue)
+        #
         self.products = MessageMiddlewareExchange(host='rabbitmq', exchange_name=productsExchange, route_keys='',
                                                   exchange_type='fanout', queue_name='products')
         self.stores = MessageMiddlewareExchange(host='rabbitmq', exchange_name=storesExchange, route_keys='',
@@ -55,6 +54,7 @@ class Distributor:
         self.q3_results = MessageMiddlewareQueue('rabbitmq', Q3_results)
         self.q4_results = MessageMiddlewareQueue('rabbitmq', Q4_results)
 
+        self.lock = threading.Lock()
     def graceful_quit(self, signum, frame):
         logging.info(f'signum {signum} activado')
         # shutdown.set()
@@ -74,9 +74,9 @@ class Distributor:
         #         logging.error(f"[DISTRIBUTOR] Error cerrando socket cliente {cid}: {e}")
         # sys.exit(0)
 
-    def add_client(self, client_id, client_socket):
+    def add_client(self, client_socket):
         self.number_of_clients += 1
-        self.clients[client_id] = client_socket
+        self.clients[self.number_of_clients] = client_socket
 
     def remove_client(self, client_id):
         sock = self.clients.pop(client_id, None)
@@ -90,16 +90,15 @@ class Distributor:
 
         destination = self.route.get(batch.type())
         if destination:
-            destination.send(batch.encode())
+            with self.lock:
+                destination.send(batch.encode())
         else:
             logging.error(f'[DISTRIBUTION] Unknown transaction type: {type}')
 
     def callback(self, ch, method, properties, body: bytes):
         batch = Batch()
         batch.decode(body)
-        # if batch.id() % COUNT_OF_PRINTS == 0 or batch.id() == 0:
-        #     logging.debug(f"[DISTRIBUTOR] ENVIANDO batch {batch.id()} de tipo {batch.type()} de la query {batch.get_query_id()} AL CLIENTE.")
-        client_id = 1  # por ahora fijo pq un solo cliente
+        client_id = batch.client_id()
         client_socket = self.clients.get(client_id)
         try:
             send_batch(client_socket, batch)
@@ -110,22 +109,16 @@ class Distributor:
                 f"\n[DISTRIBUTOR] Cliente {client_id} recibió todos los resultados de la query {batch.get_query_id()}.\n")
             return
 
-    def start_consuming_from_workers(self, query_id):
-        cq = self.consumer_queues.get(query_id)
-        if cq is None:
-            return
-        try:
-            cq.start_consuming(self.callback)
-        except Exception as e:
-            pass
-            # if not shutdown.is_set():
-            #     logging.error(f"[DISTRIBUTOR] Error en consumo de workers: {e}")
+    def start_consuming_from_workers(self):
+        # TODO: lanza los hilos de start_consuming de las 4 queries y se las manda al client por id
+        pass
+        # threading.Thread(target=handle_client, args=(client_socket, shutdown, distributor), daemon=True)
 
-    def stop_consuming_from_all_workers(self):
-        for qid, cq in self.consumer_queues.items():
-            if cq is not None:
-                try:
-                    cq.stop_consuming()
-                except Exception as e:
-                    pass
-                    # logging.error(f"[DISTRIBUTOR] Error al detener consumo de la query {qid}: {e}")
+    # def stop_consuming_from_all_workers(self):
+    #     for qid, cq in self.consumer_queues.items():
+    #         if cq is not None:
+    #             try:
+    #                 cq.stop_consuming()
+    #             except Exception as e:
+    #                 pass
+    #                 # logging.error(f"[DISTRIBUTOR] Error al detener consumo de la query {qid}: {e}")
