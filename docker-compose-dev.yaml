@@ -183,10 +183,10 @@ services:
     restart: on-failure
     environment:
     - PYTHONUNBUFFERED=1
-    - queueEntrada=Queue_begin2_1
-    - queuesSalida=Queue_between_aggregator_reducer_Q21
-    - type=sum
-    - params=item_id,quantity,month,year_month,created_at,total_quantity
+    - CONSUME_QUEUE=Queue_begin2_1
+    - PRODUCE_QUEUE=Queue_between_aggregator_reducer_Q21
+    - TYPE=sum
+    - PARAMS=item_id,quantity,month,year_month,created_at,total_quantity
     networks:
     - mynet
     volumes:
@@ -200,10 +200,10 @@ services:
     restart: on-failure
     environment:
     - PYTHONUNBUFFERED=1
-    - queueEntrada=Queue_begin2_1
-    - queuesSalida=Queue_between_aggregator_reducer_Q21
-    - type=sum
-    - params=item_id,quantity,month,year_month,created_at,total_quantity
+    - CONSUME_QUEUE=Queue_begin2_1
+    - PRODUCE_QUEUE=Queue_between_aggregator_reducer_Q21
+    - TYPE=sum
+    - PARAMS=item_id,quantity,month,year_month,created_at,total_quantity
     networks:
     - mynet
     volumes:
@@ -217,10 +217,10 @@ services:
     restart: on-failure
     environment:
     - PYTHONUNBUFFERED=1
-    - queueEntrada=Queue_begin2_2
-    - queuesSalida=Queue_between_aggregator_reducer_Q22
-    - type=sum
-    - params=earnings,item_id,subtotal,month,year_month,created_at,total_earnings
+    - CONSUME_QUEUE=Queue_begin2_2
+    - PRODUCE_QUEUE=Queue_between_aggregator_reducer_Q22
+    - TYPE=sum
+    - PARAMS=earnings,item_id,subtotal,month,year_month,created_at,total_earnings
     networks:
     - mynet
     volumes:
@@ -234,10 +234,10 @@ services:
     restart: on-failure
     environment:
     - PYTHONUNBUFFERED=1
-    - queueEntrada=Queue_3
-    - queuesSalida=Queue_between_aggregator_join_Q3
-    - type=sum
-    - params=store_id,final_amount,semester,year_semester,created_at,tpv
+    - CONSUME_QUEUE=Queue_3
+    - PRODUCE_QUEUE=Queue_between_aggregator_join_Q3
+    - TYPE=sum
+    - PARAMS=store_id,final_amount,semester,year_semester,created_at,tpv
     networks:
     - mynet
     volumes:
@@ -251,10 +251,10 @@ services:
     restart: on-failure
     environment:
     - PYTHONUNBUFFERED=1
-    - queueEntrada=Queue_begin_4
-    - queuesSalida=Queue_between_aggregator_reducer_Q4
-    - type=counter
-    - params=store_id,user_id,purchases_qty
+    - CONSUME_QUEUE=Queue_begin_4
+    - PRODUCE_QUEUE=Queue_between_aggregator_reducer_Q4
+    - TYPE=counter
+    - PARAMS=store_id,user_id,purchases_qty
     networks:
     - mynet
     volumes:
@@ -715,6 +715,26 @@ services:
     - ./csvs_files:/app/csvs_files
     - ./csvs_files_reduced:/app/csvs_files_reduced
     - ./results_cliente_1:/app/results
+    networks:
+    - mynet
+  cliente_2:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    restart: on-failure
+    depends_on:
+    - distributor
+    links:
+    - distributor
+    environment:
+    - PYTHONUNBUFFERED=1
+    - DISTRIBUTOR_HOST=distributor
+    - DISTRIBUTOR_PORT=5000
+    volumes:
+    - ./config.ini:/app/config.ini
+    - ./csvs_files:/app/csvs_files
+    - ./csvs_files_reduced:/app/csvs_files_reduced
+    - ./results_cliente_2:/app/results
     networks:
     - mynet
 networks:

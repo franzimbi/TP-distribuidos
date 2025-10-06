@@ -19,7 +19,7 @@ def crear_distributor():
         },
         'restart': 'on-failure',
         'environment': [
-            'PYTHONUNBUFFERED = 1',
+            'PYTHONUNBUFFERED=1',
             'Q1result=Queue_final_Q1',
             'Q21result=Queue_final_Q21',
             'Q22result=Queue_final_Q22',
@@ -121,8 +121,8 @@ def crear_aggregators(nombre, cantidad, entrada, salida, type, params):
                 'PYTHONUNBUFFERED=1',
                 'CONSUME_QUEUE=' + entrada,
                 'PRODUCE_QUEUE=' + salida,
-                'type=' + type,
-                'params=' + params,
+                'TYPE=' + type,
+                'PARAMS=' + params,
             ],
             'networks': [
                 'mynet'
@@ -150,10 +150,10 @@ def crear_reducers(nombre, cantidad, entrada, salida, top, params):
             'restart': 'on-failure',
             'environment': [
                 'PYTHONUNBUFFERED=1',
-                'queueEntrada=' + entrada,
-                'queuesSalida=' + salida,
-                'top=' + str(top),
-                'params=' + params
+                'CONSUME_QUEUE=' + entrada,
+                'PRODUCE_QUEUE=' + salida,
+                'TOP=' + str(top),
+                'PARAMS=' + params
             ],
             'networks': [
                 'mynet'
@@ -213,9 +213,9 @@ def crear_joiners(nombre, cantidad, entradaJoin, entradaData, salida, disk_type,
         'restart': 'on-failure',
         'environment': [
             'PYTHONUNBUFFERED=1',
-            'queue_entrada=coodinator_' + str(nombre) + '_' + 'unique_queue',
+            'QUEUE_CONSUME_FROM_NODES=coodinator_' + str(nombre) + '_' + 'unique_queue',
             'NUM_NODES=' + str(cantidad),
-            'queues_to_send_to_nodes=' + queues_to_coordinator,
+            'QUEUES_PRODUCE_FOR_NODES=' + queues_to_coordinator,
             # 'tipoSalida=queue',
             'DOWNSTREAM_QUEUE=' + salida,
         ],

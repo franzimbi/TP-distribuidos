@@ -15,7 +15,7 @@ def initialize_config():
         config_params["PRODUCE_QUEUE"] = os.getenv('PRODUCE_QUEUE', config["DEFAULT"]["PRODUCE_QUEUE"])
 
         config_params["TOP"] = int(os.getenv('TOP'))
-        config_params["COLUMN_NAME"] = str(os.getenv('COLUMN_NAME'))
+        config_params["COLUMN_NAME"] = str(os.getenv('PARAMS')) ## chequear esto
 
         config_params["listen_backlog"] = int(
             os.getenv('SERVER_LISTEN_BACKLOG', config["DEFAULT"]["SYSTEM_LISTEN_BACKLOG"]))
