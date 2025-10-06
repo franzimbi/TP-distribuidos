@@ -42,39 +42,6 @@ def send_id_to_client(client_id, socket):
     socket.sendall(client_id.to_bytes(4, "big"))
 
 
-def graceful_quit(signum, frame):
-    pass
-    # logging.debug("Recibida señal SIGTERM, cerrando distributor...")
-    # shutdown.set()
-    # try:
-    #     server_socket.shutdown(socket.SHUT_RDWR)
-    #     server_socket.close()
-    # except Exception:
-    #     pass
-    # for t in client_threads:
-    #     t.join()
-    # logging.debug("Joinee todos los hilos de clientes")
-    #
-    # distributor.stop_consuming_from_all_workers()
-    # logging.debug("\nhice stop consuming from all threads")
-    #
-    # accept_thread.join(timeout=2.0)
-    # logging.debug("joinee accept thread")
-    # q1_consumer_thread.join(timeout=2.0)
-    # logging.debug("joinee q1_consumer thread")
-    # q21_consumer_thread.join(timeout=2.0)
-    # logging.debug("joinee q2_consumer thread")
-    # q22_consumer_thread.join(timeout=2.0)
-    # logging.debug("joinee q22_consumer thread")
-    # q3_consumer_thread.join(timeout=2.0)
-    # logging.debug("joinee q3_consumer thread")
-    # q4_consumer_thread.join()
-    # logging.debug("joinee q4_consumer thread")
-    #
-    # logging.debug("[DISTRIBUTOR] Apagado limpio.")
-    # sys.exit(0)
-
-
 def handle_client(socket, shutdown, distributor):
     counter_lasts_batches = 0
     while not shutdown.is_set():
@@ -85,6 +52,19 @@ def handle_client(socket, shutdown, distributor):
             distributor.distribute_batch_to_workers(batch)
         if counter_lasts_batches >= 5:
             return
+
+
+def graceful_quit(signum, frame, shutdown, server_socket, distributor, client_threads):
+    logging.debug("Recibida señal SIGTERM, cerrando distributor...")
+    shutdown.set()
+    try:
+        server_socket.shutdown(socket.SHUT_RDWR)
+        server_socket.close()
+    except OSError as e:
+        logging.debug("OS error: {}".format(e))
+    distributor.stop_consuming_from_all_workers()
+    for i in client_threads:
+        i.join()
 
 
 def main():
@@ -101,13 +81,14 @@ def main():
 
     client_threads = []
     shutdown = threading.Event()
-    signal.signal(signal.SIGTERM, graceful_quit)
 
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_socket.bind((host, port))
     server_socket.listen()
 
+    signal.signal(signal.SIGTERM,
+                  lambda signum, frame: graceful_quit(signum, frame, shutdown, server_socket, distributor))
     distributor.start_consuming_from_workers()
 
     while True:
@@ -115,35 +96,10 @@ def main():
         client_socket, client_address = server_socket.accept()
         id_client = distributor.add_client(client_socket)
         send_id_to_client(id_client, client_socket)
-        new_client = threading.Thread(target=handle_client, args=(client_socket, shutdown, distributor), daemon=True)
+        new_client = threading.Thread(target=handle_client, args=(client_socket, shutdown, distributor, client_threads),
+                                      daemon=True)
         client_threads.append(new_client)
         new_client.start()
-
-    # try:
-    #     while True:
-    #         accept_thread.join()
-    # except KeyboardInterrupt:
-    #     pass
-    # finally:
-    #     distributor.stop_consuming_from_all_workers()
-    #     try:
-    #         server_socket.close()
-    #     except Exception:
-    #         pass
-    #     accept_thread.join(timeout=2.0)
-    #     logging.info("joinee accept thread")
-    #     q1_consumer_thread.join(timeout=2.0)
-    #     logging.info("joinee q1_consumer thread")
-    #     q21_consumer_thread.join(timeout=2.0)
-    #     logging.info("joinee q21_consumer thread")
-    #     q22_consumer_thread.join(timeout=2.0)
-    #     logging.info("joinee q22_consumer thread")
-    #     q3_consumer_thread.join(timeout=2.0)
-    #     logging.info("joinee q3_consumer thread")
-    #     q4_consumer_thread.join()
-    #     logging.info("joinee q4_consumer thread")
-    #
-    #     logging.info("[DISTRIBUTOR] Apagado limpio.")
 
 
 if __name__ == "__main__":

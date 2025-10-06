@@ -28,7 +28,6 @@ class Distributor:
     def __init__(self):
         self.number_of_clients = 0
         self.clients = {}  # key: client_id, value: socket
-        signal.signal(signal.SIGTERM, self.graceful_quit)
 
         self.transactions = MessageMiddlewareQueue(host='rabbitmq', queue_name=transactionsQueue)
         self.transaction_items = MessageMiddlewareQueue(host='rabbitmq', queue_name=itemsQueue)
@@ -54,25 +53,9 @@ class Distributor:
         self.q3_results = MessageMiddlewareQueue('rabbitmq', Q3_results)
         self.q4_results = MessageMiddlewareQueue('rabbitmq', Q4_results)
 
+        self.threads_queries = {}
+
         self.lock = threading.Lock()
-    def graceful_quit(self, signum, frame):
-        logging.info(f'signum {signum} activado')
-        # shutdown.set()
-        # self.stop_consuming_from_all_workers()
-        #
-        # for qid, q in {**self.consumer_queues, **self.producer_queues, **self.joiner_queues}.items():
-        #     if q is not None:
-        #         try:
-        #             q.close()
-        #         except Exception as e:
-        #             logging.error(f"[DISTRIBUTOR] Error cerrando conexión {qid}: {e}")
-        #
-        # for cid, sock in self.clients.items():
-        #     try:
-        #         sock.close()
-        #     except Exception as e:
-        #         logging.error(f"[DISTRIBUTOR] Error cerrando socket cliente {cid}: {e}")
-        # sys.exit(0)
 
     def add_client(self, client_socket):
         self.number_of_clients += 1
@@ -86,7 +69,8 @@ class Distributor:
 
     def distribute_batch_to_workers(self, batch: Batch):
         if batch.is_last_batch():
-            logging.debug(f"[DISTRIBUTOR] Distribuido batch final {batch.id()} de tipo {batch.type()} de client{batch.client_id()}.")
+            logging.debug(
+                f"[DISTRIBUTOR] Distribuido batch final {batch.id()} de tipo {batch.type()} de client{batch.client_id()}.")
 
         destination = self.route.get(batch.type())
         if destination:
@@ -95,30 +79,65 @@ class Distributor:
         else:
             logging.error(f'[DISTRIBUTION] Unknown transaction type: {type}')
 
-    def callback(self, ch, method, properties, body: bytes):
+    def callback(self, ch, method, properties, body: bytes, query_id):
         batch = Batch()
         batch.decode(body)
+        batch.set_query_id(query_id)
         client_id = batch.client_id()
-        client_socket = self.clients.get(client_id)
+        try:
+            client_socket = self.clients.get(client_id)
+        except KeyError:
+            logging.error(f'[DISTRIBUTION] el client {client_id} no existe en el distributor')
+            return
         try:
             send_batch(client_socket, batch)
         except Exception as e:
             logging.error(f"[DISTRIBUTOR] error al querer enviar batch:{batch} al cliente:{client_id} | error: {e}")
         if batch.is_last_batch():
             logging.debug(
-                f"\n[DISTRIBUTOR] Cliente {client_id} recibió todos los resultados de la query {batch.get_query_id()}.\n")
+                f"\n[DISTRIBUTOR] Cliente {client_id} recibió todos los resultados de la query {query_id}.\n")
             return
 
     def start_consuming_from_workers(self):
         # TODO: lanza los hilos de start_consuming de las 4 queries y se las manda al client por id
-        pass
-        # threading.Thread(target=handle_client, args=(client_socket, shutdown, distributor), daemon=True)
+        # for clave, valor in self.route.items():
+        self.threads_queries['q1'] = threading.Thread(target=self.q1_results.start_consuming(self.callback), args=(1,),
+                                                      daemon=True)
+        self.threads_queries['q21'] = threading.Thread(target=self.q21_results.start_consuming(self.callback),
+                                                       args=(21,), daemon=True)
+        self.threads_queries['q22'] = threading.Thread(target=self.q22_results.start_consuming(self.callback),
+                                                       args=(22,), daemon=True)
+        self.threads_queries['q3'] = threading.Thread(target=self.q3_results.start_consuming(self.callback), args=(3,),
+                                                      daemon=True)
+        self.threads_queries['q4'] = threading.Thread(target=self.q4_results.start_consuming(self.callback), args=(4,),
+                                                      daemon=True)
 
-    # def stop_consuming_from_all_workers(self):
-    #     for qid, cq in self.consumer_queues.items():
-    #         if cq is not None:
-    #             try:
-    #                 cq.stop_consuming()
-    #             except Exception as e:
-    #                 pass
-    #                 # logging.error(f"[DISTRIBUTOR] Error al detener consumo de la query {qid}: {e}")
+        for _, t in self.threads_queries.items():
+            t.start()
+
+    def stop_consuming_from_all_workers(self):
+        self.transactions.close()
+        self.transaction_items.close()
+        self.stores.close()
+        self.products.close()
+        self.users.close()
+
+        self.q1_results.stop_consuming()
+        self.q1_results.close()
+
+        self.q21_results.stop_consuming()
+        self.q21_results.close()
+
+        self.q22_results.stop_consuming()
+        self.q22_results.close()
+
+        self.q3_results.stop_consuming()
+        self.q3_results.close()
+
+        self.q4_results.stop_consuming()
+        self.q4_results.close()
+
+        for _, t in self.threads_queries.items():
+            t.join()
+
+
