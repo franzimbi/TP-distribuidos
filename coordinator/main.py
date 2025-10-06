@@ -15,19 +15,16 @@ def initialize_log(logging_level):
 
 def main():
     logging_level = os.getenv("logging_level")
-    listen_backlog = os.getenv("listen_backlog")
+    listen_backlog = os.getenv("listen_backlog") # ????? 
     initialize_log(logging_level)
 
     num_nodes = int(os.getenv("NUM_NODES"))
-    consumer = str(os.getenv(f"CONSUME_QUEUE"))
+    consumer = str(os.getenv(f"QUEUE_CONSUME_FROM_NODES"))
     downstream_q = str(os.getenv("DOWNSTREAM_QUEUE", "downstream"))
     producers = []
-    for i in range(1, num_nodes+1):
-        aux = str(os.getenv(f"PRODUCE_QUEUE_{i}"))
-        if not aux:
-            logging.error(f"Environment variable PRODUCE_QUEUE_{i} not set")
-            continue
-        producers.append(aux)
+    produce_queue = str(os.getenv(f"QUEUES_PRODUCE_FOR_NODES"))
+    for queue_name in produce_queue.split(','):
+        producers.append(queue_name)
 
     coordinator = Coordinator(num_nodes, consumer, producers, downstream_q)
     coordinator.start()

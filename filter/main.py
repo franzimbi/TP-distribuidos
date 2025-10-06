@@ -8,8 +8,8 @@ import logging
 filter_type = str(os.getenv("FILTER_NAME"))
 queue_consumer = str(os.getenv("CONSUME_QUEUE"))
 queue_producer = str(os.getenv("PRODUCE_QUEUE"))
-coordinator_consumer = str(os.getenv("COORDINATOR_CONSUME_QUEUE"))
-coordinator_producer = str(os.getenv("COORDINATOR_PRODUCE_QUEUE"))
+coordinator_consumer = str(os.getenv("QUEUE_CONSUME_FROM_COORDINATOR"))
+coordinator_producer = str(os.getenv("QUEUE_PRODUCE_FOR_COORDINATOR"))
 
 
 logging.basicConfig(

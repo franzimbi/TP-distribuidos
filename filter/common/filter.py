@@ -19,8 +19,12 @@ class Filter:
         self._buffer = Batch()
         self._counter = 0
         self._consume_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=consume_queue)
-        self._produce_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=produce_queue)
-        
+
+        self._produce_queues = []
+        for queue_name in produce_queue.split(','):
+            queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=queue_name)
+            self._produce_queues.append(queue)
+
         self._coordinator_consume_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=coordinator_consumer)
         self._coordinator_produce_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=coordinator_producer)
         
@@ -76,7 +80,10 @@ class Filter:
             if len(self._buffer) >= BUFFER_SIZE:
                 self._buffer.set_id(batch.id())
                 self._buffer.set_query_id(batch.get_query_id())
-                self._produce_queue.send(self._buffer.encode())
+                
+                for queue in self._produce_queues:
+                    queue.send(self._buffer.encode())
+                
                 self._buffer = Batch(type_file=batch.type())
 
 
@@ -85,7 +92,9 @@ class Filter:
         if str(msg) == str(FLUSH_MESSAGE):
             with self.lock:
                 if not self._buffer.is_empty():
-                    self._produce_queue.send(self._buffer.encode())
+                
+                    for queue in self._produce_queues:
+                        queue.send(self._buffer.encode())
                     self._buffer = Batch()
                     self._coordinator_produce_queue.send(END_MESSAGE)
                 else:
@@ -96,7 +105,8 @@ class Filter:
     def close(self):
         self._consume_queue.stop_consuming()
         self._consume_queue.close()
-        self._produce_queue.close()
+        for queue in self._produce_queues:
+            queue.close()
         self._coordinator_consume_queue.stop_consuming()
         self._coordinator_consume_queue.close()
         self._coordinator_produce_queue.close()

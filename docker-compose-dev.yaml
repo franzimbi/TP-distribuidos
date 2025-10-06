@@ -12,8 +12,8 @@ services:
     - Q22result=Queue_final_Q22
     - Q3result=Queue_final_Q3
     - Q4result=Queue_final_Q4
-    - transactionsExchange=transactionsExchange
-    - itemsExchange=itemsExchange
+    - transactionsQueue=transactionsQueue
+    - itemsQueue=itemsQueue
     - productsExchange=productsExchange
     - storesExchange=storesExchange
     - usersExchange=usersExchange
@@ -30,11 +30,11 @@ services:
     restart: on-failure
     environment:
     - PYTHONUNBUFFERED=1
-    - queueEntrada=items_queue
-    - queuesSalida=Queue_begin2_1,Queue_begin2_2
-    - queue_to_send_coordinator=coodinator_FiltroAnio1_unique_queue
-    - queue_to_receive_coordinator=FiltroAnio1_1_receive_from_coordinator_FiltroAnio1
-    - filter_name=byyear
+    - CONSUME_QUEUE=items_queue
+    - PRODUCE_QUEUE=Queue_begin2_1,Queue_begin2_2
+    - QUEUE_PRODUCE_FOR_COORDINATOR=coodinator_FiltroAnio1_unique_queue
+    - QUEUE_CONSUME_FROM_COORDINATOR=_coordinator_produce_for_FiltroAnio1_1
+    - FILTER_NAME=byyear
     networks:
     - mynet
     volumes:
@@ -48,11 +48,11 @@ services:
     restart: on-failure
     environment:
     - PYTHONUNBUFFERED=1
-    - queueEntrada=items_queue
-    - queuesSalida=Queue_begin2_1,Queue_begin2_2
-    - queue_to_send_coordinator=coodinator_FiltroAnio1_unique_queue
-    - queue_to_receive_coordinator=FiltroAnio1_2_receive_from_coordinator_FiltroAnio1
-    - filter_name=byyear
+    - CONSUME_QUEUE=items_queue
+    - PRODUCE_QUEUE=Queue_begin2_1,Queue_begin2_2
+    - QUEUE_PRODUCE_FOR_COORDINATOR=coodinator_FiltroAnio1_unique_queue
+    - QUEUE_CONSUME_FROM_COORDINATOR=_coordinator_produce_for_FiltroAnio1_2
+    - FILTER_NAME=byyear
     networks:
     - mynet
     volumes:
@@ -64,10 +64,10 @@ services:
     restart: on-failure
     environment:
     - PYTHONUNBUFFERED=1
-    - queue_entrada=coodinator_FiltroAnio1_unique_queue
-    - num_nodes=2
-    - queues_to_send_to_nodes=FiltroAnio1_1_receive_from_coordinator_FiltroAnio1,FiltroAnio1_2_receive_from_coordinator_FiltroAnio1
-    - queue_to_send_last_batch=Queue_begin2_1,Queue_begin2_2
+    - QUEUE_CONSUME_FROM_NODES=_coordinator_consumes_from_FiltroAnio1_
+    - NUM_NODES=2
+    - QUEUES_PRODUCE_FOR_NODES=_coordinator_produce_for_FiltroAnio1_1,_coordinator_produce_for_FiltroAnio1_2
+    - DOWNSTREAM_QUEUE=Queue_begin2_1,Queue_begin2_2
     networks:
     - mynet
     volumes:
@@ -81,11 +81,11 @@ services:
     restart: on-failure
     environment:
     - PYTHONUNBUFFERED=1
-    - queueEntrada=transaction_queue
-    - queuesSalida=Queue_begin_4,Queue_begin_3_y_1
-    - queue_to_send_coordinator=coodinator_FiltroAnio2_unique_queue
-    - queue_to_receive_coordinator=FiltroAnio2_1_receive_from_coordinator_FiltroAnio2
-    - filter_name=byyear
+    - CONSUME_QUEUE=transaction_queue
+    - PRODUCE_QUEUE=Queue_begin_4,Queue_begin_3_y_1
+    - QUEUE_PRODUCE_FOR_COORDINATOR=coodinator_FiltroAnio2_unique_queue
+    - QUEUE_CONSUME_FROM_COORDINATOR=_coordinator_produce_for_FiltroAnio2_1
+    - FILTER_NAME=byyear
     networks:
     - mynet
     volumes:
@@ -99,11 +99,11 @@ services:
     restart: on-failure
     environment:
     - PYTHONUNBUFFERED=1
-    - queueEntrada=transaction_queue
-    - queuesSalida=Queue_begin_4,Queue_begin_3_y_1
-    - queue_to_send_coordinator=coodinator_FiltroAnio2_unique_queue
-    - queue_to_receive_coordinator=FiltroAnio2_2_receive_from_coordinator_FiltroAnio2
-    - filter_name=byyear
+    - CONSUME_QUEUE=transaction_queue
+    - PRODUCE_QUEUE=Queue_begin_4,Queue_begin_3_y_1
+    - QUEUE_PRODUCE_FOR_COORDINATOR=coodinator_FiltroAnio2_unique_queue
+    - QUEUE_CONSUME_FROM_COORDINATOR=_coordinator_produce_for_FiltroAnio2_2
+    - FILTER_NAME=byyear
     networks:
     - mynet
     volumes:
@@ -115,10 +115,10 @@ services:
     restart: on-failure
     environment:
     - PYTHONUNBUFFERED=1
-    - queue_entrada=coodinator_FiltroAnio2_unique_queue
-    - num_nodes=2
-    - queues_to_send_to_nodes=FiltroAnio2_1_receive_from_coordinator_FiltroAnio2,FiltroAnio2_2_receive_from_coordinator_FiltroAnio2
-    - queue_to_send_last_batch=Queue_begin_4,Queue_begin_3_y_1
+    - QUEUE_CONSUME_FROM_NODES=_coordinator_consumes_from_FiltroAnio2_
+    - NUM_NODES=2
+    - QUEUES_PRODUCE_FOR_NODES=_coordinator_produce_for_FiltroAnio2_1,_coordinator_produce_for_FiltroAnio2_2
+    - DOWNSTREAM_QUEUE=Queue_begin_4,Queue_begin_3_y_1
     networks:
     - mynet
     volumes:
@@ -132,11 +132,11 @@ services:
     restart: on-failure
     environment:
     - PYTHONUNBUFFERED=1
-    - queueEntrada=Queue_begin_3_y_1
-    - queuesSalida=Queue_3,Queue_1
-    - queue_to_send_coordinator=coodinator_FiltroHora1_unique_queue
-    - queue_to_receive_coordinator=FiltroHora1_1_receive_from_coordinator_FiltroHora1
-    - filter_name=bytime
+    - CONSUME_QUEUE=Queue_begin_3_y_1
+    - PRODUCE_QUEUE=Queue_3,Queue_1
+    - QUEUE_PRODUCE_FOR_COORDINATOR=coodinator_FiltroHora1_unique_queue
+    - QUEUE_CONSUME_FROM_COORDINATOR=_coordinator_produce_for_FiltroHora1_1
+    - FILTER_NAME=bytime
     networks:
     - mynet
     volumes:
@@ -150,11 +150,11 @@ services:
     restart: on-failure
     environment:
     - PYTHONUNBUFFERED=1
-    - queueEntrada=Queue_begin_3_y_1
-    - queuesSalida=Queue_3,Queue_1
-    - queue_to_send_coordinator=coodinator_FiltroHora1_unique_queue
-    - queue_to_receive_coordinator=FiltroHora1_2_receive_from_coordinator_FiltroHora1
-    - filter_name=bytime
+    - CONSUME_QUEUE=Queue_begin_3_y_1
+    - PRODUCE_QUEUE=Queue_3,Queue_1
+    - QUEUE_PRODUCE_FOR_COORDINATOR=coodinator_FiltroHora1_unique_queue
+    - QUEUE_CONSUME_FROM_COORDINATOR=_coordinator_produce_for_FiltroHora1_2
+    - FILTER_NAME=bytime
     networks:
     - mynet
     volumes:
@@ -166,10 +166,10 @@ services:
     restart: on-failure
     environment:
     - PYTHONUNBUFFERED=1
-    - queue_entrada=coodinator_FiltroHora1_unique_queue
-    - num_nodes=2
-    - queues_to_send_to_nodes=FiltroHora1_1_receive_from_coordinator_FiltroHora1,FiltroHora1_2_receive_from_coordinator_FiltroHora1
-    - queue_to_send_last_batch=Queue_3,Queue_1
+    - QUEUE_CONSUME_FROM_NODES=_coordinator_consumes_from_FiltroHora1_
+    - NUM_NODES=2
+    - QUEUES_PRODUCE_FOR_NODES=_coordinator_produce_for_FiltroHora1_1,_coordinator_produce_for_FiltroHora1_2
+    - DOWNSTREAM_QUEUE=Queue_3,Queue_1
     networks:
     - mynet
     volumes:
@@ -319,11 +319,11 @@ services:
     restart: on-failure
     environment:
     - PYTHONUNBUFFERED=1
-    - queueEntrada=Queue_1
-    - queuesSalida=Queue_between_filter_amount_filter_columna_Q1
-    - queue_to_send_coordinator=coodinator_Filter_amount_Q1_unique_queue
-    - queue_to_receive_coordinator=Filter_amount_Q1_1_receive_from_coordinator_Filter_amount_Q1
-    - filter_name=byamount
+    - CONSUME_QUEUE=Queue_1
+    - PRODUCE_QUEUE=Queue_between_filter_amount_filter_columna_Q1
+    - QUEUE_PRODUCE_FOR_COORDINATOR=coodinator_Filter_amount_Q1_unique_queue
+    - QUEUE_CONSUME_FROM_COORDINATOR=_coordinator_produce_for_Filter_amount_Q1_1
+    - FILTER_NAME=byamount
     networks:
     - mynet
     volumes:
@@ -337,11 +337,11 @@ services:
     restart: on-failure
     environment:
     - PYTHONUNBUFFERED=1
-    - queueEntrada=Queue_1
-    - queuesSalida=Queue_between_filter_amount_filter_columna_Q1
-    - queue_to_send_coordinator=coodinator_Filter_amount_Q1_unique_queue
-    - queue_to_receive_coordinator=Filter_amount_Q1_2_receive_from_coordinator_Filter_amount_Q1
-    - filter_name=byamount
+    - CONSUME_QUEUE=Queue_1
+    - PRODUCE_QUEUE=Queue_between_filter_amount_filter_columna_Q1
+    - QUEUE_PRODUCE_FOR_COORDINATOR=coodinator_Filter_amount_Q1_unique_queue
+    - QUEUE_CONSUME_FROM_COORDINATOR=_coordinator_produce_for_Filter_amount_Q1_2
+    - FILTER_NAME=byamount
     networks:
     - mynet
     volumes:
@@ -353,10 +353,10 @@ services:
     restart: on-failure
     environment:
     - PYTHONUNBUFFERED=1
-    - queue_entrada=coodinator_Filter_amount_Q1_unique_queue
-    - num_nodes=2
-    - queues_to_send_to_nodes=Filter_amount_Q1_1_receive_from_coordinator_Filter_amount_Q1,Filter_amount_Q1_2_receive_from_coordinator_Filter_amount_Q1
-    - queue_to_send_last_batch=Queue_between_filter_amount_filter_columna_Q1
+    - QUEUE_CONSUME_FROM_NODES=_coordinator_consumes_from_Filter_amount_Q1_
+    - NUM_NODES=2
+    - QUEUES_PRODUCE_FOR_NODES=_coordinator_produce_for_Filter_amount_Q1_1,_coordinator_produce_for_Filter_amount_Q1_2
+    - DOWNSTREAM_QUEUE=Queue_between_filter_amount_filter_columna_Q1
     networks:
     - mynet
     volumes:
@@ -370,11 +370,11 @@ services:
     restart: on-failure
     environment:
     - PYTHONUNBUFFERED=1
-    - queueEntrada=Queue_between_filter_amount_filter_columna_Q1
-    - queuesSalida=Queue_final_Q1
-    - queue_to_send_coordinator=coodinator_Filter_column_Q1_unique_queue
-    - queue_to_receive_coordinator=Filter_column_Q1_1_receive_from_coordinator_Filter_column_Q1
-    - filter_name=bycolumn
+    - CONSUME_QUEUE=Queue_between_filter_amount_filter_columna_Q1
+    - PRODUCE_QUEUE=Queue_final_Q1
+    - QUEUE_PRODUCE_FOR_COORDINATOR=coodinator_Filter_column_Q1_unique_queue
+    - QUEUE_CONSUME_FROM_COORDINATOR=_coordinator_produce_for_Filter_column_Q1_1
+    - FILTER_NAME=bycolumn
     networks:
     - mynet
     volumes:
@@ -388,11 +388,11 @@ services:
     restart: on-failure
     environment:
     - PYTHONUNBUFFERED=1
-    - queueEntrada=Queue_between_filter_amount_filter_columna_Q1
-    - queuesSalida=Queue_final_Q1
-    - queue_to_send_coordinator=coodinator_Filter_column_Q1_unique_queue
-    - queue_to_receive_coordinator=Filter_column_Q1_2_receive_from_coordinator_Filter_column_Q1
-    - filter_name=bycolumn
+    - CONSUME_QUEUE=Queue_between_filter_amount_filter_columna_Q1
+    - PRODUCE_QUEUE=Queue_final_Q1
+    - QUEUE_PRODUCE_FOR_COORDINATOR=coodinator_Filter_column_Q1_unique_queue
+    - QUEUE_CONSUME_FROM_COORDINATOR=_coordinator_produce_for_Filter_column_Q1_2
+    - FILTER_NAME=bycolumn
     networks:
     - mynet
     volumes:
@@ -404,10 +404,10 @@ services:
     restart: on-failure
     environment:
     - PYTHONUNBUFFERED=1
-    - queue_entrada=coodinator_Filter_column_Q1_unique_queue
-    - num_nodes=2
-    - queues_to_send_to_nodes=Filter_column_Q1_1_receive_from_coordinator_Filter_column_Q1,Filter_column_Q1_2_receive_from_coordinator_Filter_column_Q1
-    - queue_to_send_last_batch=Queue_final_Q1
+    - QUEUE_CONSUME_FROM_NODES=_coordinator_consumes_from_Filter_column_Q1_
+    - NUM_NODES=2
+    - QUEUES_PRODUCE_FOR_NODES=_coordinator_produce_for_Filter_column_Q1_1,_coordinator_produce_for_Filter_column_Q1_2
+    - DOWNSTREAM_QUEUE=Queue_final_Q1
     networks:
     - mynet
     volumes:
@@ -462,9 +462,9 @@ services:
     environment:
     - PYTHONUNBUFFERED=1
     - queue_entrada=coodinator_Join_productos_Q21_unique_queue
-    - num_nodes=2
+    - NUM_NODES=2
     - queues_to_send_to_nodes=Join_productos_Q21_1_receive_from_coordinator_Join_productos_Q21,Join_productos_Q21_2_receive_from_coordinator_Join_productos_Q21
-    - queue_to_send_last_batch=Queue_final_Q21
+    - DOWNSTREAM_QUEUE=Queue_final_Q21
     networks:
     - mynet
     volumes:
@@ -519,9 +519,9 @@ services:
     environment:
     - PYTHONUNBUFFERED=1
     - queue_entrada=coodinator_Join_productos_Q22_unique_queue
-    - num_nodes=2
+    - NUM_NODES=2
     - queues_to_send_to_nodes=Join_productos_Q22_1_receive_from_coordinator_Join_productos_Q22,Join_productos_Q22_2_receive_from_coordinator_Join_productos_Q22
-    - queue_to_send_last_batch=Queue_final_Q22
+    - DOWNSTREAM_QUEUE=Queue_final_Q22
     networks:
     - mynet
     volumes:
@@ -576,9 +576,9 @@ services:
     environment:
     - PYTHONUNBUFFERED=1
     - queue_entrada=coodinator_Join_stores_Q3_unique_queue
-    - num_nodes=2
+    - NUM_NODES=2
     - queues_to_send_to_nodes=Join_stores_Q3_1_receive_from_coordinator_Join_stores_Q3,Join_stores_Q3_2_receive_from_coordinator_Join_stores_Q3
-    - queue_to_send_last_batch=Queue_final_Q3
+    - DOWNSTREAM_QUEUE=Queue_final_Q3
     networks:
     - mynet
     volumes:
@@ -633,9 +633,9 @@ services:
     environment:
     - PYTHONUNBUFFERED=1
     - queue_entrada=coodinator_Join_users_Q4_unique_queue
-    - num_nodes=2
+    - NUM_NODES=2
     - queues_to_send_to_nodes=Join_users_Q4_1_receive_from_coordinator_Join_users_Q4,Join_users_Q4_2_receive_from_coordinator_Join_users_Q4
-    - queue_to_send_last_batch=Queue_between_joiner_users_and_joiner_stores_Q4
+    - DOWNSTREAM_QUEUE=Queue_between_joiner_users_and_joiner_stores_Q4
     networks:
     - mynet
     volumes:
@@ -690,9 +690,9 @@ services:
     environment:
     - PYTHONUNBUFFERED=1
     - queue_entrada=coodinator_Join_stores_Q4_unique_queue
-    - num_nodes=2
+    - NUM_NODES=2
     - queues_to_send_to_nodes=Join_stores_Q4_1_receive_from_coordinator_Join_stores_Q4,Join_stores_Q4_2_receive_from_coordinator_Join_stores_Q4
-    - queue_to_send_last_batch=Queue_final_Q4
+    - DOWNSTREAM_QUEUE=Queue_final_Q4
     networks:
     - mynet
     volumes:

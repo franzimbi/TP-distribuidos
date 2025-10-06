@@ -20,25 +20,29 @@ def main():
     
     consume = get_env("CONSUME_QUEUE", required=True)
     produce = get_env("PRODUCE_QUEUE", required=True)
-    name    = get_env("AGGREGATOR_NAME", required=True).strip().lower()
-
-    logging.debug(f"[{name}] {consume} -> {produce}")
-
-    if name == "sum":
+    type    = get_env("TYPE", required=True).strip().lower()
+    params = get_env("PARAMS")
+    logging.debug(f"[{type}] {consume} -> {produce}")
+    
+    params_buffer = []
+    for p in params.split(","):
+        params_buffer.append(p)
+        
+    if type == "sum":
         worker = Aggregator(
             consume, produce,
-            key_col       = get_env("KEY_COLUMN",   required=True),
-            value_col     = get_env("VALUE_COLUMN", required=True),
-            bucket_kind   = get_env("BUCKET_KIND",  required=True), 
-            bucket_name   = get_env("BUCKET_NAME",  required=True),
-            time_col      = get_env("TIME_COL",     default="created_at"),
-            out_value_name= get_env("OUT_VALUE",    default="total"),
+            key_col       = params_buffer[0],
+            value_col     = params_buffer[1],
+            bucket_kind   = params_buffer[2], 
+            bucket_name   = params_buffer[3],
+            time_col      = params_buffer[4],
+            out_value_name= params_buffer[5],
         )
-    elif name == "counter":
+    elif type == "counter":
         worker = Counter(
             consume, produce,
-            key_columns = get_env("KEY_COLUMNS", required=True),
-            count_name  = get_env("COUNT_NAME",  required=True),
+            key_columns = params_buffer[0],
+            count_name  = params_buffer[2],
         )
 
    

@@ -46,7 +46,7 @@ def crear_filters(nombre, cantidad, entrada, salida, type):
     queues_to_coordinator = ''
     for i in range(1, cantidad + 1):
         filter_name = f'{nombre}_{i}'
-        conection_coordinator = f'{filter_name}_receive_from_coordinator_{nombre}'
+        conection_coordinator = f'_coordinator_produce_for_{filter_name}'
         if i == 1:
             queues_to_coordinator += f'{conection_coordinator}'
         else:
@@ -62,13 +62,13 @@ def crear_filters(nombre, cantidad, entrada, salida, type):
             'restart': 'on-failure',
             'environment': [
                 'PYTHONUNBUFFERED=1',
-                'queueEntrada=' + entrada,
-                # 'queueEntrada=entradaFilter' + nombre + '_' + str(i),
+                'CONSUME_QUEUE=' + entrada,
+                # 'CONSUME_QUEUE=entradaFilter' + nombre + '_' + str(i),
                 # 'tipoSalida=queue',
-                'queuesSalida=' + salida,
-                'queue_to_send_coordinator=coodinator_' + str(nombre) + '_' + 'unique_queue',
-                'queue_to_receive_coordinator=' + conection_coordinator,
-                'filter_name=' + type
+                'PRODUCE_QUEUE=' + salida,
+                'QUEUE_PRODUCE_FOR_COORDINATOR=coodinator_' + str(nombre) + '_' + 'unique_queue',
+                'QUEUE_CONSUME_FROM_COORDINATOR=' + conection_coordinator,
+                'FILTER_NAME=' + type
             ],
             'networks': [
                 'mynet'
@@ -86,11 +86,11 @@ def crear_filters(nombre, cantidad, entrada, salida, type):
         'restart': 'on-failure',
         'environment': [
             'PYTHONUNBUFFERED=1',
-            'queue_entrada=coodinator_' + str(nombre) + '_' + 'unique_queue',
-            'num_nodes=' + str(cantidad),
-            'queues_to_send_to_nodes=' + queues_to_coordinator,
+            'QUEUE_CONSUME_FROM_NODES=_coordinator_consumes_from_'+ str(nombre) + '_' ,
+            'NUM_NODES=' + str(cantidad),
+            'QUEUES_PRODUCE_FOR_NODES=' + queues_to_coordinator,
             # 'tipoSalida=queue',
-            'queue_to_send_last_batch=' + salida,
+            'DOWNSTREAM_QUEUE=' + salida,
         ],
         'networks': [
             'mynet'
@@ -119,8 +119,8 @@ def crear_aggregators(nombre, cantidad, entrada, salida, type, params):
             'restart': 'on-failure',
             'environment': [
                 'PYTHONUNBUFFERED=1',
-                'queueEntrada=' + entrada,
-                'queuesSalida=' + salida,
+                'CONSUME_QUEUE=' + entrada,
+                'PRODUCE_QUEUE=' + salida,
                 'type=' + type,
                 'params=' + params,
             ],
@@ -214,10 +214,10 @@ def crear_joiners(nombre, cantidad, entradaJoin, entradaData, salida, disk_type,
         'environment': [
             'PYTHONUNBUFFERED=1',
             'queue_entrada=coodinator_' + str(nombre) + '_' + 'unique_queue',
-            'num_nodes=' + str(cantidad),
+            'NUM_NODES=' + str(cantidad),
             'queues_to_send_to_nodes=' + queues_to_coordinator,
             # 'tipoSalida=queue',
-            'queue_to_send_last_batch=' + salida,
+            'DOWNSTREAM_QUEUE=' + salida,
         ],
         'networks': [
             'mynet'
