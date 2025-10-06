@@ -62,8 +62,8 @@ def crear_filters(nombre, cantidad, entrada, salida, type):
             'restart': 'on-failure',
             'environment': [
                 'PYTHONUNBUFFERED=1',
-                'tipoEntrada=' + entrada,
-                'queueEntrada=entradaFilter' + nombre + '_' + str(i),
+                'queueEntrada=' + entrada,
+                # 'queueEntrada=entradaFilter' + nombre + '_' + str(i),
                 # 'tipoSalida=queue',
                 'queuesSalida=' + salida,
                 'queue_to_send_coordinator=coodinator_' + str(nombre) + '_' + 'unique_queue',
@@ -266,11 +266,11 @@ def crear_client(cantidad, puerto):
 
 with open(nombre_file, 'w') as f:
     services = {'distributor': crear_distributor()}
-    services.update(crear_filters(nombre='Anio1', cantidad=cant_nodos, entrada='exchange,itemsExchange',
+    services.update(crear_filters(nombre='FiltroAnio1', cantidad=cant_nodos, entrada='items_queue',
                                   salida='Queue_begin2_1,Queue_begin2_2', type='byyear'))
-    services.update(crear_filters(nombre='Anio2', cantidad=cant_nodos, entrada='exchange,transactionExchange',
+    services.update(crear_filters(nombre='FiltroAnio2', cantidad=cant_nodos, entrada='transaction_queue',
                                   salida='Queue_begin_4,Queue_begin_3_y_1', type='byyear'))
-    services.update(crear_filters(nombre='Hora1', cantidad=cant_nodos, entrada='queue,Queue_begin_3_y_1',
+    services.update(crear_filters(nombre='FiltroHora1', cantidad=cant_nodos, entrada='Queue_begin_3_y_1',
                                   salida='Queue_3,Queue_1', type='bytime'))
     services.update(crear_aggregators(nombre='Suma_Q21', cantidad=cant_nodos, entrada='Queue_begin2_1',
                                       salida='Queue_between_aggregator_reducer_Q21', type='sum',
@@ -315,10 +315,10 @@ with open(nombre_file, 'w') as f:
     services.update(crear_reducers(nombre='Reducer_Q4', cantidad=1, entrada='Queue_between_aggregator_reducer_Q4',
                                    salida='Queue_between_reducer_joiner_Q4', top=3,
                                    params='store_id,user_id,purchases_qty'))
-    services.update(crear_filters(nombre='Filter_amount_Q1', cantidad=cant_nodos, entrada='queue,Queue_1',
+    services.update(crear_filters(nombre='Filter_amount_Q1', cantidad=cant_nodos, entrada='Queue_1',
                                   salida='Queue_between_filter_amount_filter_columna_Q1', type='byamount'))
     services.update(crear_filters(nombre='Filter_column_Q1', cantidad=cant_nodos,
-                                  entrada='queue,Queue_between_filter_amount_filter_columna_Q1',
+                                  entrada='Queue_between_filter_amount_filter_columna_Q1',
                                   salida='Queue_final_Q1', type='bycolumn'))
 
     services.update(

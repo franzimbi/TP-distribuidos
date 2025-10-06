@@ -4,7 +4,7 @@ import threading
 import logging
 import sys
 import signal
-from common.protocol import send_batches_from_csv, recv_batch
+from common.protocol import send_batches_from_csv, recv_batch, recv_client_id
 
 BATCH_SIZE = 150
 AMOUNT_OF_QUERIES = 5
@@ -28,6 +28,7 @@ class Client:
         self.socket.connect((host, port))
         self.sender_transaction = None
         self.receiver_thread = None
+        self.client_id = -1
 
         self.shutdown_event = threading.Event()
 
@@ -46,18 +47,20 @@ class Client:
         sys.exit(0)
 
     def start(self, path_input, path_output):
+
+        self.client_id = recv_client_id(self.socket)
     
-        send_batches_from_csv(path_input+STORES_PATH, BATCH_SIZE, self.socket, STORES_TYPE_FILE, 3)
+        send_batches_from_csv(path_input+STORES_PATH, BATCH_SIZE, self.socket, STORES_TYPE_FILE, self.client_id)
 
-        send_batches_from_csv(path_input+USERS_PATH, BATCH_SIZE, self.socket, USERS_TYPE_FILE, 4)
+        send_batches_from_csv(path_input+USERS_PATH, BATCH_SIZE, self.socket, USERS_TYPE_FILE, self.client_id)
 
-        send_batches_from_csv(path_input+MENU_ITEM_PATH, BATCH_SIZE, self.socket, MENU_ITEM_TYPE_FILE, 21)
+        send_batches_from_csv(path_input+MENU_ITEM_PATH, BATCH_SIZE, self.socket, MENU_ITEM_TYPE_FILE, self.client_id)
 
-        send_batches_from_csv(path_input+TRANSACTION_ITEMS_PATH, BATCH_SIZE, self.socket, TRANSACTION_ITEMS_TYPE_FILE, 21)
+        send_batches_from_csv(path_input+TRANSACTION_ITEMS_PATH, BATCH_SIZE, self.socket, TRANSACTION_ITEMS_TYPE_FILE, self.client_id)
 
         self.sender_transaction = threading.Thread(
             target=send_batches_from_csv,
-            args=(path_input+TRANSACTION_PATH, BATCH_SIZE, self.socket, TRANSACTION_TYPE_FILE, 1),
+            args=(path_input+TRANSACTION_PATH, BATCH_SIZE, self.socket, TRANSACTION_TYPE_FILE, self.client_id),
             daemon=True
         )
         self.sender_transaction.start()
@@ -88,6 +91,9 @@ class Client:
             while not self.shutdown_event.is_set():
                 batch = recv_batch(self.socket)
                 qid = batch.get_query_id()
+                if batch.client_id() != self.client_id:
+                    logging.info("[CLIENT] llego un batch con client_id distinto")
+                    continue
 
                 if qid not in files:
                     path = os.path.join(out_dir, f"q{qid}.csv")

@@ -17,9 +17,10 @@ class Batch:
         size: size de batch
         """
 
-    def __init__(self, id=0, query_id=0, last=False, type_file=' ', header=None, rows=None):
+    def __init__(self, id=0, query_id=0, client_id=0, last=False, type_file=' ', header=None, rows=None):
         self._id_batch = int(id)
         self._query_id = int(query_id)
+        self._client_id = int(client_id)
         self._last_batch = last
         self._type_file = type_file
         self._header = header if header is not None else []
@@ -35,6 +36,9 @@ class Batch:
 
     def id(self):
         return self._id_batch
+
+    def client_id(self):
+        return self._client_id
 
     def type(self):
         return self._type_file
@@ -96,6 +100,9 @@ class Batch:
 
     def set_query_id(self, id):
         self._query_id = id
+
+    def set_client_id(self, client_id):
+        self._client_id = client_id
 
     def reset_body_and_increment_id(self):
         self._id_batch += 1
@@ -162,6 +169,7 @@ class Batch:
         res = b''
         res += self._id_batch.to_bytes(4, byteorder='big', signed=False)
         res += self._query_id.to_bytes(4, byteorder='big', signed=False)
+        res += self._client_id.to_bytes(4, byteorder='big', signed=False)
         if self._last_batch:
             res += (1).to_bytes(1, byteorder="big", signed=False)
         else:
@@ -185,6 +193,8 @@ class Batch:
         self._id_batch = int.from_bytes(data[offset:offset + 4], byteorder='big', signed=False)
         offset += 4
         self._query_id = int.from_bytes(data[offset:offset + 4], byteorder='big', signed=False)
+        offset += 4
+        self._client_id = int.from_bytes(data[offset:offset + 4], byteorder='big', signed=False)
         offset += 4
         self._last_batch = bool(int.from_bytes(data[offset:offset + 1], byteorder='big', signed=False))
         offset += 1
@@ -210,6 +220,7 @@ class Batch:
         lines = [
             f"Batch ID: {self._id_batch}",
             f"Query ID: {self._query_id}",
+            f"Client ID: {self._client_id}",
             f"Last batch: {self._last_batch}",
             f"Type file: {self._type_file}",
             f"Header: {self._header}",
@@ -317,7 +328,16 @@ class Batch:
         for row in rows:
             self.add_row(row)
 
-# aux = Batch(5, 1, False, 't', ['id', 'b', 'c'], [['1', 'rwe23', '23edwq'], ['2', 'efw', 'ewq'], ['3', '2w', '3r']])
+#
+# aux = Batch(5, 1, 10, False, 't', ['id', 'b', 'c'], [['1', 'rwe23', '23edwq'], ['2', 'efw', 'ewq'], ['3', '2w',
+# '3r']])
+#
+# print(aux)
+# bytes=aux.encode()
+# aux2 = Batch()
+# aux2.decode(bytes)
+# print(aux2)
+
 #
 # dic = {'1': 'Juan', '2': 'Ana', '4': 'dada'}
 #

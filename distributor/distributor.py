@@ -3,36 +3,23 @@ import os
 import signal
 import sys
 import threading
-from middleware.middleware import MessageMiddlewareQueue
+from middleware.middleware import MessageMiddlewareQueue, MessageMiddlewareExchange
 from common.protocol import send_batch
 from common.batch import Batch
 
 COUNT_OF_PRINTS = 10000
 
-Q1queue_consumer = os.getenv("CONSUME_QUEUE_Q1")
-Q1queue_producer = os.getenv("PRODUCE_QUEUE_Q1")
+transactionsExchange = os.getenv('transactionsExchange')
+itemsExchange = os.getenv('itemsExchange')
+productsExchange = os.getenv('productsExchange')
+storesExchange = os.getenv('storesExchange')
+usersExchange = os.getenv('usersExchange')
 
-Q21queue_producer = os.getenv("PRODUCE_QUEUE_Q2_1") #q211
-Q21queue_consumer = os.getenv("CONSUME_QUEUE_Q2_1") 
-Q21queue_joiner = os.getenv("JOIN_QUEUE_Q21_1") #j211
-Q21queue_joiner2 = os.getenv("JOIN_QUEUE_Q21_2") #j212
-
-Q22queue_producer = os.getenv("PRODUCE_QUEUE_Q2_2") #q212
-Q22queue_consumer = os.getenv("CONSUME_QUEUE_Q2_2") 
-Q22queue_joiner = os.getenv("JOIN_QUEUE_Q22_1") #j221
-Q22queue_joiner2 = os.getenv("JOIN_QUEUE_Q22_2") #j222
-
-Q3queue_consumer = os.getenv("CONSUME_QUEUE_Q3")
-Q3queue_producer = os.getenv("PRODUCE_QUEUE_Q3")
-Q31queue_joiner = os.getenv("JOIN_QUEUE_Q3.1")
-Q32queue_joiner = os.getenv("JOIN_QUEUE_Q3.2")
-
-Q4queue_consumer = os.getenv("CONSUME_QUEUE_Q4")
-Q4queue_producer = os.getenv("PRODUCE_QUEUE_Q4")
-Q4queue_joiner_users = os.getenv("JOIN_QUEUE_Q4_1")
-Q4queue_joiner_stores = os.getenv("JOIN_QUEUE_Q4_2")
-Q4queue_joiner_users2 = os.getenv("JOIN_QUEUE_Q4_1_2")
-Q4queue_joiner_stores2 = os.getenv("JOIN_QUEUE_Q4_2_2")
+Q1_results = os.getenv('Queue_final_Q1')
+Q21_results = os.getenv('Queue_final_Q21')
+Q22_results = os.getenv('Queue_final_Q22')
+Q3_results = os.getenv('Queue_final_Q3')
+Q4_results = os.getenv('Queue_final_Q4')
 
 shutdown = threading.Event()
 
@@ -41,58 +28,51 @@ class Distributor:
     def __init__(self):
         self.number_of_clients = 0
         self.clients = {}  # key: client_id, value: socket
-        self.files_types_for_queries = {'t': [1,3,4], 's': [3,32,42,44],
-                                        'u': [4,43], 'i': [21,22], 'm': [21,212,22,222]}  
-        
-        self.producer_queues = {}  # key: query_id, value: MessageMiddlewareQueue
-        self.consumer_queues = {}
-        self.joiner_queues = {}
-
         signal.signal(signal.SIGTERM, self.graceful_quit)
 
-        self.producer_queues[1] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q1queue_producer)
-        self.consumer_queues[1] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q1queue_consumer)
+        self.transactions = MessageMiddlewareExchange(host='rabbitmq', exchange_name=transactionsExchange,
+                                                      route_keys='', exchange_type='fanout', queue_name='transactions')
+        self.transaction_items = MessageMiddlewareExchange(host='rabbitmq', exchange_name=itemsExchange, route_keys='',
+                                                           exchange_type='fanout', queue_name='items')
+        self.products = MessageMiddlewareExchange(host='rabbitmq', exchange_name=productsExchange, route_keys='',
+                                                  exchange_type='fanout', queue_name='products')
+        self.stores = MessageMiddlewareExchange(host='rabbitmq', exchange_name=storesExchange, route_keys='',
+                                                exchange_type='fanout', queue_name='stores')
+        self.users = MessageMiddlewareExchange(host='rabbitmq', exchange_name=usersExchange, route_keys='',
+                                               exchange_type='fanout', queue_name='users')
 
-        self.producer_queues[21] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q21queue_producer)
-        self.consumer_queues[21] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q21queue_consumer)
-        self.joiner_queues[21] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q21queue_joiner)
-        self.joiner_queues[212] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q21queue_joiner2)
+        self.route = {
+            't': self.transactions,
+            'r': self.transaction_items,
+            's': self.stores,
+            'u': self.users,
+            'i': self.products,
+        }
 
-        self.producer_queues[22] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q22queue_producer)
-        self.consumer_queues[22] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q22queue_consumer)
-        self.joiner_queues[22] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q22queue_joiner)
-        self.joiner_queues[222] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q22queue_joiner2)
-
-        self.producer_queues[3] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q3queue_producer)
-        self.consumer_queues[3] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q3queue_consumer)
-        self.joiner_queues[3] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q31queue_joiner)
-        self.joiner_queues[32] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q32queue_joiner)
-
-        self.producer_queues[4] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q4queue_producer)
-        self.consumer_queues[4] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q4queue_consumer)
-        self.joiner_queues[4] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q4queue_joiner_users)
-        self.joiner_queues[42] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q4queue_joiner_stores)
-        self.joiner_queues[43] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q4queue_joiner_users2)
-        self.joiner_queues[44] = MessageMiddlewareQueue(host='rabbitmq', queue_name=Q4queue_joiner_stores2)
+        self.q1_results = MessageMiddlewareQueue('rabbitmq', Q1_results)
+        self.q21_results = MessageMiddlewareQueue('rabbitmq', Q21_results)
+        self.q22_results = MessageMiddlewareQueue('rabbitmq', Q22_results)
+        self.q3_results = MessageMiddlewareQueue('rabbitmq', Q3_results)
+        self.q4_results = MessageMiddlewareQueue('rabbitmq', Q4_results)
 
     def graceful_quit(self, signum, frame):
         logging.info(f'signum {signum} activado')
-        shutdown.set()
-        self.stop_consuming_from_all_workers()
-
-        for qid, q in {**self.consumer_queues, **self.producer_queues, **self.joiner_queues}.items():
-            if q is not None:
-                try:
-                    q.close()
-                except Exception as e:
-                    logging.error(f"[DISTRIBUTOR] Error cerrando conexión {qid}: {e}")
-
-        for cid, sock in self.clients.items():
-            try:
-                sock.close()
-            except Exception as e:
-                logging.error(f"[DISTRIBUTOR] Error cerrando socket cliente {cid}: {e}")
-        sys.exit(0)
+        # shutdown.set()
+        # self.stop_consuming_from_all_workers()
+        #
+        # for qid, q in {**self.consumer_queues, **self.producer_queues, **self.joiner_queues}.items():
+        #     if q is not None:
+        #         try:
+        #             q.close()
+        #         except Exception as e:
+        #             logging.error(f"[DISTRIBUTOR] Error cerrando conexión {qid}: {e}")
+        #
+        # for cid, sock in self.clients.items():
+        #     try:
+        #         sock.close()
+        #     except Exception as e:
+        #         logging.error(f"[DISTRIBUTOR] Error cerrando socket cliente {cid}: {e}")
+        # sys.exit(0)
 
     def add_client(self, client_id, client_socket):
         self.number_of_clients += 1
@@ -105,26 +85,14 @@ class Distributor:
         return sock
 
     def distribute_batch_to_workers(self, batch: Batch):
-        queries = self.files_types_for_queries[batch.type()]
-        if batch.id() % COUNT_OF_PRINTS == 0 or batch.id() == 0:
-            logging.debug(
-                f"[DISTRIBUTOR] Distribuyendo batch {batch.id()} de tipo {batch.type()} a las queries {queries}.")
-        # if batch.is_last_batch():
-        #     print(f"che, toy distribuyendo el batch final {batch.id()} de tipo {batch.type()} a las queries {queries}.")
-        for query_id in queries:
-            batch.set_query_id(query_id)
-            if batch.type() == 't' or batch.type() == 'i': # la proxima veo d hacer algo mas objetoso para evitar estos ifs ~pedro
-                q = self.producer_queues[query_id]
-            if batch.type() == 's':
-                q = self.joiner_queues[query_id]
-            if batch.type() == 'u':
-                q = self.joiner_queues[query_id]
-            if batch.type() == 'm':
-                q = self.joiner_queues[query_id]
+        if batch.is_last_batch():
+            logging.debug(f"[DISTRIBUTOR] Distribuido batch final {batch.id()} de tipo {batch.type()} de client{batch.client_id()}.")
 
-            q.send(batch.encode())
-            if batch.is_last_batch():
-                logging.debug(f"[DISTRIBUTOR] Distribuido batch final {batch.id()} de tipo {batch.type()} a la query {query_id}.")
+        destination = self.route.get(batch.type())
+        if destination:
+            destination.send(batch.encode())
+        else:
+            logging.error(f'[DISTRIBUTION] Unknown transaction type: {type}')
 
     def callback(self, ch, method, properties, body: bytes):
         batch = Batch()
