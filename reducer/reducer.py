@@ -59,6 +59,7 @@ class Reducer:
         batch_result.set_last_batch()
         for store, user, qty in rows:
             batch_result.add_row([store, user, str(qty)])
+        batch_result.set_client_id(batch.client_id())
         self._producer_queue.send(batch_result.encode())
 
     def close(self):

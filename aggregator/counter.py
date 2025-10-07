@@ -77,6 +77,7 @@ class Counter:
                 header=header,
                 rows=chunk
             )
+            out_batch.set_client_id(src_batch.client_id())
             self._producer_queue.send(out_batch.encode())
 
         self._accumulator.clear()

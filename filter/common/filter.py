@@ -13,7 +13,6 @@ class Buffer:
     def __init__(self):
         pass
 
-
 class Filter:
     def __init__(self, consume_queue, produce_queue, filter, coordinator_consumer, coordinator_producer):
         self._buffer = Batch()
@@ -53,38 +52,43 @@ class Filter:
 
     def callback(self, ch, method, properties, message):
         with self.lock:
-            batch = Batch()
-            batch.decode(message)
+            batch = Batch(); batch.decode(message)
 
             try:
                 result = self._filter(batch)
                 if not result.is_empty():
                     if self._buffer.is_empty() and result.get_header():
+                        self._buffer = Batch(type_file=batch.type())
                         self._buffer.set_header(result.get_header())
                         self._buffer.set_query_id(batch.get_query_id())
-                    for i in result:
-                        self._buffer.add_row(i)
+                        self._buffer.set_client_id(batch.client_id())
+                    for row in result:
+                        self._buffer.add_row(row)
             except Exception as e:
-                logging.error(f"\n\n\n error: {e} | batch:{batch} | filter:{self._filter.__name__}")
+                logging.error(f"error: {e} | batch:{batch} | filter:{self._filter.__name__}")
 
             if batch.is_last_batch():
                 self._buffer.set_last_batch()
                 self._buffer.set_id(batch.id())
                 self._buffer.set_query_id(batch.get_query_id())
-                self._buffer.set_header(result.get_header()) #setteamos header por las dudas
+                self._buffer.set_client_id(batch.client_id())
+                if result.get_header():
+                    self._buffer.set_header(result.get_header())
+
                 self._coordinator_produce_queue.send(self._buffer.encode())
-                self._buffer = Batch(type_file=batch.type())
+                self._buffer = Batch(type_file=batch.type())  # nuevo ciclo, vacío (sin client_id aún)
                 return
-                # self.received_end = True
 
             if len(self._buffer) >= BUFFER_SIZE:
                 self._buffer.set_id(batch.id())
                 self._buffer.set_query_id(batch.get_query_id())
-                
-                for queue in self._produce_queues:
-                    queue.send(self._buffer.encode())
-                
-                self._buffer = Batch(type_file=batch.type())
+                self._buffer.set_client_id(batch.client_id())
+
+                for q in self._produce_queues:
+                    q.send(self._buffer.encode())
+
+                self._buffer = Batch(type_file=batch.type())             # nuevo buffer vacío
+
 
 
     def coordinator_callback(self, ch, method, properties, body):

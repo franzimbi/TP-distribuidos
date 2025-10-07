@@ -102,6 +102,7 @@ class Aggregator:
                 header=header,
                 rows=chunk
             )
+            out_batch.set_client_id(src_batch.client_id())
             self._produce_queue.send(out_batch.encode())
 
         self.accumulator.clear()
