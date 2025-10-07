@@ -25,8 +25,8 @@ def crear_distributor():
             'Q22result=Queue_final_Q22',
             'Q3result=Queue_final_Q3',
             'Q4result=Queue_final_Q4',
-            'transactionsQueue=transactionsQueue',
-            'itemsQueue=itemsQueue',
+            'transactionsQueue=transaction_queue',
+            'itemsQueue=items_queue',
             'productsExchange=productsExchange',
             'storesExchange=storesExchange',
             'usersExchange=usersExchange',
@@ -41,6 +41,7 @@ def crear_distributor():
     return data
 
 
+
 def crear_filters(nombre, cantidad, entrada, salida, type):
     filters = {}
     queues_to_coordinator = ''
@@ -51,7 +52,7 @@ def crear_filters(nombre, cantidad, entrada, salida, type):
             queues_to_coordinator += f'{conection_coordinator}'
         else:
             queues_to_coordinator += f',{conection_coordinator}'
-        filters[filter_name] = {
+        filters[filter_name.lower()] = {
             'build': {
                 'context': '.',
                 'dockerfile': 'filter/Dockerfile',
@@ -63,10 +64,8 @@ def crear_filters(nombre, cantidad, entrada, salida, type):
             'environment': [
                 'PYTHONUNBUFFERED=1',
                 'CONSUME_QUEUE=' + entrada,
-                # 'CONSUME_QUEUE=entradaFilter' + nombre + '_' + str(i),
-                # 'tipoSalida=queue',
                 'PRODUCE_QUEUE=' + salida,
-                'QUEUE_PRODUCE_FOR_COORDINATOR=coodinator_' + str(nombre) + '_' + 'unique_queue',
+                'QUEUE_PRODUCE_FOR_COORDINATOR=coordinator_' + str(nombre) + '_' + 'unique_queue',
                 'QUEUE_CONSUME_FROM_COORDINATOR=' + conection_coordinator,
                 'FILTER_NAME=' + type
             ],
@@ -78,7 +77,7 @@ def crear_filters(nombre, cantidad, entrada, salida, type):
             ],
         }
     coordinator_name = f'coordinator_{nombre}'
-    filters[coordinator_name] = {
+    filters[coordinator_name.lower()] = {
         'build': {
             'context': '.',
             'dockerfile': 'coordinator/Dockerfile',
@@ -89,7 +88,6 @@ def crear_filters(nombre, cantidad, entrada, salida, type):
             'QUEUE_CONSUME_FROM_NODES=_coordinator_consumes_from_'+ str(nombre) + '_' ,
             'NUM_NODES=' + str(cantidad),
             'QUEUES_PRODUCE_FOR_NODES=' + queues_to_coordinator,
-            # 'tipoSalida=queue',
             'DOWNSTREAM_QUEUE=' + salida,
         ],
         'networks': [
@@ -105,10 +103,9 @@ def crear_filters(nombre, cantidad, entrada, salida, type):
 
 def crear_aggregators(nombre, cantidad, entrada, salida, type, params):
     aggregators = {}
-    # queues_to_coordinator = ''
     for i in range(1, cantidad + 1):
         aggregator_name = f'aggregator{nombre}_{i}'
-        aggregators[aggregator_name] = {
+        aggregators[aggregator_name.lower()] = {
             'build': {
                 'context': '.',
                 'dockerfile': 'aggregator/Dockerfile',
@@ -136,10 +133,9 @@ def crear_aggregators(nombre, cantidad, entrada, salida, type, params):
 
 def crear_reducers(nombre, cantidad, entrada, salida, top, params):
     reducers = {}
-    # queues_to_coordinator = ''
     for i in range(1, cantidad + 1):
         reducer_name = f'reducer{nombre}_{i}'
-        reducers[reducer_name] = {
+        reducers[reducer_name.lower()] = {
             'build': {
                 'context': '.',
                 'dockerfile': 'reducer/Dockerfile',
@@ -175,7 +171,7 @@ def crear_joiners(nombre, cantidad, entradaJoin, entradaData, salida, disk_type,
             queues_to_coordinator += f'{conection_coordinator}'
         else:
             queues_to_coordinator += f',{conection_coordinator}'
-        joiners[joiner_name] = {
+        joiners[joiner_name.lower()] = {
             'build': {
                 'context': '.',
                 'dockerfile': 'joinner/Dockerfile',
@@ -189,7 +185,6 @@ def crear_joiners(nombre, cantidad, entradaJoin, entradaData, salida, disk_type,
                 'entradaJoin=' + entradaJoin,
                 'queueEntradaJoin=entradaJoiner' + nombre + '_' + str(i),
                 'queueEntradaData=' + entradaData,
-                # 'tipoSalida=queue',
                 'queuesSalida=' + salida,
                 'queue_to_send_coordinator=coodinator_' + str(nombre) + '_' + 'unique_queue',
                 'queue_to_receive_coordinator=' + conection_coordinator,
@@ -205,7 +200,7 @@ def crear_joiners(nombre, cantidad, entradaJoin, entradaData, salida, disk_type,
         }
 
     coordinator_name = f'coordinator_{nombre}'
-    joiners[coordinator_name] = {
+    joiners[coordinator_name.lower()] = {
         'build': {
             'context': '.',
             'dockerfile': 'coordinator/Dockerfile',
@@ -216,7 +211,6 @@ def crear_joiners(nombre, cantidad, entradaJoin, entradaData, salida, disk_type,
             'QUEUE_CONSUME_FROM_NODES=coodinator_' + str(nombre) + '_' + 'unique_queue',
             'NUM_NODES=' + str(cantidad),
             'QUEUES_PRODUCE_FOR_NODES=' + queues_to_coordinator,
-            # 'tipoSalida=queue',
             'DOWNSTREAM_QUEUE=' + salida,
         ],
         'networks': [
@@ -275,43 +269,21 @@ with open(nombre_file, 'w') as f:
     services.update(crear_aggregators(nombre='Suma_Q21', cantidad=cant_nodos, entrada='Queue_begin2_1',
                                       salida='Queue_between_aggregator_reducer_Q21', type='sum',
                                       params='item_id,quantity,month,year_month,created_at,total_quantity'))
-    #             equivalente al viejo:
-    #                               - AGGREGATOR_NAME=sum               type
-    #                               - KEY_COLUMN=item_id                params[0]
-    #                               - VALUE_COLUMN=quantity             params[1]
-    #                               - BUCKET_KIND=month                 params[2]
-    #                               - BUCKET_NAME=year_month            params[3]
-    #                               - TIME_COL=created_at               params[4]
-    #                               - OUT_VALUE=total_quantity          params[5]
-
     services.update(crear_aggregators(nombre='Suma_Q22', cantidad=1, entrada='Queue_begin2_2',
                                       salida='Queue_between_aggregator_reducer_Q22', type='sum',
                                       params='item_id,subtotal,month,year_month,created_at,total_earnings'))
     services.update(crear_aggregators(nombre='Suma_Q3', cantidad=1, entrada='Queue_3',
                                       salida='Queue_between_aggregator_join_Q3', type='sum',
                                       params='store_id,final_amount,semester,year_semester,created_at,tpv'))
-    #               equivalente al viejo:
-    #                       - AGGREGATOR_NAME=sum               type
-    #                       - KEY_COLUMN=store_id               params[0]
-    #                       - VALUE_COLUMN=final_amount         params[1]
-    #                       - BUCKET_KIND=semester              params[2]
-    #                       - BUCKET_NAME=year_semester         params[3]
-    #                       - TIME_COL=created_at               params[4]
-    #                       - OUT_VALUE=tpv                     params[5]
     services.update(crear_aggregators(nombre='Counter_Q4', cantidad=1, entrada='Queue_begin_4',
                                       salida='Queue_between_aggregator_reducer_Q4', type='counter',
                                       params='store_id,user_id,purchases_qty'))
-    #               equivalente al viejo:
-    #                       - KEY_COLUMNS=store_id,user_id
-    #                       - COUNT_NAME=purchases_qty
-    #                       - AGGREGATOR_NAME=counter
     services.update(crear_reducers(nombre='Reducer_Q21', cantidad=1, entrada='Queue_between_aggregator_reducer_Q21',
                                    salida='Queue_between_reducer_joiner_Q21', top=1,
                                    params='year_month,item_id,total_quantity'))
     services.update(crear_reducers(nombre='Reducer_Q22', cantidad=1, entrada='Queue_between_aggregator_reducer_Q22',
                                    salida='Queue_between_reducer_joiner_Q22', top=1,
                                    params='year_month,item_id,total_earnings'))
-
     services.update(crear_reducers(nombre='Reducer_Q4', cantidad=1, entrada='Queue_between_aggregator_reducer_Q4',
                                    salida='Queue_between_reducer_joiner_Q4', top=3,
                                    params='store_id,user_id,purchases_qty'))
@@ -320,14 +292,10 @@ with open(nombre_file, 'w') as f:
     services.update(crear_filters(nombre='Filter_column_Q1', cantidad=cant_nodos,
                                   entrada='Queue_between_filter_amount_filter_columna_Q1',
                                   salida='Queue_final_Q1', type='bycolumn'))
-
     services.update(
         crear_joiners(nombre='Join_productos_Q21', cantidad=cant_nodos, entradaJoin='exchange,productsExchange',
                       entradaData='Queue_between_reducer_joiner_Q21', salida='Queue_final_Q21',
                       disk_type=False, params='item_name,item_id'))
-    #                   equivalente al viejo:
-    #                           - COLUMN_NAME=item_name
-    #                           - COLUMN_ID=item_id
     services.update(
         crear_joiners(nombre='Join_productos_Q22', cantidad=cant_nodos, entradaJoin='exchange,productsExchange',
                       entradaData='Queue_between_reducer_joiner_Q22', salida='Queue_final_Q22',

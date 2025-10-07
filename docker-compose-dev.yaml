@@ -12,8 +12,8 @@ services:
     - Q22result=Queue_final_Q22
     - Q3result=Queue_final_Q3
     - Q4result=Queue_final_Q4
-    - transactionsQueue=transactionsQueue
-    - itemsQueue=itemsQueue
+    - transactionsQueue=transaction_queue
+    - itemsQueue=items_queue
     - productsExchange=productsExchange
     - storesExchange=storesExchange
     - usersExchange=usersExchange
@@ -21,7 +21,7 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  FiltroAnio1_1:
+  filtroanio1_1:
     build:
       context: .
       dockerfile: filter/Dockerfile
@@ -32,14 +32,14 @@ services:
     - PYTHONUNBUFFERED=1
     - CONSUME_QUEUE=items_queue
     - PRODUCE_QUEUE=Queue_begin2_1,Queue_begin2_2
-    - QUEUE_PRODUCE_FOR_COORDINATOR=coodinator_FiltroAnio1_unique_queue
+    - QUEUE_PRODUCE_FOR_COORDINATOR=coordinator_FiltroAnio1_unique_queue
     - QUEUE_CONSUME_FROM_COORDINATOR=_coordinator_produce_for_FiltroAnio1_1
     - FILTER_NAME=byyear
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  coordinator_FiltroAnio1:
+  coordinator_filtroanio1:
     build:
       context: .
       dockerfile: coordinator/Dockerfile
@@ -54,7 +54,7 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  FiltroAnio2_1:
+  filtroanio2_1:
     build:
       context: .
       dockerfile: filter/Dockerfile
@@ -65,14 +65,14 @@ services:
     - PYTHONUNBUFFERED=1
     - CONSUME_QUEUE=transaction_queue
     - PRODUCE_QUEUE=Queue_begin_4,Queue_begin_3_y_1
-    - QUEUE_PRODUCE_FOR_COORDINATOR=coodinator_FiltroAnio2_unique_queue
+    - QUEUE_PRODUCE_FOR_COORDINATOR=coordinator_FiltroAnio2_unique_queue
     - QUEUE_CONSUME_FROM_COORDINATOR=_coordinator_produce_for_FiltroAnio2_1
     - FILTER_NAME=byyear
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  coordinator_FiltroAnio2:
+  coordinator_filtroanio2:
     build:
       context: .
       dockerfile: coordinator/Dockerfile
@@ -87,7 +87,7 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  FiltroHora1_1:
+  filtrohora1_1:
     build:
       context: .
       dockerfile: filter/Dockerfile
@@ -98,14 +98,14 @@ services:
     - PYTHONUNBUFFERED=1
     - CONSUME_QUEUE=Queue_begin_3_y_1
     - PRODUCE_QUEUE=Queue_3,Queue_1
-    - QUEUE_PRODUCE_FOR_COORDINATOR=coodinator_FiltroHora1_unique_queue
+    - QUEUE_PRODUCE_FOR_COORDINATOR=coordinator_FiltroHora1_unique_queue
     - QUEUE_CONSUME_FROM_COORDINATOR=_coordinator_produce_for_FiltroHora1_1
     - FILTER_NAME=bytime
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  coordinator_FiltroHora1:
+  coordinator_filtrohora1:
     build:
       context: .
       dockerfile: coordinator/Dockerfile
@@ -120,7 +120,7 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  aggregatorSuma_Q21_1:
+  aggregatorsuma_q21_1:
     build:
       context: .
       dockerfile: aggregator/Dockerfile
@@ -137,7 +137,7 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  aggregatorSuma_Q22_1:
+  aggregatorsuma_q22_1:
     build:
       context: .
       dockerfile: aggregator/Dockerfile
@@ -154,7 +154,7 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  aggregatorSuma_Q3_1:
+  aggregatorsuma_q3_1:
     build:
       context: .
       dockerfile: aggregator/Dockerfile
@@ -171,7 +171,7 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  aggregatorCounter_Q4_1:
+  aggregatorcounter_q4_1:
     build:
       context: .
       dockerfile: aggregator/Dockerfile
@@ -188,7 +188,7 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  reducerReducer_Q21_1:
+  reducerreducer_q21_1:
     build:
       context: .
       dockerfile: reducer/Dockerfile
@@ -205,7 +205,7 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  reducerReducer_Q22_1:
+  reducerreducer_q22_1:
     build:
       context: .
       dockerfile: reducer/Dockerfile
@@ -222,7 +222,7 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  reducerReducer_Q4_1:
+  reducerreducer_q4_1:
     build:
       context: .
       dockerfile: reducer/Dockerfile
@@ -239,7 +239,7 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  Filter_amount_Q1_1:
+  filter_amount_q1_1:
     build:
       context: .
       dockerfile: filter/Dockerfile
@@ -250,14 +250,14 @@ services:
     - PYTHONUNBUFFERED=1
     - CONSUME_QUEUE=Queue_1
     - PRODUCE_QUEUE=Queue_between_filter_amount_filter_columna_Q1
-    - QUEUE_PRODUCE_FOR_COORDINATOR=coodinator_Filter_amount_Q1_unique_queue
+    - QUEUE_PRODUCE_FOR_COORDINATOR=coordinator_Filter_amount_Q1_unique_queue
     - QUEUE_CONSUME_FROM_COORDINATOR=_coordinator_produce_for_Filter_amount_Q1_1
     - FILTER_NAME=byamount
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  coordinator_Filter_amount_Q1:
+  coordinator_filter_amount_q1:
     build:
       context: .
       dockerfile: coordinator/Dockerfile
@@ -272,7 +272,7 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  Filter_column_Q1_1:
+  filter_column_q1_1:
     build:
       context: .
       dockerfile: filter/Dockerfile
@@ -283,14 +283,14 @@ services:
     - PYTHONUNBUFFERED=1
     - CONSUME_QUEUE=Queue_between_filter_amount_filter_columna_Q1
     - PRODUCE_QUEUE=Queue_final_Q1
-    - QUEUE_PRODUCE_FOR_COORDINATOR=coodinator_Filter_column_Q1_unique_queue
+    - QUEUE_PRODUCE_FOR_COORDINATOR=coordinator_Filter_column_Q1_unique_queue
     - QUEUE_CONSUME_FROM_COORDINATOR=_coordinator_produce_for_Filter_column_Q1_1
     - FILTER_NAME=bycolumn
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  coordinator_Filter_column_Q1:
+  coordinator_filter_column_q1:
     build:
       context: .
       dockerfile: coordinator/Dockerfile
@@ -305,7 +305,7 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  Join_productos_Q21_1:
+  join_productos_q21_1:
     build:
       context: .
       dockerfile: joinner/Dockerfile
@@ -326,7 +326,7 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  coordinator_Join_productos_Q21:
+  coordinator_join_productos_q21:
     build:
       context: .
       dockerfile: coordinator/Dockerfile
@@ -341,7 +341,7 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  Join_productos_Q22_1:
+  join_productos_q22_1:
     build:
       context: .
       dockerfile: joinner/Dockerfile
@@ -362,7 +362,7 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  coordinator_Join_productos_Q22:
+  coordinator_join_productos_q22:
     build:
       context: .
       dockerfile: coordinator/Dockerfile
@@ -377,7 +377,7 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  Join_stores_Q3_1:
+  join_stores_q3_1:
     build:
       context: .
       dockerfile: joinner/Dockerfile
@@ -398,7 +398,7 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  coordinator_Join_stores_Q3:
+  coordinator_join_stores_q3:
     build:
       context: .
       dockerfile: coordinator/Dockerfile
@@ -413,7 +413,7 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  Join_users_Q4_1:
+  join_users_q4_1:
     build:
       context: .
       dockerfile: joinner/Dockerfile
@@ -434,7 +434,7 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  coordinator_Join_users_Q4:
+  coordinator_join_users_q4:
     build:
       context: .
       dockerfile: coordinator/Dockerfile
@@ -449,7 +449,7 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  Join_stores_Q4_1:
+  join_stores_q4_1:
     build:
       context: .
       dockerfile: joinner/Dockerfile
@@ -470,7 +470,7 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  coordinator_Join_stores_Q4:
+  coordinator_join_stores_q4:
     build:
       context: .
       dockerfile: coordinator/Dockerfile
