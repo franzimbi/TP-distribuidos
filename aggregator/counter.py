@@ -14,7 +14,7 @@ class Counter:
         self._producer_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=producer)
         self._accumulator = {}  # key: (store_id, user_id), value: count
 
-        self.key_columns = [c.strip() for c in key_columns.split(",") if c.strip()]
+        self.key_columns = key_columns
         self.count_name = count_name
         self.qid = None
 

@@ -286,7 +286,7 @@ with open(nombre_file, 'w') as f:
 
     services.update(crear_aggregators(nombre='Suma_Q22', cantidad=1, entrada='Queue_begin2_2',
                                       salida='Queue_between_aggregator_reducer_Q22', type='sum',
-                                      params='earnings,item_id,subtotal,month,year_month,created_at,total_earnings'))
+                                      params='item_id,subtotal,month,year_month,created_at,total_earnings'))
     services.update(crear_aggregators(nombre='Suma_Q3', cantidad=1, entrada='Queue_3',
                                       salida='Queue_between_aggregator_join_Q3', type='sum',
                                       params='store_id,final_amount,semester,year_semester,created_at,tpv'))

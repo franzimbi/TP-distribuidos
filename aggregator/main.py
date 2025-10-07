@@ -41,7 +41,7 @@ def main():
     elif type == "counter":
         worker = Counter(
             consume, produce,
-            key_columns = params_buffer[0],
+            key_columns = params_buffer[0:2],
             count_name  = params_buffer[2],
         )
 
