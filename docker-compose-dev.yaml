@@ -46,7 +46,7 @@ services:
     restart: on-failure
     environment:
     - PYTHONUNBUFFERED=1
-    - QUEUE_CONSUME_FROM_NODES=_coordinator_consumes_from_FiltroAnio1_
+    - QUEUE_CONSUME_FROM_NODES=coordinator_FiltroAnio1_unique_queue
     - NUM_NODES=1
     - QUEUES_PRODUCE_FOR_NODES=_coordinator_produce_for_FiltroAnio1_1
     - DOWNSTREAM_QUEUE=Queue_begin2_1,Queue_begin2_2
@@ -79,7 +79,7 @@ services:
     restart: on-failure
     environment:
     - PYTHONUNBUFFERED=1
-    - QUEUE_CONSUME_FROM_NODES=_coordinator_consumes_from_FiltroAnio2_
+    - QUEUE_CONSUME_FROM_NODES=coordinator_FiltroAnio2_unique_queue
     - NUM_NODES=1
     - QUEUES_PRODUCE_FOR_NODES=_coordinator_produce_for_FiltroAnio2_1
     - DOWNSTREAM_QUEUE=Queue_begin_4,Queue_begin_3_y_1
@@ -112,7 +112,7 @@ services:
     restart: on-failure
     environment:
     - PYTHONUNBUFFERED=1
-    - QUEUE_CONSUME_FROM_NODES=_coordinator_consumes_from_FiltroHora1_
+    - QUEUE_CONSUME_FROM_NODES=coordinator_FiltroHora1_unique_queue
     - NUM_NODES=1
     - QUEUES_PRODUCE_FOR_NODES=_coordinator_produce_for_FiltroHora1_1
     - DOWNSTREAM_QUEUE=Queue_3,Queue_1
@@ -264,7 +264,7 @@ services:
     restart: on-failure
     environment:
     - PYTHONUNBUFFERED=1
-    - QUEUE_CONSUME_FROM_NODES=_coordinator_consumes_from_Filter_amount_Q1_
+    - QUEUE_CONSUME_FROM_NODES=coordinator_Filter_amount_Q1_unique_queue
     - NUM_NODES=1
     - QUEUES_PRODUCE_FOR_NODES=_coordinator_produce_for_Filter_amount_Q1_1
     - DOWNSTREAM_QUEUE=Queue_between_filter_amount_filter_columna_Q1
@@ -297,7 +297,7 @@ services:
     restart: on-failure
     environment:
     - PYTHONUNBUFFERED=1
-    - QUEUE_CONSUME_FROM_NODES=_coordinator_consumes_from_Filter_column_Q1_
+    - QUEUE_CONSUME_FROM_NODES=coordinator_Filter_column_Q1_unique_queue
     - NUM_NODES=1
     - QUEUES_PRODUCE_FOR_NODES=_coordinator_produce_for_Filter_column_Q1_1
     - DOWNSTREAM_QUEUE=Queue_final_Q1

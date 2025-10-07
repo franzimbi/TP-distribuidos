@@ -41,7 +41,6 @@ def crear_distributor():
     return data
 
 
-
 def crear_filters(nombre, cantidad, entrada, salida, type):
     filters = {}
     queues_to_coordinator = ''
@@ -85,7 +84,7 @@ def crear_filters(nombre, cantidad, entrada, salida, type):
         'restart': 'on-failure',
         'environment': [
             'PYTHONUNBUFFERED=1',
-            'QUEUE_CONSUME_FROM_NODES=_coordinator_consumes_from_'+ str(nombre) + '_' ,
+            'QUEUE_CONSUME_FROM_NODES=coordinator_' + str(nombre) + '_' + 'unique_queue',
             'NUM_NODES=' + str(cantidad),
             'QUEUES_PRODUCE_FOR_NODES=' + queues_to_coordinator,
             'DOWNSTREAM_QUEUE=' + salida,
@@ -255,7 +254,6 @@ def crear_client(cantidad, puerto):
             ],
         }
     return clients
-
 
 
 with open(nombre_file, 'w') as f:
