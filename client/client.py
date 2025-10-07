@@ -7,7 +7,7 @@ import signal
 from common.protocol import send_batches_from_csv, recv_batch, recv_client_id
 
 BATCH_SIZE = 150
-AMOUNT_OF_QUERIES = 5
+AMOUNT_OF_QUERIES = 1
 
 STORES_PATH = '/stores'
 TRANSACTION_PATH = '/transactions'
@@ -50,13 +50,13 @@ class Client:
 
         self.client_id = recv_client_id(self.socket)
     
-        send_batches_from_csv(path_input+STORES_PATH, BATCH_SIZE, self.socket, STORES_TYPE_FILE, self.client_id)
+        # send_batches_from_csv(path_input+STORES_PATH, BATCH_SIZE, self.socket, STORES_TYPE_FILE, self.client_id)
 
-        send_batches_from_csv(path_input+USERS_PATH, BATCH_SIZE, self.socket, USERS_TYPE_FILE, self.client_id)
+        # send_batches_from_csv(path_input+USERS_PATH, BATCH_SIZE, self.socket, USERS_TYPE_FILE, self.client_id)
 
-        send_batches_from_csv(path_input+MENU_ITEM_PATH, BATCH_SIZE, self.socket, MENU_ITEM_TYPE_FILE, self.client_id)
+        # send_batches_from_csv(path_input+MENU_ITEM_PATH, BATCH_SIZE, self.socket, MENU_ITEM_TYPE_FILE, self.client_id)
 
-        send_batches_from_csv(path_input+TRANSACTION_ITEMS_PATH, BATCH_SIZE, self.socket, TRANSACTION_ITEMS_TYPE_FILE, self.client_id)
+        # send_batches_from_csv(path_input+TRANSACTION_ITEMS_PATH, BATCH_SIZE, self.socket, TRANSACTION_ITEMS_TYPE_FILE, self.client_id)
 
         self.sender_transaction = threading.Thread(
             target=send_batches_from_csv,
@@ -90,6 +90,7 @@ class Client:
         try:
             while not self.shutdown_event.is_set():
                 batch = recv_batch(self.socket)
+                print("recibi algo")
                 qid = batch.get_query_id()
                 if batch.client_id() != self.client_id:
                     logging.info("[CLIENT] llego un batch con client_id distinto")
@@ -109,7 +110,10 @@ class Client:
 
                 for row in batch:
                     f.write(",".join(row) + "\n")
-                
+
+                if batch.id() % 20000 == 0 or batch.id() == 0:
+                    print(f"[CLIENT] Recibido batch {batch.id()} de Q{qid} con {len(batch)} filas.")
+
                 if batch.is_last_batch():
                     ended.add(qid)
                     logging.debug(f"[CLIENT] Recibido END de Q{qid}. Pendientes: {AMOUNT_OF_QUERIES - len(ended)}")

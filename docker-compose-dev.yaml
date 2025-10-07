@@ -39,6 +39,24 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+  filtroanio1_2:
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=items_queue
+    - PRODUCE_QUEUE=Queue_begin2_1,Queue_begin2_2
+    - QUEUE_PRODUCE_FOR_COORDINATOR=coordinator_FiltroAnio1_unique_queue
+    - QUEUE_CONSUME_FROM_COORDINATOR=_coordinator_produce_for_FiltroAnio1_2
+    - FILTER_NAME=byyear
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
   coordinator_filtroanio1:
     build:
       context: .
@@ -47,8 +65,8 @@ services:
     environment:
     - PYTHONUNBUFFERED=1
     - QUEUE_CONSUME_FROM_NODES=coordinator_FiltroAnio1_unique_queue
-    - NUM_NODES=1
-    - QUEUES_PRODUCE_FOR_NODES=_coordinator_produce_for_FiltroAnio1_1
+    - NUM_NODES=2
+    - QUEUES_PRODUCE_FOR_NODES=_coordinator_produce_for_FiltroAnio1_1,_coordinator_produce_for_FiltroAnio1_2
     - DOWNSTREAM_QUEUE=Queue_begin2_1,Queue_begin2_2
     networks:
     - mynet
@@ -72,6 +90,24 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+  filtroanio2_2:
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=transaction_queue
+    - PRODUCE_QUEUE=Queue_begin_4,Queue_begin_3_y_1
+    - QUEUE_PRODUCE_FOR_COORDINATOR=coordinator_FiltroAnio2_unique_queue
+    - QUEUE_CONSUME_FROM_COORDINATOR=_coordinator_produce_for_FiltroAnio2_2
+    - FILTER_NAME=byyear
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
   coordinator_filtroanio2:
     build:
       context: .
@@ -80,8 +116,8 @@ services:
     environment:
     - PYTHONUNBUFFERED=1
     - QUEUE_CONSUME_FROM_NODES=coordinator_FiltroAnio2_unique_queue
-    - NUM_NODES=1
-    - QUEUES_PRODUCE_FOR_NODES=_coordinator_produce_for_FiltroAnio2_1
+    - NUM_NODES=2
+    - QUEUES_PRODUCE_FOR_NODES=_coordinator_produce_for_FiltroAnio2_1,_coordinator_produce_for_FiltroAnio2_2
     - DOWNSTREAM_QUEUE=Queue_begin_4,Queue_begin_3_y_1
     networks:
     - mynet
@@ -105,6 +141,24 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+  filtrohora1_2:
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_begin_3_y_1
+    - PRODUCE_QUEUE=Queue_3,Queue_1
+    - QUEUE_PRODUCE_FOR_COORDINATOR=coordinator_FiltroHora1_unique_queue
+    - QUEUE_CONSUME_FROM_COORDINATOR=_coordinator_produce_for_FiltroHora1_2
+    - FILTER_NAME=bytime
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
   coordinator_filtrohora1:
     build:
       context: .
@@ -113,14 +167,31 @@ services:
     environment:
     - PYTHONUNBUFFERED=1
     - QUEUE_CONSUME_FROM_NODES=coordinator_FiltroHora1_unique_queue
-    - NUM_NODES=1
-    - QUEUES_PRODUCE_FOR_NODES=_coordinator_produce_for_FiltroHora1_1
+    - NUM_NODES=2
+    - QUEUES_PRODUCE_FOR_NODES=_coordinator_produce_for_FiltroHora1_1,_coordinator_produce_for_FiltroHora1_2
     - DOWNSTREAM_QUEUE=Queue_3,Queue_1
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
   aggregatorsuma_q21_1:
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_begin2_1
+    - PRODUCE_QUEUE=Queue_between_aggregator_reducer_Q21
+    - TYPE=sum
+    - PARAMS=item_id,quantity,month,year_month,created_at,total_quantity
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+  aggregatorsuma_q21_2:
     build:
       context: .
       dockerfile: aggregator/Dockerfile
@@ -257,6 +328,24 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+  filter_amount_q1_2:
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_1
+    - PRODUCE_QUEUE=Queue_between_filter_amount_filter_columna_Q1
+    - QUEUE_PRODUCE_FOR_COORDINATOR=coordinator_Filter_amount_Q1_unique_queue
+    - QUEUE_CONSUME_FROM_COORDINATOR=_coordinator_produce_for_Filter_amount_Q1_2
+    - FILTER_NAME=byamount
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
   coordinator_filter_amount_q1:
     build:
       context: .
@@ -265,8 +354,8 @@ services:
     environment:
     - PYTHONUNBUFFERED=1
     - QUEUE_CONSUME_FROM_NODES=coordinator_Filter_amount_Q1_unique_queue
-    - NUM_NODES=1
-    - QUEUES_PRODUCE_FOR_NODES=_coordinator_produce_for_Filter_amount_Q1_1
+    - NUM_NODES=2
+    - QUEUES_PRODUCE_FOR_NODES=_coordinator_produce_for_Filter_amount_Q1_1,_coordinator_produce_for_Filter_amount_Q1_2
     - DOWNSTREAM_QUEUE=Queue_between_filter_amount_filter_columna_Q1
     networks:
     - mynet
@@ -290,6 +379,24 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+  filter_column_q1_2:
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_between_filter_amount_filter_columna_Q1
+    - PRODUCE_QUEUE=Queue_final_Q1
+    - QUEUE_PRODUCE_FOR_COORDINATOR=coordinator_Filter_column_Q1_unique_queue
+    - QUEUE_CONSUME_FROM_COORDINATOR=_coordinator_produce_for_Filter_column_Q1_2
+    - FILTER_NAME=bycolumn
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
   coordinator_filter_column_q1:
     build:
       context: .
@@ -298,8 +405,8 @@ services:
     environment:
     - PYTHONUNBUFFERED=1
     - QUEUE_CONSUME_FROM_NODES=coordinator_Filter_column_Q1_unique_queue
-    - NUM_NODES=1
-    - QUEUES_PRODUCE_FOR_NODES=_coordinator_produce_for_Filter_column_Q1_1
+    - NUM_NODES=2
+    - QUEUES_PRODUCE_FOR_NODES=_coordinator_produce_for_Filter_column_Q1_1,_coordinator_produce_for_Filter_column_Q1_2
     - DOWNSTREAM_QUEUE=Queue_final_Q1
     networks:
     - mynet
@@ -326,6 +433,27 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+  join_productos_q21_2:
+    build:
+      context: .
+      dockerfile: joinner/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - entradaJoin=exchange,productsExchange
+    - queueEntradaJoin=entradaJoinerJoin_productos_Q21_2
+    - queueEntradaData=Queue_between_reducer_joiner_Q21
+    - queuesSalida=Queue_final_Q21
+    - queue_to_send_coordinator=coodinator_Join_productos_Q21_unique_queue
+    - queue_to_receive_coordinator=Join_productos_Q21_2_receive_from_coordinator_Join_productos_Q21
+    - use_diskcache=False
+    - params=item_name,item_id
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
   coordinator_join_productos_q21:
     build:
       context: .
@@ -334,8 +462,8 @@ services:
     environment:
     - PYTHONUNBUFFERED=1
     - QUEUE_CONSUME_FROM_NODES=coodinator_Join_productos_Q21_unique_queue
-    - NUM_NODES=1
-    - QUEUES_PRODUCE_FOR_NODES=Join_productos_Q21_1_receive_from_coordinator_Join_productos_Q21
+    - NUM_NODES=2
+    - QUEUES_PRODUCE_FOR_NODES=Join_productos_Q21_1_receive_from_coordinator_Join_productos_Q21,Join_productos_Q21_2_receive_from_coordinator_Join_productos_Q21
     - DOWNSTREAM_QUEUE=Queue_final_Q21
     networks:
     - mynet
@@ -362,6 +490,27 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+  join_productos_q22_2:
+    build:
+      context: .
+      dockerfile: joinner/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - entradaJoin=exchange,productsExchange
+    - queueEntradaJoin=entradaJoinerJoin_productos_Q22_2
+    - queueEntradaData=Queue_between_reducer_joiner_Q22
+    - queuesSalida=Queue_final_Q22
+    - queue_to_send_coordinator=coodinator_Join_productos_Q22_unique_queue
+    - queue_to_receive_coordinator=Join_productos_Q22_2_receive_from_coordinator_Join_productos_Q22
+    - use_diskcache=False
+    - params=item_name,item_id
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
   coordinator_join_productos_q22:
     build:
       context: .
@@ -370,8 +519,8 @@ services:
     environment:
     - PYTHONUNBUFFERED=1
     - QUEUE_CONSUME_FROM_NODES=coodinator_Join_productos_Q22_unique_queue
-    - NUM_NODES=1
-    - QUEUES_PRODUCE_FOR_NODES=Join_productos_Q22_1_receive_from_coordinator_Join_productos_Q22
+    - NUM_NODES=2
+    - QUEUES_PRODUCE_FOR_NODES=Join_productos_Q22_1_receive_from_coordinator_Join_productos_Q22,Join_productos_Q22_2_receive_from_coordinator_Join_productos_Q22
     - DOWNSTREAM_QUEUE=Queue_final_Q22
     networks:
     - mynet
@@ -398,6 +547,27 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+  join_stores_q3_2:
+    build:
+      context: .
+      dockerfile: joinner/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - entradaJoin=exchange,storesExchange
+    - queueEntradaJoin=entradaJoinerJoin_stores_Q3_2
+    - queueEntradaData=Queue_between_aggregator_join_Q3
+    - queuesSalida=Queue_final_Q3
+    - queue_to_send_coordinator=coodinator_Join_stores_Q3_unique_queue
+    - queue_to_receive_coordinator=Join_stores_Q3_2_receive_from_coordinator_Join_stores_Q3
+    - use_diskcache=False
+    - params=store_name,store_id
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
   coordinator_join_stores_q3:
     build:
       context: .
@@ -406,8 +576,8 @@ services:
     environment:
     - PYTHONUNBUFFERED=1
     - QUEUE_CONSUME_FROM_NODES=coodinator_Join_stores_Q3_unique_queue
-    - NUM_NODES=1
-    - QUEUES_PRODUCE_FOR_NODES=Join_stores_Q3_1_receive_from_coordinator_Join_stores_Q3
+    - NUM_NODES=2
+    - QUEUES_PRODUCE_FOR_NODES=Join_stores_Q3_1_receive_from_coordinator_Join_stores_Q3,Join_stores_Q3_2_receive_from_coordinator_Join_stores_Q3
     - DOWNSTREAM_QUEUE=Queue_final_Q3
     networks:
     - mynet
@@ -434,6 +604,27 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+  join_users_q4_2:
+    build:
+      context: .
+      dockerfile: joinner/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - entradaJoin=exchange,usersExchange
+    - queueEntradaJoin=entradaJoinerJoin_users_Q4_2
+    - queueEntradaData=Queue_between_reducer_joiner_Q4
+    - queuesSalida=Queue_between_joiner_users_and_joiner_stores_Q4
+    - queue_to_send_coordinator=coodinator_Join_users_Q4_unique_queue
+    - queue_to_receive_coordinator=Join_users_Q4_2_receive_from_coordinator_Join_users_Q4
+    - use_diskcache=True
+    - params=item_name,item_id
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
   coordinator_join_users_q4:
     build:
       context: .
@@ -442,8 +633,8 @@ services:
     environment:
     - PYTHONUNBUFFERED=1
     - QUEUE_CONSUME_FROM_NODES=coodinator_Join_users_Q4_unique_queue
-    - NUM_NODES=1
-    - QUEUES_PRODUCE_FOR_NODES=Join_users_Q4_1_receive_from_coordinator_Join_users_Q4
+    - NUM_NODES=2
+    - QUEUES_PRODUCE_FOR_NODES=Join_users_Q4_1_receive_from_coordinator_Join_users_Q4,Join_users_Q4_2_receive_from_coordinator_Join_users_Q4
     - DOWNSTREAM_QUEUE=Queue_between_joiner_users_and_joiner_stores_Q4
     networks:
     - mynet
@@ -470,6 +661,27 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+  join_stores_q4_2:
+    build:
+      context: .
+      dockerfile: joinner/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - entradaJoin=exchange,storesExchange
+    - queueEntradaJoin=entradaJoinerJoin_stores_Q4_2
+    - queueEntradaData=Queue_between_joiner_users_and_joiner_stores_Q4
+    - queuesSalida=Queue_final_Q4
+    - queue_to_send_coordinator=coodinator_Join_stores_Q4_unique_queue
+    - queue_to_receive_coordinator=Join_stores_Q4_2_receive_from_coordinator_Join_stores_Q4
+    - use_diskcache=False
+    - params=store_name,store_id
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
   coordinator_join_stores_q4:
     build:
       context: .
@@ -478,8 +690,8 @@ services:
     environment:
     - PYTHONUNBUFFERED=1
     - QUEUE_CONSUME_FROM_NODES=coodinator_Join_stores_Q4_unique_queue
-    - NUM_NODES=1
-    - QUEUES_PRODUCE_FOR_NODES=Join_stores_Q4_1_receive_from_coordinator_Join_stores_Q4
+    - NUM_NODES=2
+    - QUEUES_PRODUCE_FOR_NODES=Join_stores_Q4_1_receive_from_coordinator_Join_stores_Q4,Join_stores_Q4_2_receive_from_coordinator_Join_stores_Q4
     - DOWNSTREAM_QUEUE=Queue_final_Q4
     networks:
     - mynet
