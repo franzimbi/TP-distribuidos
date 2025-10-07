@@ -6,6 +6,7 @@ import threading
 from middleware.middleware import MessageMiddlewareQueue, MessageMiddlewareExchange
 from common.protocol import send_batch
 from common.batch import Batch
+from functools import partial
 
 COUNT_OF_PRINTS = 10000
 
@@ -106,15 +107,18 @@ class Distributor:
     def start_consuming_from_workers(self):
         # TODO: lanza los hilos de start_consuming de las 4 queries y se las manda al client por id
         # for clave, valor in self.route.items():
-        self.threads_queries['q1'] = threading.Thread(target=self.q1_results.start_consuming(self.callback), args=(1,),
+        self.threads_queries['q1'] = threading.Thread(target=self.q1_results.start_consuming(self.callback),
+                                                      args=(partial(self.callback, query_id=1),),
                                                       daemon=True)
         self.threads_queries['q21'] = threading.Thread(target=self.q21_results.start_consuming(self.callback),
-                                                       args=(21,), daemon=True)
+                                                       args=(partial(self.callback, query_id=21),), daemon=True)
         self.threads_queries['q22'] = threading.Thread(target=self.q22_results.start_consuming(self.callback),
-                                                       args=(22,), daemon=True)
-        self.threads_queries['q3'] = threading.Thread(target=self.q3_results.start_consuming(self.callback), args=(3,),
+                                                       args=(partial(self.callback, query_id=22),), daemon=True)
+        self.threads_queries['q3'] = threading.Thread(target=self.q3_results.start_consuming(self.callback),
+                                                      args=(partial(self.callback, query_id=3),),
                                                       daemon=True)
-        self.threads_queries['q4'] = threading.Thread(target=self.q4_results.start_consuming(self.callback), args=(4,),
+        self.threads_queries['q4'] = threading.Thread(target=self.q4_results.start_consuming(self.callback),
+                                                      args=(partial(self.callback, query_id=4),),
                                                       daemon=True)
 
         for _, t in self.threads_queries.items():
