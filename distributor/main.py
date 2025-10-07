@@ -88,7 +88,7 @@ def main():
     server_socket.listen()
 
     signal.signal(signal.SIGTERM,
-                  lambda signum, frame: graceful_quit(signum, frame, shutdown, server_socket, distributor))
+                  lambda signum, frame: graceful_quit(signum, frame, shutdown, server_socket, distributor, client_threads))
     distributor.start_consuming_from_workers()
 
     while True:
@@ -96,7 +96,7 @@ def main():
         client_socket, client_address = server_socket.accept()
         id_client = distributor.add_client(client_socket)
         send_id_to_client(id_client, client_socket)
-        new_client = threading.Thread(target=handle_client, args=(client_socket, shutdown, distributor, client_threads),
+        new_client = threading.Thread(target=handle_client, args=(client_socket, shutdown, distributor),
                                       daemon=True)
         client_threads.append(new_client)
         new_client.start()

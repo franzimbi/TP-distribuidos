@@ -8,32 +8,49 @@ import sys
 
 
 def initialize_config():
-    config = ConfigParser(os.environ)
-    config.read("config.ini")
+    import os
 
-    config_params = {}
+    def req(name: str) -> str:
+        v = os.getenv(name)
+        if v is None or str(v).strip() == "":
+            raise KeyError(name)
+        return v
+
     try:
-        config_params["CONSUME_QUEUE"] = os.getenv('CONSUME_QUEUE', config["DEFAULT"]["CONSUME_QUEUE"])
-        config_params["PRODUCE_QUEUE"] = os.getenv('PRODUCE_QUEUE', config["DEFAULT"]["PRODUCE_QUEUE"])
-        config_params["JOIN_QUEUE"] = str(os.getenv('JOIN_QUEUE'))
-        config_params["COORDINATOR_CONSUME_QUEUE"] = str(os.getenv('COORDINATOR_CONSUME_QUEUE'))
-        config_params["COORDINATOR_PRODUCE_QUEUE"] = str(os.getenv('COORDINATOR_PRODUCE_QUEUE'))
+        consume_q       = req("queueEntradaData")
+        produce_q       = req("queuesSalida")
+        join_q          = req("queueEntradaJoin")
+        coord_consume_q = req("queue_to_receive_coordinator")
+        coord_produce_q = req("queue_to_send_coordinator")
 
-        config_params["COLUMN_ID"] = os.getenv('COLUMN_ID', config["DEFAULT"]["COLUMN_ID"])
-        config_params["COLUMN_NAME"] = os.getenv('COLUMN_NAME', config["DEFAULT"]["COLUMN_NAME"])
+        params = req("params")
+        try:
+            col_name, col_id = [p.strip() for p in params.split(",", 1)]
+        except ValueError:
+            raise ValueError("params debe tener formato 'COLUMN_NAME,COLUMN_ID'")
 
-        config_params["USE_DISKCACHE"] = os.getenv('USE_DISKCACHE', 'False').strip().lower() in ('1', 'true', 'yes')
+        use_disk = os.getenv("use_diskcache", "False").strip().lower() in ("1", "true", "yes")
 
-        config_params["listen_backlog"] = int(
-            os.getenv('SERVER_LISTEN_BACKLOG', config["DEFAULT"]["SYSTEM_LISTEN_BACKLOG"]))
-        config_params["logging_level"] = os.getenv('LOGGING_LEVEL', config["DEFAULT"]["LOGGING_LEVEL"])
+        logging_level  = os.getenv("LOGGING_LEVEL", "INFO")
+        listen_backlog = int(os.getenv("SERVER_LISTEN_BACKLOG", "128"))
+
+        return {
+            "CONSUME_QUEUE": consume_q,
+            "PRODUCE_QUEUE": produce_q,
+            "JOIN_QUEUE": join_q,
+            "COORDINATOR_CONSUME_QUEUE": coord_consume_q,
+            "COORDINATOR_PRODUCE_QUEUE": coord_produce_q,
+            "COLUMN_NAME": col_name,
+            "COLUMN_ID": col_id,
+            "USE_DISKCACHE": use_disk,
+            "listen_backlog": listen_backlog,
+            "logging_level": logging_level,
+        }
+
     except KeyError as e:
-        raise KeyError("Key was not found. Error: {} .Aborting server".format(e))
+        raise KeyError(f"Key was not found. Error: '{e.args[0]}' .Aborting server")
     except ValueError as e:
-        raise ValueError("Key could not be parsed. Error: {}. Aborting server".format(e))
-
-    return config_params
-
+        raise ValueError(f"Key could not be parsed. Error: {e}. Aborting server")
 
 def initialize_log(logging_level):
     logging.basicConfig(

@@ -15,11 +15,11 @@ productsExchange = os.getenv('productsExchange')
 storesExchange = os.getenv('storesExchange')
 usersExchange = os.getenv('usersExchange')
 
-Q1_results = os.getenv('Queue_final_Q1')
-Q21_results = os.getenv('Queue_final_Q21')
-Q22_results = os.getenv('Queue_final_Q22')
-Q3_results = os.getenv('Queue_final_Q3')
-Q4_results = os.getenv('Queue_final_Q4')
+Q1_results = os.getenv('Q1result')
+Q21_results = os.getenv('Q21result')
+Q22_results = os.getenv('Q22result')
+Q3_results = os.getenv('Q3result')
+Q4_results = os.getenv('Q4result')
 
 shutdown = threading.Event()
 
@@ -32,19 +32,25 @@ class Distributor:
         self.transactions = MessageMiddlewareQueue(host='rabbitmq', queue_name=transactionsQueue)
         self.transaction_items = MessageMiddlewareQueue(host='rabbitmq', queue_name=itemsQueue)
         #
-        self.products = MessageMiddlewareExchange(host='rabbitmq', exchange_name=productsExchange, route_keys='',
-                                                  exchange_type='fanout', queue_name='products')
-        self.stores = MessageMiddlewareExchange(host='rabbitmq', exchange_name=storesExchange, route_keys='',
-                                                exchange_type='fanout', queue_name='stores')
-        self.users = MessageMiddlewareExchange(host='rabbitmq', exchange_name=usersExchange, route_keys='',
-                                               exchange_type='fanout', queue_name='users')
+        self.products = MessageMiddlewareExchange(
+            host='rabbitmq', exchange_name=productsExchange,
+            route_keys=[''], exchange_type='fanout', queue_name='products'
+        )
+        self.stores = MessageMiddlewareExchange(
+            host='rabbitmq', exchange_name=storesExchange,
+            route_keys=[''], exchange_type='fanout', queue_name='stores'
+        )
+        self.users = MessageMiddlewareExchange(
+            host='rabbitmq', exchange_name=usersExchange,
+            route_keys=[''], exchange_type='fanout', queue_name='users'
+        )
 
         self.route = {
             't': self.transactions,
-            'r': self.transaction_items,
+            'i': self.transaction_items,
+            'm': self.products,
             's': self.stores,
             'u': self.users,
-            'i': self.products,
         }
 
         self.q1_results = MessageMiddlewareQueue('rabbitmq', Q1_results)
@@ -60,6 +66,7 @@ class Distributor:
     def add_client(self, client_socket):
         self.number_of_clients += 1
         self.clients[self.number_of_clients] = client_socket
+        return self.number_of_clients
 
     def remove_client(self, client_id):
         sock = self.clients.pop(client_id, None)
@@ -77,17 +84,15 @@ class Distributor:
             with self.lock:
                 destination.send(batch.encode())
         else:
-            logging.error(f'[DISTRIBUTION] Unknown transaction type: {type}')
+            logging.error(f'[DISTRIBUTION] Unknown transaction type: {batch.type()}')
 
     def callback(self, ch, method, properties, body: bytes, query_id):
-        batch = Batch()
-        batch.decode(body)
+        batch = Batch(); batch.decode(body)
         batch.set_query_id(query_id)
         client_id = batch.client_id()
-        try:
-            client_socket = self.clients.get(client_id)
-        except KeyError:
-            logging.error(f'[DISTRIBUTION] el client {client_id} no existe en el distributor')
+        client_socket = self.clients.get(client_id)
+        if client_socket is None:
+            logging.error(f"[DISTRIBUTOR] No existe el cliente {client_id} para enviarle los resultados.")
             return
         try:
             send_batch(client_socket, batch)
