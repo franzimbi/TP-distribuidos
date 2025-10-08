@@ -10,10 +10,13 @@ END_MESSAGE = 'END'
 
 
 class Coordinator:
-    def __init__(self, num_nodes, consumer, producers, downstream):
+    def __init__(self, num_nodes, consumer, producers, downstreams):
         self.num_nodes = num_nodes
         self.consumer_queue = MessageMiddlewareQueue(host='rabbitmq', queue_name=consumer)
-        self.downstream_queue = MessageMiddlewareQueue(host='rabbitmq', queue_name=downstream)
+        self.downstream_queues = []
+        for q in downstreams:
+            self.downstream_queues.append(MessageMiddlewareQueue(host='rabbitmq', queue_name=q))
+        # self.downstream_queue =
         self.producer_queues = {}
 
         for i in range(len(producers)):
@@ -73,7 +76,8 @@ class Coordinator:
 
     def _send_downstream_end(self):
         logging.info(f"[Coordinator] Enviando batch final downstream {self.end_batch}")
-        self.downstream_queue.send(self.end_batch.encode())
+        for i in self.downstream_queues:
+            i.send(self.end_batch.encode())
 
     def close(self):
         self.consumer_queue.stop_consuming()
@@ -82,5 +86,6 @@ class Coordinator:
         for q in list(self.producer_queues.values()):
             q.close()
         logging.info("[Coordinator] Producer queues cerradas")
-        self.downstream_queue.close()
-        logging.info("[Coordinator] Downstream queue cerrada")
+        for i in self.downstream_queues:
+           i.close()
+        logging.info("[Coordinator] Downstream queues cerrada")

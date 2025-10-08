@@ -20,13 +20,16 @@ def main():
 
     num_nodes = int(os.getenv("NUM_NODES"))
     consumer = str(os.getenv(f"QUEUE_CONSUME_FROM_NODES"))
-    downstream_q = str(os.getenv("DOWNSTREAM_QUEUE", "downstream")) #TODO: hay mas de una, separar.
+    downstream_q = str(os.getenv("DOWNSTREAM_QUEUE", "downstream"))
+    downstreams = []
+    for d in downstream_q.split(','):
+        downstreams.append(d)
     producers = []
     produce_queue = str(os.getenv(f"QUEUES_PRODUCE_FOR_NODES"))
     for queue_name in produce_queue.split(','):
         producers.append(queue_name)
 
-    coordinator = Coordinator(num_nodes, consumer, producers, downstream_q)
+    coordinator = Coordinator(num_nodes, consumer, producers, downstreams)
     coordinator.start()
 
 

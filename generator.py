@@ -247,6 +247,7 @@ def crear_client(cantidad, puerto):
                 './config.ini:/app/config.ini',
                 './csvs_files:/app/csvs_files',
                 './csvs_files_reduced:/app/csvs_files_reduced',
+                './csvs_files_juguete:/app/csvs_files_juguete',
                 './results' + '_' + client_name + ':/app/results'
             ],
             'networks': [
