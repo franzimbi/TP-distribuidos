@@ -26,12 +26,13 @@ TRANSACTION_ITEMS_TYPE_FILE = 'i'
 USERS_TYPE_FILE = 'u'
 MENU_ITEM_TYPE_FILE = 'm'
 
+
 class Client:
 
     def __init__(self, host, port):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect((host, port))
-        self.sender_transaction = None
+        # self.sender_transaction = None
         self.receiver_thread = None
         self.client_id = -1
 
@@ -54,7 +55,7 @@ class Client:
     def start(self, path_input, path_output):
 
         self.client_id = recv_client_id(self.socket)
-    
+
         # send_batches_from_csv(path_input+STORES_PATH, BATCH_SIZE, self.socket, STORES_TYPE_FILE, self.client_id)
 
         # send_batches_from_csv(path_input+USERS_PATH, BATCH_SIZE, self.socket, USERS_TYPE_FILE, self.client_id)
@@ -63,13 +64,14 @@ class Client:
 
         # send_batches_from_csv(path_input+TRANSACTION_ITEMS_PATH, BATCH_SIZE, self.socket, TRANSACTION_ITEMS_TYPE_FILE, self.client_id)
 
-        self.sender_transaction = threading.Thread(
-            target=send_batches_from_csv,
-            args=(path_input+TRANSACTION_PATH, BATCH_SIZE, self.socket, TRANSACTION_TYPE_FILE, self.client_id),
-            daemon=True
-        )
-        self.sender_transaction.start()
-        
+        send_batches_from_csv(path_input + TRANSACTION_PATH, BATCH_SIZE, self.socket, TRANSACTION_TYPE_FILE, self.client_id)
+        # self.sender_transaction = threading.Thread(
+        #     target=send_batches_from_csv,
+        #     args=(path_input + TRANSACTION_PATH, BATCH_SIZE, self.socket, TRANSACTION_TYPE_FILE, self.client_id),
+        #     daemon=True
+        # )
+        # self.sender_transaction.start()
+
         self.receiver_thread = threading.Thread(
             target=self.receiver, args=(path_output,), daemon=True
         )
@@ -80,12 +82,11 @@ class Client:
         if self.receiver_thread:
             self.receiver_thread.join()
             logging.debug("[CLIENT] joinee receiver...")
-        if self.sender_transaction:
-            self.sender_transaction.join()
+        # if self.sender_transaction:
+        #     self.sender_transaction.join()
             logging.debug("[CLIENT] joinee sender transactions...")
         self.socket.close()
         logging.info("[CLIENT] socket cerrado.")
-
 
     def receiver(self, out_dir):
         files = {}

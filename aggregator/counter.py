@@ -3,11 +3,16 @@ import logging
 import signal
 import sys
 from middleware.middleware import MessageMiddlewareQueue
+from configparser import ConfigParser
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-BUFFER_SIZE = 150
+
+config = ConfigParser()
+config.read("config.ini")
+
+BUFFER_SIZE = int(config["DEFAULT"]["BATCH_SIZE"])
 class Counter:
     def __init__(self, consumer, producer, *, key_columns, count_name):
         self._consumer_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=consumer)

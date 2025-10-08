@@ -4,8 +4,12 @@ import sys
 from datetime import datetime
 from middleware.middleware import MessageMiddlewareQueue
 from common.batch import Batch
+from configparser import ConfigParser
 
-BUFFER_SIZE = 150
+config = ConfigParser()
+config.read("config.ini")
+
+BUFFER_SIZE = int(config["DEFAULT"]["BATCH_SIZE"])
 
 def year_month(ts: str) -> str:
     d = datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")
