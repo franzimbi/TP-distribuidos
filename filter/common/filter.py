@@ -37,7 +37,6 @@ class Filter:
         signal.signal(signal.SIGTERM, self.graceful_shutdown)
         self.lock = threading.Lock()
 
-        print(f"\n\n[Filter] Initializing con batch size {BUFFER_SIZE}")
 
     def graceful_shutdown(self, signum, frame):
         try:

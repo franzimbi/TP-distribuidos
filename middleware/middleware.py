@@ -93,7 +93,7 @@ class MessageMiddlewareExchange(MessageMiddleware):
         
     def send(self, message):
         self.channel.basic_publish(exchange=self.exchange, routing_key=self.route_keys[0], body=message, 
-                                   properties=pika.BasicProperties(delivery_mode=2))
+                                   properties=pika.BasicProperties(delivery_mode=1))
 
     def close(self):
         try:
@@ -124,7 +124,7 @@ class MessageMiddlewareQueue(MessageMiddleware):
         self._connection = pika.BlockingConnection(pika.ConnectionParameters(host=host))
         self._channel = self._connection.channel()
         self._queue_name = queue_name
-        self._channel.queue_declare(queue=queue_name)
+        self._channel.queue_declare(queue=queue_name, durable=False, auto_delete=True)
         logging.getLogger("pika").propagate = False
 
     def start_consuming(self, on_message_callback):
@@ -166,7 +166,7 @@ class MessageMiddlewareQueue(MessageMiddleware):
     def send(self, message):
         try:
             self._channel.basic_publish(exchange='', routing_key=self._queue_name, body=message,
-                                    properties=pika.BasicProperties(delivery_mode=2))
+                                    properties=pika.BasicProperties(delivery_mode=1))
         except (pika.exceptions.ConnectionClosed,
                 pika.exceptions.StreamLostError,
                 pika.exceptions.AMQPConnectionError) as e:
