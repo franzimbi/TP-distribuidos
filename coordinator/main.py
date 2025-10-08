@@ -20,7 +20,7 @@ def main():
 
     num_nodes = int(os.getenv("NUM_NODES"))
     consumer = str(os.getenv(f"QUEUE_CONSUME_FROM_NODES"))
-    downstream_q = str(os.getenv("DOWNSTREAM_QUEUE", "downstream"))
+    downstream_q = str(os.getenv("DOWNSTREAM_QUEUE", "downstream")) #TODO: hay mas de una, separar.
     producers = []
     produce_queue = str(os.getenv(f"QUEUES_PRODUCE_FOR_NODES"))
     for queue_name in produce_queue.split(','):

@@ -47,7 +47,7 @@ def handle_client(socket, shutdown, distributor):
     counter_lasts_batches = 0
     while not shutdown.is_set():
         batch = recv_batch(socket)
-        # print(f"[DISTRIBUTOR] llego batch {batch.id()}")
+        print(f"[DISTRIBUTOR] llego batch {batch.id()}")
         if batch is not None:
             if batch.is_last_batch():
                 counter_lasts_batches += 1

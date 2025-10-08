@@ -45,7 +45,7 @@ def main():
                   f"listen_backlog: {listen_backlog} | logging_level: {logging_level}")
 
     this_client = Client(host, port)
-    this_client.start('csvs_files_reduced', 'results')
+    this_client.start('csvs_files_juguete', 'results')
     this_client.close()
 
 

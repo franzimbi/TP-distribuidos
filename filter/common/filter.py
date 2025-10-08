@@ -60,7 +60,7 @@ class Filter:
     def callback(self, ch, method, properties, message):
         with self.lock:
             batch = Batch(); batch.decode(message)
-            # print(f"\n[FILTER] batch id paso: {batch.id()} ")
+            print(f"\n[FILTER] batch id paso: {batch.id()} ")
             try:
                 result = self._filter(batch)
                 if not result.is_empty():
@@ -75,7 +75,7 @@ class Filter:
                 logging.error(f"error: {e} | batch:{batch} | filter:{self._filter.__name__}")
 
             if batch.is_last_batch():
-                print(f"\n[FILTER] last batch mandado: {batch.id()} ")
+                print(f"[FILTER] last batch mandado: {batch.id()} ")
                 self._buffer.set_last_batch()
                 self._buffer.set_id(batch.id())
                 self._buffer.set_query_id(batch.get_query_id())
