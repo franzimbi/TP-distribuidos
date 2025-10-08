@@ -1,4 +1,4 @@
-from middleware.middleware import MessageMiddlewareQueue, MessageMiddlewareDisconnectedError
+from middleware.middleware import MessageMiddlewareQueue, MessageMiddlewareDisconnectedError, MessageMiddlewareExchange
 from common.batch import Batch
 import logging
 import signal
@@ -14,7 +14,7 @@ END_MESSAGE = 'END'
 
 
 class Join:
-    def __init__(self,join_queue, column_id, column_name, use_diskcache=False):
+    def __init__(self, exchange_name, join_queue, column_id, column_name, use_diskcache=False):
         self.producer_queue = None
         self.consumer_queue = None
         self.join_dictionary = None
@@ -28,6 +28,7 @@ class Join:
         self.column_id = column_id
         self.column_name = column_name
         self.join_queue = join_queue
+        self.exchange_name = exchange_name
         self.lock = threading.Lock()
 
         signal.signal(signal.SIGTERM, self.graceful_quit)
@@ -46,14 +47,20 @@ class Join:
         sys.exit(0)
 
     def start(self, consumer, producer, coordinator_consumer, coordinator_producer):
+        print("entre a start")
         aux = self.join_queue
-        self.join_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=aux)
+        # self.join_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=aux)
+        self.join_queue = MessageMiddlewareExchange(
+            host='rabbitmq', exchange_name=self.exchange_name,
+            route_keys=[''], exchange_type='fanout', queue_name=aux
+        )
+
         self.join_queue.start_consuming(self.callback_to_receive_join_data)
         logging.debug("action: receive_join_data | status: finished | entries: %d",
                       len(self.join_dictionary))
         # self.join_queue.close()
 
-
+        print("termine de recibir los datos del join")
         self.consumer_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=consumer)
         self.producer_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=producer)
         self.coordinator_consumer = MessageMiddlewareQueue(host="rabbitmq", queue_name=coordinator_consumer)

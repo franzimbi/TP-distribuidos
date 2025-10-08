@@ -12,7 +12,7 @@ config = ConfigParser()
 config.read("config.ini")
 
 BATCH_SIZE = int(config["DEFAULT"]["BATCH_SIZE"])
-AMOUNT_OF_QUERIES = 1
+AMOUNT_OF_QUERIES = 3
 
 STORES_PATH = '/stores'
 TRANSACTION_PATH = '/transactions'
@@ -32,7 +32,7 @@ class Client:
     def __init__(self, host, port):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect((host, port))
-        # self.sender_transaction = None
+        self.sender_transaction = None
         self.receiver_thread = None
         self.client_id = -1
 
@@ -56,21 +56,20 @@ class Client:
 
         self.client_id = recv_client_id(self.socket)
 
-        # send_batches_from_csv(path_input+STORES_PATH, BATCH_SIZE, self.socket, STORES_TYPE_FILE, self.client_id)
+        send_batches_from_csv(path_input+STORES_PATH, BATCH_SIZE, self.socket, STORES_TYPE_FILE, self.client_id)
 
-        # send_batches_from_csv(path_input+USERS_PATH, BATCH_SIZE, self.socket, USERS_TYPE_FILE, self.client_id)
+        send_batches_from_csv(path_input+USERS_PATH, BATCH_SIZE, self.socket, USERS_TYPE_FILE, self.client_id)
 
         # send_batches_from_csv(path_input+MENU_ITEM_PATH, BATCH_SIZE, self.socket, MENU_ITEM_TYPE_FILE, self.client_id)
 
         # send_batches_from_csv(path_input+TRANSACTION_ITEMS_PATH, BATCH_SIZE, self.socket, TRANSACTION_ITEMS_TYPE_FILE, self.client_id)
-
-        send_batches_from_csv(path_input+TRANSACTION_PATH, BATCH_SIZE, self.socket, TRANSACTION_TYPE_FILE, self.client_id)
-        # self.sender_transaction = threading.Thread(
-        #     target=send_batches_from_csv,
-        #     args=(path_input + TRANSACTION_PATH, BATCH_SIZE, self.socket, TRANSACTION_TYPE_FILE, self.client_id),
-        #     daemon=True
-        # )
-        # self.sender_transaction.start()
+        
+        self.sender_transaction = threading.Thread(
+            target=send_batches_from_csv,
+            args=(path_input + TRANSACTION_PATH, BATCH_SIZE, self.socket, TRANSACTION_TYPE_FILE, self.client_id),
+            daemon=True
+        )
+        self.sender_transaction.start()
 
         self.receiver_thread = threading.Thread(
             target=self.receiver, args=(path_output,), daemon=True
@@ -82,8 +81,8 @@ class Client:
         if self.receiver_thread:
             self.receiver_thread.join()
             logging.debug("[CLIENT] joinee receiver...")
-        # if self.sender_transaction:
-        #     self.sender_transaction.join()
+        if self.sender_transaction:
+            self.sender_transaction.join()
             logging.debug("[CLIENT] joinee sender transactions...")
         self.socket.close()
         logging.info("[CLIENT] socket cerrado.")
@@ -123,6 +122,7 @@ class Client:
                 if batch.is_last_batch():
                     ended.add(qid)
                     logging.debug(f"[CLIENT] Recibido END de Q{qid}. Pendientes: {AMOUNT_OF_QUERIES - len(ended)}")
+                    print(f"el last batch es: {batch}")
                     if len(ended) >= AMOUNT_OF_QUERIES:
                         logging.info("[CLIENT] Recibidos END de todas las queries. Fin.")
                         break

@@ -65,8 +65,7 @@ class MessageMiddlewareExchange(MessageMiddleware):
 
         self.channel.exchange_declare(
             exchange=self.exchange,
-            exchange_type=exchange_type,
-            durable=True
+            exchange_type=exchange_type
         )
 
         if self.queue:

@@ -4,6 +4,7 @@ import logging
 import signal
 import sys
 import threading
+import time
 
 from configparser import ConfigParser
 
@@ -73,6 +74,7 @@ class Filter:
                 logging.error(f"error: {e} | batch:{batch} | filter:{self._filter.__name__}")
 
             if batch.is_last_batch():
+                time.sleep(5)
                 self._buffer.set_last_batch()
                 self._buffer.set_id(batch.id())
                 self._buffer.set_query_id(batch.get_query_id())
