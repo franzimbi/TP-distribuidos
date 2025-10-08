@@ -29,7 +29,6 @@ def send_batches_from_csv(path, batch_size, connection: socket, type_file, clien
     current_batch.set_last_batch(True)
     send_batch(connection, current_batch)
 
-
 def recv_client_id(socket):
     size_bytes = recv_exact(socket, 4)
     id = int.from_bytes(size_bytes, "big")

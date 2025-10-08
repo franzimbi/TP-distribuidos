@@ -5,7 +5,12 @@ import signal
 import sys
 import threading
 
-BUFFER_SIZE = 150
+from configparser import ConfigParser
+
+config = ConfigParser()
+config.read("config.ini")
+
+BUFFER_SIZE = int(config["DEFAULT"]["BATCH_SIZE"])
 FLUSH_MESSAGE = 'FLUSH'
 END_MESSAGE = 'END'
 
@@ -32,6 +37,8 @@ class Filter:
         signal.signal(signal.SIGTERM, self.graceful_shutdown)
         self.lock = threading.Lock()
 
+        print(f"\n\n[Filter] Initializing con batch size {BUFFER_SIZE}")
+
     def graceful_shutdown(self, signum, frame):
         try:
             logging.debug("Recibida señal SIGTERM, cerrando filter...")
@@ -53,7 +60,7 @@ class Filter:
     def callback(self, ch, method, properties, message):
         with self.lock:
             batch = Batch(); batch.decode(message)
-
+            # print(f"\n[FILTER] batch id paso: {batch.id()} ")
             try:
                 result = self._filter(batch)
                 if not result.is_empty():
@@ -68,6 +75,7 @@ class Filter:
                 logging.error(f"error: {e} | batch:{batch} | filter:{self._filter.__name__}")
 
             if batch.is_last_batch():
+                print(f"\n[FILTER] last batch mandado: {batch.id()} ")
                 self._buffer.set_last_batch()
                 self._buffer.set_id(batch.id())
                 self._buffer.set_query_id(batch.get_query_id())
@@ -96,7 +104,7 @@ class Filter:
         if str(msg) == str(FLUSH_MESSAGE):
             with self.lock:
                 if not self._buffer.is_empty():
-                
+
                     for queue in self._produce_queues:
                         queue.send(self._buffer.encode())
                     self._buffer = Batch()
@@ -105,7 +113,7 @@ class Filter:
                     self._coordinator_produce_queue.send(END_MESSAGE)
         else:
             logging.error(f"[FILTER] Unknown command from coordinator: {msg}")
-                    
+
     def close(self):
         self._consume_queue.stop_consuming()
         self._consume_queue.close()

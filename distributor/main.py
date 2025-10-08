@@ -47,12 +47,11 @@ def handle_client(socket, shutdown, distributor):
     counter_lasts_batches = 0
     while not shutdown.is_set():
         batch = recv_batch(socket)
-        if batch:
+        # print(f"[DISTRIBUTOR] llego batch {batch.id()}")
+        if batch is not None:
             if batch.is_last_batch():
                 counter_lasts_batches += 1
                 print(f"[DISTRIBUTOR] Recibido batch final {batch.id()} de tipo {batch.type()} de client{batch.client_id()}.")
-            if batch.id() % 20000 == 0 or batch.id() == 0:
-                print(f"[DISTRIBUTOR] Recibido batch {batch.id()} de tipo {batch.type()} de client{batch.client_id()}.")
             distributor.distribute_batch_to_workers(batch)
         if counter_lasts_batches >= 5:
             return
@@ -98,7 +97,11 @@ def main():
     while True:
         client_threads = [t for t in client_threads if t.is_alive()]
         print(f"\n[DISTRIBUTOR] Esperando conexiones de clientes en {host}:{port}...\n")
-        client_socket, client_address = server_socket.accept()
+        try:
+            client_socket, client_address = server_socket.accept()
+        except OSError as e:
+            logging.debug(f"[DISTRIBUTOR] Socket cerrado, saliendo del loop: {e}")
+            break
         print(f"[DISTRIBUTOR] Cliente conectado desde {client_address}")
         id_client = distributor.add_client(client_socket)
         send_id_to_client(id_client, client_socket)

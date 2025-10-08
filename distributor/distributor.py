@@ -96,6 +96,7 @@ class Distributor:
             logging.error(f"[DISTRIBUTOR] No existe el cliente {client_id} para enviarle los resultados.")
             return
         try:
+            # logging.debug(f'[DISTRIBUTOR] enviando el batch de resultado {query_id} al client {client_id}, con id {batch.id()}')
             send_batch(client_socket, batch)
         except Exception as e:
             logging.error(f"[DISTRIBUTOR] error al querer enviar batch:{batch} al cliente:{client_id} | error: {e}")
@@ -120,28 +121,35 @@ class Distributor:
             t.start()
 
     def stop_consuming_from_all_workers(self):
-        self.transactions.close()
-        self.transaction_items.close()
-        self.stores.close()
-        self.products.close()
-        self.users.close()
-
-        self.q1_results.stop_consuming()
-        self.q1_results.close()
-
-        self.q21_results.stop_consuming()
-        self.q21_results.close()
-
-        self.q22_results.stop_consuming()
-        self.q22_results.close()
-
-        self.q3_results.stop_consuming()
-        self.q3_results.close()
-
-        self.q4_results.stop_consuming()
-        self.q4_results.close()
+        middlewares = [
+            self.transactions,
+            self.transaction_items,
+            self.stores,
+            self.products,
+            self.users,
+            self.q1_results,
+            self.q21_results,
+            self.q22_results,
+            self.q3_results,
+            self.q4_results
+        ]
+        for mw in middlewares:
+            try:
+                if hasattr(mw, "stop_consuming"):
+                    try:
+                        mw.stop_consuming()
+                    except Exception as e:
+                        logging.debug(f"[Distributor] Error deteniendo consumo de {mw}: {e}")
+                try:
+                    mw.close()
+                except Exception as e:
+                    logging.debug(f"[Distributor] Error cerrando middleware {mw}: {e}")
+            except Exception as e:
+                logging.debug(f"[Distributor] Error general cerrando middleware {mw}: {e}")
 
         for _, t in self.threads_queries.items():
-            t.join()
-
+            try:
+                t.join()
+            except Exception as e:
+                logging.debug(f"[Distributor] Error al join thread {t}: {e}")
 

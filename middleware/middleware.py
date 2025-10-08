@@ -154,19 +154,44 @@ class MessageMiddlewareQueue(MessageMiddleware):
 
     def stop_consuming(self):
         try:
-            self._channel.stop_consuming()
-        except pika.exceptions.AMQPConnectionError as e:
+            if self._channel and self._channel.is_open:
+                self._channel.stop_consuming()
+        except (pika.exceptions.ConnectionClosed,
+                pika.exceptions.StreamLostError,
+                pika.exceptions.AMQPConnectionError) as e:
             raise MessageMiddlewareDisconnectedError() from e
+        except Exception as e:
+            raise MessageMiddlewareMessageError(f"Error al detener consumo: {e}") from e
 
     def send(self, message):
-        self._channel.basic_publish(exchange='', routing_key=self._queue_name, body=message,
+        try:
+            self._channel.basic_publish(exchange='', routing_key=self._queue_name, body=message,
                                     properties=pika.BasicProperties(delivery_mode=2))
+        except (pika.exceptions.ConnectionClosed,
+                pika.exceptions.StreamLostError,
+                pika.exceptions.AMQPConnectionError) as e:
+            raise MessageMiddlewareDisconnectedError() from e
+        except Exception as e:
+            raise MessageMiddlewareMessageError(f"Error enviando mensaje: {e}") from e
 
     def close(self):
         try:
-            self._connection.close()
+            if self._connection and self._connection.is_open:
+                self._connection.close()
         except Exception as e:
-            raise MessageMiddlewareCloseError() from e
+            raise MessageMiddlewareCloseError(f"Error al cerrar conexión: {e}") from e
+        finally:
+            logging.debug("[Middleware] conexión cerrada manualmente")
+
 
     def delete(self):
-        pass
+        try:
+            if self._channel and self._channel.is_open:
+                self._channel.queue_delete(queue=self._queue_name)
+        except (pika.exceptions.ConnectionClosed,
+                pika.exceptions.StreamLostError,
+                pika.exceptions.AMQPConnectionError) as e:
+            raise MessageMiddlewareDisconnectedError() from e
+        except Exception as e:
+            raise MessageMiddlewareDeleteError(f"Error al eliminar cola: {e}") from e
+

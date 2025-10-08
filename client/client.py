@@ -6,7 +6,12 @@ import sys
 import signal
 from common.protocol import send_batches_from_csv, recv_batch, recv_client_id
 
-BATCH_SIZE = 150
+from configparser import ConfigParser
+
+config = ConfigParser()
+config.read("config.ini")
+
+BATCH_SIZE = int(config["DEFAULT"]["BATCH_SIZE"])
 AMOUNT_OF_QUERIES = 1
 
 STORES_PATH = '/stores'
@@ -90,7 +95,7 @@ class Client:
         try:
             while not self.shutdown_event.is_set():
                 batch = recv_batch(self.socket)
-                print("recibi algo")
+                # print(f"recibi batch {batch.id()}")
                 qid = batch.get_query_id()
                 if batch.client_id() != self.client_id:
                     logging.info("[CLIENT] llego un batch con client_id distinto")
