@@ -305,7 +305,7 @@ with open(nombre_file, 'w') as f:
     services.update(crear_joiners(nombre='Join_users_Q4', cantidad=cant_nodos, entradaJoin='exchange,usersExchange',
                                   entradaData='Queue_between_reducer_joiner_Q4',
                                   salida='Queue_between_joiner_users_and_joiner_stores_Q4',
-                                  disk_type=True, params='item_name,item_id'))
+                                  disk_type=True, params='birthdate,user_id'))
     services.update(crear_joiners(nombre='Join_stores_Q4', cantidad=cant_nodos, entradaJoin='exchange,storesExchange',
                                   entradaData='Queue_between_joiner_users_and_joiner_stores_Q4',
                                   salida='Queue_final_Q4',
