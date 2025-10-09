@@ -23,6 +23,18 @@ Q22_results = os.getenv('Q22result')
 Q3_results = os.getenv('Q3result')
 Q4_results = os.getenv('Q4result')
 
+q3_Stores1 = os.getenv('q3Stores1')
+q3_Stores2 = os.getenv('q3Stores2')
+q4_Stores1 = os.getenv('q4Stores1')
+q4_Stores2 = os.getenv('q4Stores2')
+q4_Users1 = os.getenv('q4Users1')
+q4_Users2 = os.getenv('q4Users2')
+q21_products1 = os.getenv('q21Products1')
+q21_products2 = os.getenv('q21Products2')
+q22_products1 = os.getenv('q22Products1')
+q22_products2 = os.getenv('q22Products2')
+
+
 shutdown = threading.Event()
 
 
@@ -34,24 +46,40 @@ class Distributor:
         self.transactions = MessageMiddlewareQueue(host='rabbitmq', queue_name=transactionsQueue)
         self.transaction_items = MessageMiddlewareQueue(host='rabbitmq', queue_name=itemsQueue)
         #
-        self.products = MessageMiddlewareExchange(
-            host='rabbitmq', exchange_name=productsExchange,
-            route_keys=[''], exchange_type='fanout', queue_name=None
-        )
-        self.stores = MessageMiddlewareExchange(
-            host='rabbitmq', exchange_name=storesExchange,
-            route_keys=[''], exchange_type='fanout', queue_name=None
-        )
-        self.users = MessageMiddlewareExchange(
-            host='rabbitmq', exchange_name=usersExchange,
-            route_keys=[''], exchange_type='fanout', queue_name=None
-        )
+        # self.products = MessageMiddlewareExchange(
+        #     host='rabbitmq', exchange_name=productsExchange,
+        #     route_keys=[''], exchange_type='fanout', queue_name=None
+        # )
+        # self.stores = MessageMiddlewareExchange(
+        #     host='rabbitmq', exchange_name=storesExchange,
+        #     route_keys=[''], exchange_type='fanout', queue_name=None
+        # )
+        # self.users = MessageMiddlewareExchange(
+        #     host='rabbitmq', exchange_name=usersExchange,
+        #     route_keys=[''], exchange_type='fanout', queue_name=None
+        # )
+
+        self.stores_queues = [
+            MessageMiddlewareQueue(host='rabbitmq', queue_name=q3_Stores1),
+            MessageMiddlewareQueue(host='rabbitmq', queue_name=q3_Stores2),
+            MessageMiddlewareQueue(host='rabbitmq', queue_name=q4_Stores1),
+            MessageMiddlewareQueue(host='rabbitmq', queue_name=q4_Stores2),
+        ]
+        self.users_queues = [
+            MessageMiddlewareQueue(host='rabbitmq', queue_name=q4_Users1),
+            MessageMiddlewareQueue(host='rabbitmq', queue_name=q4_Users2),
+        ]
+
+        self.products_queues = [
+            MessageMiddlewareQueue(host='rabbitmq', queue_name=q21_products1),
+            MessageMiddlewareQueue(host='rabbitmq', queue_name=q21_products2),
+            MessageMiddlewareQueue(host='rabbitmq', queue_name=q22_products1),
+            MessageMiddlewareQueue(host='rabbitmq', queue_name=q22_products2),
+        ]
+
         self.route = {
             't': self.transactions,
             'i': self.transaction_items,
-            'm': self.products,
-            's': self.stores,
-            'u': self.users,
         }
 
         self.q1_results = MessageMiddlewareQueue('rabbitmq', Q1_results)
@@ -79,6 +107,28 @@ class Distributor:
         if batch.is_last_batch():
             logging.debug(
                 f"[DISTRIBUTOR] Distribuido batch final {batch.id()} de tipo {batch.type()} de client{batch.client_id()}.")
+
+        if batch.type() == 's':
+            if batch.id() == 0 or batch.id() % COUNT_OF_PRINTS == 0:
+                print(f"[DISTRIBUTION] Distribuyendo batch.id={batch.id()} de tipo 's' a {len(self.stores_queues)} colas de stores")
+            for s in self.stores_queues:
+                with self.lock:
+                    s.send(batch.encode())
+            return
+        if batch.type() == 'u':
+            if batch.id() == 0 or batch.id() % COUNT_OF_PRINTS == 0:
+                print(f"[DISTRIBUTION] Distribuyendo batch.id={batch.id()} de tipo 'u' a {len(self.users_queues)} colas de users")
+            for u in self.users_queues:
+                with self.lock:
+                    u.send(batch.encode())
+            return
+        if batch.type() == 'm':
+            if batch.id() == 0 or batch.id() % COUNT_OF_PRINTS == 0:
+                print(f"[DISTRIBUTION] Distribuyendo batch.id={batch.id()} de tipo 'm' a {len(self.products_queues)} colas de products")
+            for p in self.products_queues:
+                with self.lock:
+                    p.send(batch.encode())
+            return
 
         destination = self.route.get(batch.type())
         if destination:
@@ -112,8 +162,8 @@ class Distributor:
             return lambda ch, method, properties, body: self.callback(ch, method, properties, body, query_id)
         
         self.threads_queries['q1']  = threading.Thread(target=lambda: self.q1_results.start_consuming(helper_callback(1)),  daemon=True)
-        # self.threads_queries['q21'] = threading.Thread(target=lambda: self.q21_results.start_consuming(helper_callback(21)), daemon=True)
-        # self.threads_queries['q22'] = threading.Thread(target=lambda: self.q22_results.start_consuming(helper_callback(22)), daemon=True)
+        self.threads_queries['q21'] = threading.Thread(target=lambda: self.q21_results.start_consuming(helper_callback(21)), daemon=True)
+        self.threads_queries['q22'] = threading.Thread(target=lambda: self.q22_results.start_consuming(helper_callback(22)), daemon=True)
         self.threads_queries['q3']  = threading.Thread(target=lambda: self.q3_results.start_consuming(helper_callback(3)),  daemon=True)
         self.threads_queries['q4']  = threading.Thread(target=lambda: self.q4_results.start_consuming(helper_callback(4)),  daemon=True)
 
@@ -124,9 +174,6 @@ class Distributor:
         middlewares = [
             self.transactions,
             self.transaction_items,
-            self.stores,
-            self.products,
-            self.users,
             self.q1_results,
             self.q21_results,
             self.q22_results,

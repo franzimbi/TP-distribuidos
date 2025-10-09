@@ -51,11 +51,11 @@ class Join:
         aux = self.join_queue
 
         print(f"[JOINER] Me BINDEO al exchange {self.exchange_name} y a la cola {aux}")
-        # self.join_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=aux)
-        self.join_queue = MessageMiddlewareExchange(
-            host='rabbitmq', exchange_name=self.exchange_name,
-            route_keys=[''], exchange_type='fanout', queue_name=aux
-        )
+        self.join_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=aux)
+        # self.join_queue = MessageMiddlewareExchange(
+        #     host='rabbitmq', exchange_name=self.exchange_name,
+        #     route_keys=[''], exchange_type='fanout', queue_name=aux
+        # )
 
         print(f"[JOINER] Soy el joiner {self.column_name} y tengo que armar el diccionario")
 
@@ -81,20 +81,18 @@ class Join:
         self.consumer_queue.start_consuming(self.callback)
 
     def callback_to_receive_join_data(self, ch, method, properties, message):
-        print("[JOINER] Entre a recibir la data")
         batch = Batch()
         batch.decode(message)
 
         header = batch.get_header()
+        # if batch.id() == 0 or batch.id() % 5000 == 0:
         print(f"[JOINER] batch.id={batch.id()} | last={batch.is_last_batch()} | header={header}")
 
         id = batch.index_of(self.column_id)
         name = batch.index_of(self.column_name)
 
-        print(f"[JOINER] index_of('{self.column_id}') -> {id} | index_of('{self.column_name}') -> {name}")
-
         if id is None or name is None:
-            logging.error(f"Column {self.column_id} or {self.column_name} not found in batch header {header}")
+            logging.debug(f"Column {self.column_id} or {self.column_name} not found in batch header {header}")
             return
 
         added = 0
@@ -104,13 +102,11 @@ class Join:
             key = row[id]
             value = row[name]
             if key is None or value is None:
-                logging.error(f"Key or value is None for row: {row}")
+                logging.debug(f"Key or value is None for row: {row}")
                 continue
             if key not in self.join_dictionary:
                 self.join_dictionary[key] = value
                 added += 1
-
-        print(f"[JOINER] Procesado batch.id={batch.id()} | filas={total_rows} | nuevas_claves={added} | diccionario_total={len(self.join_dictionary)}")
 
         if batch.is_last_batch():
             print(f"[JOINER] LAST batch recibido (id={batch.id()}) -> llamo a stop_consuming()")

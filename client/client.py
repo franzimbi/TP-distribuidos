@@ -12,7 +12,7 @@ config = ConfigParser()
 config.read("config.ini")
 
 BATCH_SIZE = int(config["DEFAULT"]["BATCH_SIZE"])
-AMOUNT_OF_QUERIES = 3
+AMOUNT_OF_QUERIES = 5
 
 STORES_PATH = '/stores'
 TRANSACTION_PATH = '/transactions'
@@ -60,9 +60,9 @@ class Client:
 
         send_batches_from_csv(path_input+USERS_PATH, BATCH_SIZE, self.socket, USERS_TYPE_FILE, self.client_id)
 
-        # send_batches_from_csv(path_input+MENU_ITEM_PATH, BATCH_SIZE, self.socket, MENU_ITEM_TYPE_FILE, self.client_id)
+        send_batches_from_csv(path_input+MENU_ITEM_PATH, BATCH_SIZE, self.socket, MENU_ITEM_TYPE_FILE, self.client_id)
 
-        # send_batches_from_csv(path_input+TRANSACTION_ITEMS_PATH, BATCH_SIZE, self.socket, TRANSACTION_ITEMS_TYPE_FILE, self.client_id)
+        send_batches_from_csv(path_input+TRANSACTION_ITEMS_PATH, BATCH_SIZE, self.socket, TRANSACTION_ITEMS_TYPE_FILE, self.client_id)
         
         self.sender_transaction = threading.Thread(
             target=send_batches_from_csv,

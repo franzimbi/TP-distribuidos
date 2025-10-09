@@ -47,7 +47,7 @@ def main():
 
     time.sleep(5)
     this_client = Client(host, port)
-    this_client.start('csvs_files', 'results')
+    this_client.start('csvs_files_reduced', 'results')
     this_client.close()
 
 
