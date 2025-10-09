@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+import time
 from client import Client
 from configparser import ConfigParser
 import logging
@@ -44,8 +45,9 @@ def main():
     logging.debug(f"action: config | result: success | port: {port} | host: {host}  | "
                   f"listen_backlog: {listen_backlog} | logging_level: {logging_level}")
 
+    time.sleep(5)
     this_client = Client(host, port)
-    this_client.start('csvs_files_reduced', 'results')
+    this_client.start('csvs_files', 'results')
     this_client.close()
 
 

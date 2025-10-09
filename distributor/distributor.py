@@ -3,6 +3,7 @@ import os
 import signal
 import sys
 import threading
+from time import time
 from middleware.middleware import MessageMiddlewareQueue, MessageMiddlewareExchange
 from common.protocol import send_batch
 from common.batch import Batch
@@ -35,17 +36,16 @@ class Distributor:
         #
         self.products = MessageMiddlewareExchange(
             host='rabbitmq', exchange_name=productsExchange,
-            route_keys=[''], exchange_type='fanout', queue_name='products'
+            route_keys=[''], exchange_type='fanout', queue_name=None
         )
         self.stores = MessageMiddlewareExchange(
             host='rabbitmq', exchange_name=storesExchange,
-            route_keys=[''], exchange_type='fanout', queue_name='stores'
+            route_keys=[''], exchange_type='fanout', queue_name=None
         )
         self.users = MessageMiddlewareExchange(
             host='rabbitmq', exchange_name=usersExchange,
-            route_keys=[''], exchange_type='fanout', queue_name='users'
+            route_keys=[''], exchange_type='fanout', queue_name=None
         )
-
         self.route = {
             't': self.transactions,
             'i': self.transaction_items,
