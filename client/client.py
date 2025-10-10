@@ -4,7 +4,9 @@ import threading
 import logging
 import sys
 import signal
+from collections import defaultdict
 from common.protocol import send_batches_from_csv, recv_batch, recv_client_id
+import time
 
 from configparser import ConfigParser
 
@@ -12,7 +14,7 @@ config = ConfigParser()
 config.read("config.ini")
 
 BATCH_SIZE = int(config["DEFAULT"]["BATCH_SIZE"])
-AMOUNT_OF_QUERIES = 5
+AMOUNT_OF_QUERIES = 2
 
 STORES_PATH = '/stores'
 TRANSACTION_PATH = '/transactions'
@@ -32,7 +34,7 @@ class Client:
     def __init__(self, host, port):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect((host, port))
-        self.sender_transaction = None
+        # self.sender_transaction = None
         self.receiver_thread = None
         self.client_id = -1
 
@@ -56,20 +58,22 @@ class Client:
 
         self.client_id = recv_client_id(self.socket)
 
-        send_batches_from_csv(path_input+STORES_PATH, BATCH_SIZE, self.socket, STORES_TYPE_FILE, self.client_id)
+        # send_batches_from_csv(path_input+STORES_PATH, BATCH_SIZE, self.socket, STORES_TYPE_FILE, self.client_id)
 
-        send_batches_from_csv(path_input+USERS_PATH, BATCH_SIZE, self.socket, USERS_TYPE_FILE, self.client_id)
+        # send_batches_from_csv(path_input+USERS_PATH, BATCH_SIZE, self.socket, USERS_TYPE_FILE, self.client_id)
 
-        send_batches_from_csv(path_input+MENU_ITEM_PATH, BATCH_SIZE, self.socket, MENU_ITEM_TYPE_FILE, self.client_id)
+        # send_batches_from_csv(path_input+MENU_ITEM_PATH, BATCH_SIZE, self.socket, MENU_ITEM_TYPE_FILE, self.client_id)
 
-        send_batches_from_csv(path_input+TRANSACTION_ITEMS_PATH, BATCH_SIZE, self.socket, TRANSACTION_ITEMS_TYPE_FILE, self.client_id)
+        #send_batches_from_csv(path_input+TRANSACTION_ITEMS_PATH, BATCH_SIZE, self.socket, TRANSACTION_ITEMS_TYPE_FILE, self.client_id)
         
-        self.sender_transaction = threading.Thread(
-            target=send_batches_from_csv,
-            args=(path_input + TRANSACTION_PATH, BATCH_SIZE, self.socket, TRANSACTION_TYPE_FILE, self.client_id),
-            daemon=True
-        )
-        self.sender_transaction.start()
+        send_batches_from_csv(path_input + TRANSACTION_PATH, BATCH_SIZE, self.socket, TRANSACTION_TYPE_FILE, self.client_id)
+
+        # self.sender_transaction = threading.Thread(
+        #     target=send_batches_from_csv,
+        #     args=(path_input + TRANSACTION_PATH, BATCH_SIZE, self.socket, TRANSACTION_TYPE_FILE, self.client_id),
+        #     daemon=True
+        # )
+        # self.sender_transaction.start()
 
         self.receiver_thread = threading.Thread(
             target=self.receiver, args=(path_output,), daemon=True
@@ -81,8 +85,8 @@ class Client:
         if self.receiver_thread:
             self.receiver_thread.join()
             logging.debug("[CLIENT] joinee receiver...")
-        if self.sender_transaction:
-            self.sender_transaction.join()
+        # if self.sender_transaction:
+        #     self.sender_transaction.join()
             logging.debug("[CLIENT] joinee sender transactions...")
         self.socket.close()
         logging.info("[CLIENT] socket cerrado.")
@@ -91,6 +95,10 @@ class Client:
         files = {}
         wrote_header = {}
         ended = set()
+
+        expected_batches = {}
+        received_batches = defaultdict(int)
+
         os.makedirs(out_dir, exist_ok=True)
         try:
             while not self.shutdown_event.is_set():
@@ -100,7 +108,22 @@ class Client:
                 if batch.client_id() != self.client_id:
                     logging.info("[CLIENT] llego un batch con client_id distinto")
                     continue
+                    
+                if batch.is_last_batch():
+                    idx = batch.get_header().index('cant_batches')
+                    expected_batches[qid] = int(batch[0][idx])
+                    logging.debug(f"[CLIENT] Q{qid} espera {expected_batches[qid]} batches.")
 
+                    if qid in expected_batches and received_batches[qid] == expected_batches[qid]:
+                        ended.add(qid)
+                        logging.debug(f"[CLIENT] Recibido END de Q{qid}. Pendientes: {AMOUNT_OF_QUERIES - len(ended)}")
+                        if len(ended) >= AMOUNT_OF_QUERIES:
+                            logging.info("[CLIENT] Recibidos END de todas las queries. Fin.")
+                            break
+                    continue
+
+                received_batches[qid] += 1
+                
                 if qid not in files:
                     path = os.path.join(out_dir, f"q{qid}.csv")
                     files[qid] = open(path, "w")
@@ -116,17 +139,12 @@ class Client:
                 for row in batch:
                     f.write(",".join(row) + "\n")
 
-                if batch.id() % 20000 == 0 or batch.id() == 0:
-                    print(f"[CLIENT] Recibido batch {batch.id()} de Q{qid} con {len(batch)} filas.")
-
-                if batch.is_last_batch():
+                if qid in expected_batches and received_batches[qid] == expected_batches[qid]:
                     ended.add(qid)
                     logging.debug(f"[CLIENT] Recibido END de Q{qid}. Pendientes: {AMOUNT_OF_QUERIES - len(ended)}")
-                    print(f"el last batch es: {batch}")
                     if len(ended) >= AMOUNT_OF_QUERIES:
                         logging.info("[CLIENT] Recibidos END de todas las queries. Fin.")
                         break
-                    continue
 
         except Exception as e:
             logging.info(f"\n[CLIENT] Error en receiver: {e}")

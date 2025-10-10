@@ -315,6 +315,10 @@ class Batch:
         self._body = processed_rows
         self._size = len(processed_rows)
 
+    def delete_rows(self):
+        self._body = []
+        self._size = 0
+        
     def add_rows(self, rows):
         """
         agrega muchas filas al batch.

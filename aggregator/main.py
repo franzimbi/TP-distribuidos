@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 import os
 import logging
-from aggregator_tpv import Aggregator
+from sumador import Adder
 from counter import Counter
+from acumulator import Accumulator
 
 def get_env(name, *, required=False, default=None):
     val = os.environ.get(name, default)
@@ -29,7 +30,7 @@ def main():
         params_buffer.append(p)
         
     if type == "sum":
-        worker = Aggregator(
+        worker = Adder(
             consume, produce,
             key_col       = params_buffer[0],
             value_col     = params_buffer[1],
@@ -38,13 +39,21 @@ def main():
             time_col      = params_buffer[4],
             out_value_name= params_buffer[5],
         )
-    elif type == "counter":
+    if type == "counter":
         worker = Counter(
             consume, produce,
             key_columns = params_buffer[0:2],
             count_name  = params_buffer[2],
         )
-
+    elif type == "accumulator":
+        worker = Accumulator(
+            consume, produce,
+            key_col       = params_buffer[0],
+            value_col     = params_buffer[1],
+            bucket_col    = params_buffer[2],
+            out_value_name= params_buffer[1],
+        )
+#  store_id,tpv,year_semester
    
     worker.start()
 

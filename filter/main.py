@@ -8,9 +8,6 @@ import logging
 filter_type = str(os.getenv("FILTER_NAME"))
 queue_consumer = str(os.getenv("CONSUME_QUEUE"))
 queue_producer = str(os.getenv("PRODUCE_QUEUE"))
-coordinator_consumer = str(os.getenv("QUEUE_CONSUME_FROM_COORDINATOR"))
-coordinator_producer = str(os.getenv("QUEUE_PRODUCE_FOR_COORDINATOR"))
-
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
@@ -26,13 +23,6 @@ filters = {
     'byyear': filter_by_2024_2025
 }
 
-# consumer = MessageMiddlewareQueue(host="rabbitmq", queue_name=queue_consumer)
-# producer = MessageMiddlewareQueue(host="rabbitmq", queue_name=queue_producer)
-# coordinator_consumer_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=coordinator_consumer)
-# coordinator_producer_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=coordinator_producer)
-
-# print(f"[{filter_type}] Escuchando en cola: {queue_consumer}, enviando a: {queue_producer}")
-
 filter_by_env = filters[filter_type]
-this_filter = Filter(queue_consumer, queue_producer, filter_by_env, coordinator_consumer, coordinator_producer)
+this_filter = Filter(queue_consumer, queue_producer, filter_by_env)
 this_filter.start()

@@ -8,11 +8,10 @@ import logging
 def send_batches_from_csv(path, batch_size, connection: socket, type_file, client_id):
     logging.debug(f"[PROTOCOL] Enviando batches desde {path} de tipo {type_file} para client {client_id}")
     current_batch = Batch(client_id=client_id,type_file=type_file)
+    cant_batches = 0
     for filename in os.listdir(path):
         if filename.endswith('.csv'):
             with open(path + '/' + filename, 'r', encoding='utf-8', errors='replace') as f:
-                # printear el nombre del archivo que se esta leyendo
-                # logging.info(f"[PROTOCOL] Leyendo archivo: {filename}")
                 headers = next(f)
                 try:
                     current_batch.set_header(headers)
@@ -23,10 +22,16 @@ def send_batches_from_csv(path, batch_size, connection: socket, type_file, clien
                     if len(current_batch) >= batch_size:
                         send_batch(connection, current_batch)
                         current_batch.reset_body_and_increment_id()
+                        cant_batches += 1
     if len(current_batch) > 0:
         send_batch(connection, current_batch)
         current_batch.reset_body_and_increment_id()
+        cant_batches += 1
+
+    current_batch.reset_body_and_increment_id()
     current_batch.set_last_batch(True)
+    current_batch.set_header(['cant_batches'])
+    current_batch.add_row(str(cant_batches))
     send_batch(connection, current_batch)
 
 def recv_client_id(socket):
