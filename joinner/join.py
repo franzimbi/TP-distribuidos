@@ -8,7 +8,7 @@ import time
 from diskcache import Cache
 
 cache_dir = '/tmp/join_cache'
-cache_size = 2 ** 30  # 1GB
+cache_size =10*(2 ** 30)  # 10GB
 
 FLUSH_MESSAGE = 'FLUSH'
 END_MESSAGE = 'END'
@@ -21,6 +21,9 @@ class Join:
         self.coordinator_consumer = None
         self.coordinator_producer = None
         self.conection_coordinator = None
+        self.use_diskcache = use_diskcache
+        self.batch_counter = 0
+        self.disk_buffer = {}
         if use_diskcache:
             self.join_dictionary = Cache(cache_dir, size_limit=cache_size)
         else:
@@ -81,6 +84,7 @@ class Join:
         self.consumer_queue.start_consuming(self.callback)
 
     def callback_to_receive_join_data(self, ch, method, properties, message):
+        self.batch_counter += 1
         batch = Batch()
         batch.decode(message)
 
@@ -104,9 +108,17 @@ class Join:
             if key is None or value is None:
                 logging.debug(f"Key or value is None for row: {row}")
                 continue
-            if key not in self.join_dictionary:
+            if not self.use_diskcache and key not in self.join_dictionary:
                 self.join_dictionary[key] = value
                 added += 1
+            elif self.use_diskcache and key not in self.join_dictionary and key not in self.disk_buffer:
+                self.disk_buffer[key] = value
+                added += 1
+
+        if batch.is_last_batch():
+            print(f"[JOINER] Flusheando buffer ({len(self.disk_buffer)} claves) a disco...")
+            self._flush_buffer_to_disk()
+            self.batch_counter = 0
 
         if batch.is_last_batch():
             print(f"[JOINER] LAST batch recibido (id={batch.id()}) -> llamo a stop_consuming()")
@@ -115,6 +127,18 @@ class Join:
                 print("[JOINER] stop_consuming() OK")
             except Exception as e:
                 print(f"[JOINER] stop_consuming() lanzó excepción: {e}")
+
+    def _flush_buffer_to_disk(self):
+        try:
+            with self.join_dictionary.transact():
+                for k, v in self.disk_buffer.items():
+                    self.join_dictionary[k] = v
+            self.disk_buffer.clear()
+            self.batch_counter = 0
+            print(f"[JOINER] Flush completado correctamente ({len(self.join_dictionary)} total)")
+        except Exception as e:
+            print(f"[JOINER] Error durante el flush a disco: {e}")
+
 
 
 
