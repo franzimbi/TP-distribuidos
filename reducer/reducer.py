@@ -84,7 +84,7 @@ class Reducer:
         batch.delete_rows()
         batch.set_last_batch(True)
         batch.set_header(['cant_batches'])
-        batch.add_row([[str(1)]])
+        batch.add_row([str(1)])
         self._producer_queue.send(batch.encode())
         self.top_users.pop(client_id)
         self.waited_batches.pop(client_id)
