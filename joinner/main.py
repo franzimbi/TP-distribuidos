@@ -25,9 +25,7 @@ def initialize_config():
             entrada_type, name_e = [p.strip() for p in exchange_name.split(",", 1)]
         except ValueError:
             raise ValueError("entradaJoin debe tener formato 'exchange_type,exchange_name'")
-
-        coord_consume_q = req("queue_to_receive_coordinator")
-        coord_produce_q = req("queue_to_send_coordinator")
+        
 
         params = req("params")
         try:
@@ -45,8 +43,6 @@ def initialize_config():
             "PRODUCE_QUEUE": produce_q,
             "JOIN_QUEUE": join_q,
             "EXCHANGE_NAME": name_e,
-            "COORDINATOR_CONSUME_QUEUE": coord_consume_q,
-            "COORDINATOR_PRODUCE_QUEUE": coord_produce_q,
             "COLUMN_NAME": col_name,
             "COLUMN_ID": col_id,
             "USE_DISKCACHE": use_disk,
@@ -73,8 +69,6 @@ def main():
 
     queue_consumer = config_params["CONSUME_QUEUE"]
     queue_producer = config_params["PRODUCE_QUEUE"]
-    coordinator_consumer = config_params["COORDINATOR_CONSUME_QUEUE"]
-    coordinator_producer = config_params["COORDINATOR_PRODUCE_QUEUE"]
 
     join_queue = config_params["JOIN_QUEUE"]
     exchange_name = config_params["EXCHANGE_NAME"]
@@ -88,7 +82,7 @@ def main():
         f"join_queue:{join_queue} | listen_backlog: {listen_backlog} | logging_level: {logging_level}")
 
     this_join = Join(exchange_name, join_queue, config_params["COLUMN_ID"], config_params["COLUMN_NAME"], config_params["USE_DISKCACHE"])
-    this_join.start(queue_consumer, queue_producer, coordinator_consumer, coordinator_producer)
+    this_join.start(queue_consumer, queue_producer)
 
 
 if __name__ == "__main__":

@@ -18,9 +18,6 @@ class Join:
         self.producer_queue = None
         self.consumer_queue = None
         self.join_dictionary = None
-        self.coordinator_consumer = None
-        self.coordinator_producer = None
-        self.conection_coordinator = None
         self.use_diskcache = use_diskcache
         self.batch_counter = 0
         self.disk_buffer = {}
@@ -49,7 +46,7 @@ class Join:
             pass
         sys.exit(0)
 
-    def start(self, consumer, producer, coordinator_consumer, coordinator_producer):
+    def start(self, consumer, producer):
         print("entre a start")
         aux = self.join_queue
 
@@ -72,8 +69,6 @@ class Join:
         print("termine de recibir los datos del join")
         self.consumer_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=consumer)
         self.producer_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=producer)
-        self.coordinator_consumer = MessageMiddlewareQueue(host="rabbitmq", queue_name=coordinator_consumer)
-        self.coordinator_producer = MessageMiddlewareQueue(host="rabbitmq", queue_name=coordinator_producer)
 
         self.consumer_queue.start_consuming(self.callback)
 
@@ -116,7 +111,6 @@ class Join:
                 logging.debug(f"Key or value is None for row: {row}")
                 continue
             if not self.use_diskcache and key not in self.join_dictionary:
-                print("5")
                 self.join_dictionary[key] = value
                 added += 1
             elif self.use_diskcache and key not in self.join_dictionary and key not in self.disk_buffer:
@@ -159,17 +153,8 @@ class Join:
         #         self.producer_queue.close()
         #     if self.join_queue:
         #         self.join_queue.close()
-        #     if self.coordinator_consumer:
-        #         self.coordinator_consumer.stop_consuming()
-        #         self.coordinator_consumer.close()
-        #     if self.coordinator_producer:
-        #         self.coordinator_producer.close()
         # except:
         #     pass
-        # if self.conection_coordinator:
-        #     self.conection_coordinator.join()
-        # if isinstance(self.join_dictionary, Cache):
-        #     self.join_dictionary.close()
         def close(self):
             # Intentamos parar y cerrar todos los queues
             try:
@@ -198,31 +183,8 @@ class Join:
                         self.join_queue.close()
                     except Exception:
                         pass
-
-                if self.coordinator_consumer:
-                    try:
-                        self.coordinator_consumer.stop_consuming()
-                    except Exception:
-                        pass
-                    try:
-                        self.coordinator_consumer.close()
-                    except Exception:
-                        pass
-
-                if self.coordinator_producer:
-                    try:
-                        self.coordinator_producer.close()
-                    except Exception:
-                        pass
             except Exception:
                 pass
-
-            # Join del thread del coordinator si existe
-            if getattr(self, "conection_coordinator", None):
-                try:
-                    self.conection_coordinator.join(timeout=2)
-                except Exception:
-                    pass
 
             # Cerrar cache si corresponde
             if isinstance(self.join_dictionary, Cache):
