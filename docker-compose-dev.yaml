@@ -184,57 +184,57 @@ services:
   #   - mynet
   #   volumes:
   #   - ./config.ini:/app/config.ini
-  # aggregatorsuma_q21_1:
-  #   build:
-  #     context: .
-  #     dockerfile: aggregator/Dockerfile
-  #   depends_on:
-  #   - distributor
-  #   restart: on-failure
-  #   environment:
-  #   - PYTHONUNBUFFERED=1
-  #   - CONSUME_QUEUE=Queue_begin2_1
-  #   - PRODUCE_QUEUE=Queue_between_aggregator_reducer_Q21
-  #   - TYPE=sum
-  #   - PARAMS=item_id,quantity,month,year_month,created_at,total_quantity
-  #   networks:
-  #   - mynet
-  #   volumes:
-  #   - ./config.ini:/app/config.ini
-  # aggregatorsuma_q21_2:
-  #   build:
-  #     context: .
-  #     dockerfile: aggregator/Dockerfile
-  #   depends_on:
-  #   - distributor
-  #   restart: on-failure
-  #   environment:
-  #   - PYTHONUNBUFFERED=1
-  #   - CONSUME_QUEUE=Queue_begin2_1
-  #   - PRODUCE_QUEUE=Queue_between_aggregator_reducer_Q21
-  #   - TYPE=sum
-  #   - PARAMS=item_id,quantity,month,year_month,created_at,total_quantity
-  #   networks:
-  #   - mynet
-  #   volumes:
-  #   - ./config.ini:/app/config.ini
-  # aggregatorsuma_q22_1:
-  #   build:
-  #     context: .
-  #     dockerfile: aggregator/Dockerfile
-  #   depends_on:
-  #   - distributor
-  #   restart: on-failure
-  #   environment:
-  #   - PYTHONUNBUFFERED=1
-  #   - CONSUME_QUEUE=Queue_begin2_2
-  #   - PRODUCE_QUEUE=Queue_between_aggregator_reducer_Q22
-  #   - TYPE=sum
-  #   - PARAMS=item_id,subtotal,month,year_month,created_at,total_earnings
-  #   networks:
-  #   - mynet
-  #   volumes:
-  #   - ./config.ini:/app/config.ini
+  aggregatorsuma_q21_1:
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_begin2_1
+    - PRODUCE_QUEUE=Queue_between_aggregator_reducer_Q21
+    - TYPE=sum
+    - PARAMS=item_id,quantity,month,year_month,created_at,total_quantity
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+  aggregatorsuma_q21_2:
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_begin2_1
+    - PRODUCE_QUEUE=Queue_between_aggregator_reducer_Q21
+    - TYPE=sum
+    - PARAMS=item_id,quantity,month,year_month,created_at,total_quantity
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+  aggregatorsuma_q22_1:
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_begin2_2
+    - PRODUCE_QUEUE=Queue_between_aggregator_reducer_Q22
+    - TYPE=sum
+    - PARAMS=item_id,subtotal,month,year_month,created_at,total_earnings
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
   aggregatorsuma_q3_1:
     build:
       context: .
@@ -281,7 +281,7 @@ services:
     environment:
     - PYTHONUNBUFFERED=1
     - CONSUME_QUEUE=ej1
-    - PRODUCE_QUEUE=Queue_final_Q3
+    - PRODUCE_QUEUE=Queue_between_aggregator_join_Q3
     - TYPE=accumulator
     - PARAMS=store_id,tpv,year_semester
     networks:
@@ -289,74 +289,74 @@ services:
     volumes:
     - ./config.ini:/app/config.ini
 
-  # aggregatorcounter_q4_1:
-  #   build:
-  #     context: .
-  #     dockerfile: aggregator/Dockerfile
-  #   depends_on:
-  #   - distributor
-  #   restart: on-failure
-  #   environment:
-  #   - PYTHONUNBUFFERED=1
-  #   - CONSUME_QUEUE=Queue_begin_4
-  #   - PRODUCE_QUEUE=Queue_between_aggregator_reducer_Q4
-  #   - TYPE=counter
-  #   - PARAMS=store_id,user_id,purchases_qty
-  #   networks:
-  #   - mynet
-  #   volumes:
-  #   - ./config.ini:/app/config.ini
-  # reducerreducer_q21_1:
-  #   build:
-  #     context: .
-  #     dockerfile: reducer/Dockerfile
-  #   depends_on:
-  #   - distributor
-  #   restart: on-failure
-  #   environment:
-  #   - PYTHONUNBUFFERED=1
-  #   - CONSUME_QUEUE=Queue_between_aggregator_reducer_Q21
-  #   - PRODUCE_QUEUE=Queue_between_reducer_joiner_Q21
-  #   - TOP=1
-  #   - PARAMS=year_month,item_id,total_quantity
-  #   networks:
-  #   - mynet
-  #   volumes:
-  #   - ./config.ini:/app/config.ini
-  # reducerreducer_q22_1:
-  #   build:
-  #     context: .
-  #     dockerfile: reducer/Dockerfile
-  #   depends_on:
-  #   - distributor
-  #   restart: on-failure
-  #   environment:
-  #   - PYTHONUNBUFFERED=1
-  #   - CONSUME_QUEUE=Queue_between_aggregator_reducer_Q22
-  #   - PRODUCE_QUEUE=Queue_between_reducer_joiner_Q22
-  #   - TOP=1
-  #   - PARAMS=year_month,item_id,total_earnings
-  #   networks:
-  #   - mynet
-  #   volumes:
-  #   - ./config.ini:/app/config.ini
-  # reducerreducer_q4_1:
-  #   build:
-  #     context: .
-  #     dockerfile: reducer/Dockerfile
-  #   depends_on:
-  #   - distributor
-  #   restart: on-failure
-  #   environment:
-  #   - PYTHONUNBUFFERED=1
-  #   - CONSUME_QUEUE=Queue_between_aggregator_reducer_Q4
-  #   - PRODUCE_QUEUE=Queue_between_reducer_joiner_Q4
-  #   - TOP=3
-  #   - PARAMS=store_id,user_id,purchases_qty
-  #   networks:
-  #   - mynet
-  #   volumes:
-  #   - ./config.ini:/app/config.ini
+  aggregatorcounter_q4_1:
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_begin_4
+    - PRODUCE_QUEUE=Queue_between_aggregator_reducer_Q4
+    - TYPE=counter
+    - PARAMS=store_id,user_id,purchases_qty
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+  reducerreducer_q21_1:
+    build:
+      context: .
+      dockerfile: reducer/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_between_aggregator_reducer_Q21
+    - PRODUCE_QUEUE=Queue_between_reducer_joiner_Q21
+    - TOP=1
+    - PARAMS=year_month,item_id,total_quantity
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+  reducerreducer_q22_1:
+    build:
+      context: .
+      dockerfile: reducer/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_between_aggregator_reducer_Q22
+    - PRODUCE_QUEUE=Queue_between_reducer_joiner_Q22
+    - TOP=1
+    - PARAMS=year_month,item_id,total_earnings
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+  reducerreducer_q4_1:
+    build:
+      context: .
+      dockerfile: reducer/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_between_aggregator_reducer_Q4
+    - PRODUCE_QUEUE=Queue_between_reducer_joiner_Q4
+    - TOP=3
+    - PARAMS=store_id,user_id,purchases_qty
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
   filter_amount_q1_1:
     build:
       context: .
@@ -459,48 +459,48 @@ services:
   #   - mynet
   #   volumes:
   #   - ./config.ini:/app/config.ini
-  # join_productos_q21_1:
-  #   build:
-  #     context: .
-  #     dockerfile: joinner/Dockerfile
-  #   depends_on:
-  #   - distributor
-  #   restart: on-failure
-  #   environment:
-  #   - PYTHONUNBUFFERED=1
-  #   - entradaJoin=exchange,productsExchange
-  #   - queueEntradaJoin=entradaJoinerJoin_productos_Q21_1
-  #   - queueEntradaData=Queue_between_reducer_joiner_Q21
-  #   - queuesSalida=Queue_final_Q21
-  #   - queue_to_send_coordinator=coodinator_Join_productos_Q21_unique_queue
-  #   - queue_to_receive_coordinator=Join_productos_Q21_1_receive_from_coordinator_Join_productos_Q21
-  #   - use_diskcache=False
-  #   - params=item_name,item_id
-  #   networks:
-  #   - mynet
-  #   volumes:
-  #   - ./config.ini:/app/config.ini
-  # join_productos_q21_2:
-  #   build:
-  #     context: .
-  #     dockerfile: joinner/Dockerfile
-  #   depends_on:
-  #   - distributor
-  #   restart: on-failure
-  #   environment:
-  #   - PYTHONUNBUFFERED=1
-  #   - entradaJoin=exchange,productsExchange
-  #   - queueEntradaJoin=entradaJoinerJoin_productos_Q21_2
-  #   - queueEntradaData=Queue_between_reducer_joiner_Q21
-  #   - queuesSalida=Queue_final_Q21
-  #   - queue_to_send_coordinator=coodinator_Join_productos_Q21_unique_queue
-  #   - queue_to_receive_coordinator=Join_productos_Q21_2_receive_from_coordinator_Join_productos_Q21
-  #   - use_diskcache=False
-  #   - params=item_name,item_id
-  #   networks:
-  #   - mynet
-  #   volumes:
-  #   - ./config.ini:/app/config.ini
+  join_productos_q21_1:
+    build:
+      context: .
+      dockerfile: joinner/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - entradaJoin=exchange,productsExchange
+    - queueEntradaJoin=entradaJoinerJoin_productos_Q21_1
+    - queueEntradaData=Queue_between_reducer_joiner_Q21
+    - queuesSalida=Queue_final_Q21
+    - queue_to_send_coordinator=coodinator_Join_productos_Q21_unique_queue
+    - queue_to_receive_coordinator=Join_productos_Q21_1_receive_from_coordinator_Join_productos_Q21
+    - use_diskcache=False
+    - params=item_name,item_id
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+  join_productos_q21_2:
+    build:
+      context: .
+      dockerfile: joinner/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - entradaJoin=exchange,productsExchange
+    - queueEntradaJoin=entradaJoinerJoin_productos_Q21_2
+    - queueEntradaData=Queue_between_reducer_joiner_Q21
+    - queuesSalida=Queue_final_Q21
+    - queue_to_send_coordinator=coodinator_Join_productos_Q21_unique_queue
+    - queue_to_receive_coordinator=Join_productos_Q21_2_receive_from_coordinator_Join_productos_Q21
+    - use_diskcache=False
+    - params=item_name,item_id
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
   # coordinator_join_productos_q21:
   #   build:
   #     context: .
@@ -516,48 +516,48 @@ services:
   #   - mynet
   #   volumes:
   #   - ./config.ini:/app/config.ini
-  # join_productos_q22_1:
-  #   build:
-  #     context: .
-  #     dockerfile: joinner/Dockerfile
-  #   depends_on:
-  #   - distributor
-  #   restart: on-failure
-  #   environment:
-  #   - PYTHONUNBUFFERED=1
-  #   - entradaJoin=exchange,productsExchange
-  #   - queueEntradaJoin=entradaJoinerJoin_productos_Q22_1
-  #   - queueEntradaData=Queue_between_reducer_joiner_Q22
-  #   - queuesSalida=Queue_final_Q22
-  #   - queue_to_send_coordinator=coodinator_Join_productos_Q22_unique_queue
-  #   - queue_to_receive_coordinator=Join_productos_Q22_1_receive_from_coordinator_Join_productos_Q22
-  #   - use_diskcache=False
-  #   - params=item_name,item_id
-  #   networks:
-  #   - mynet
-  #   volumes:
-  #   - ./config.ini:/app/config.ini
-  # join_productos_q22_2:
-  #   build:
-  #     context: .
-  #     dockerfile: joinner/Dockerfile
-  #   depends_on:
-  #   - distributor
-  #   restart: on-failure
-  #   environment:
-  #   - PYTHONUNBUFFERED=1
-  #   - entradaJoin=exchange,productsExchange
-  #   - queueEntradaJoin=entradaJoinerJoin_productos_Q22_2
-  #   - queueEntradaData=Queue_between_reducer_joiner_Q22
-  #   - queuesSalida=Queue_final_Q22
-  #   - queue_to_send_coordinator=coodinator_Join_productos_Q22_unique_queue
-  #   - queue_to_receive_coordinator=Join_productos_Q22_2_receive_from_coordinator_Join_productos_Q22
-  #   - use_diskcache=False
-  #   - params=item_name,item_id
-  #   networks:
-  #   - mynet
-  #   volumes:
-  #   - ./config.ini:/app/config.ini
+  join_productos_q22_1:
+    build:
+      context: .
+      dockerfile: joinner/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - entradaJoin=exchange,productsExchange
+    - queueEntradaJoin=entradaJoinerJoin_productos_Q22_1
+    - queueEntradaData=Queue_between_reducer_joiner_Q22
+    - queuesSalida=Queue_final_Q22
+    - queue_to_send_coordinator=coodinator_Join_productos_Q22_unique_queue
+    - queue_to_receive_coordinator=Join_productos_Q22_1_receive_from_coordinator_Join_productos_Q22
+    - use_diskcache=False
+    - params=item_name,item_id
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+  join_productos_q22_2:
+    build:
+      context: .
+      dockerfile: joinner/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - entradaJoin=exchange,productsExchange
+    - queueEntradaJoin=entradaJoinerJoin_productos_Q22_2
+    - queueEntradaData=Queue_between_reducer_joiner_Q22
+    - queuesSalida=Queue_final_Q22
+    - queue_to_send_coordinator=coodinator_Join_productos_Q22_unique_queue
+    - queue_to_receive_coordinator=Join_productos_Q22_2_receive_from_coordinator_Join_productos_Q22
+    - use_diskcache=False
+    - params=item_name,item_id
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
   # coordinator_join_productos_q22:
   #   build:
   #     context: .
@@ -573,48 +573,48 @@ services:
   #   - mynet
   #   volumes:
   #   - ./config.ini:/app/config.ini
-  # join_stores_q3_1:
-  #   build:
-  #     context: .
-  #     dockerfile: joinner/Dockerfile
-  #   depends_on:
-  #   - distributor
-  #   restart: on-failure
-  #   environment:
-  #   - PYTHONUNBUFFERED=1
-  #   - entradaJoin=exchange,storesExchange
-  #   - queueEntradaJoin=entradaJoinerJoin_stores_Q3_1
-  #   - queueEntradaData=Queue_between_aggregator_join_Q3
-  #   - queuesSalida=Queue_final_Q3
-  #   - queue_to_send_coordinator=coodinator_Join_stores_Q3_unique_queue
-  #   - queue_to_receive_coordinator=Join_stores_Q3_1_receive_from_coordinator_Join_stores_Q3
-  #   - use_diskcache=False
-  #   - params=store_name,store_id
-  #   networks:
-  #   - mynet
-  #   volumes:
-  #   - ./config.ini:/app/config.ini
-  # join_stores_q3_2:
-  #   build:
-  #     context: .
-  #     dockerfile: joinner/Dockerfile
-  #   depends_on:
-  #   - distributor
-  #   restart: on-failure
-  #   environment:
-  #   - PYTHONUNBUFFERED=1
-  #   - entradaJoin=exchange,storesExchange
-  #   - queueEntradaJoin=entradaJoinerJoin_stores_Q3_2
-  #   - queueEntradaData=Queue_between_aggregator_join_Q3
-  #   - queuesSalida=Queue_final_Q3
-  #   - queue_to_send_coordinator=coodinator_Join_stores_Q3_unique_queue
-  #   - queue_to_receive_coordinator=Join_stores_Q3_2_receive_from_coordinator_Join_stores_Q3
-  #   - use_diskcache=False
-  #   - params=store_name,store_id
-  #   networks:
-  #   - mynet
-  #   volumes:
-  #   - ./config.ini:/app/config.ini
+  join_stores_q3_1:
+    build:
+      context: .
+      dockerfile: joinner/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - entradaJoin=exchange,storesExchange
+    - queueEntradaJoin=entradaJoinerJoin_stores_Q3_1
+    - queueEntradaData=Queue_between_aggregator_join_Q3
+    - queuesSalida=Queue_final_Q3
+    - queue_to_send_coordinator=coodinator_Join_stores_Q3_unique_queue
+    - queue_to_receive_coordinator=Join_stores_Q3_1_receive_from_coordinator_Join_stores_Q3
+    - use_diskcache=False
+    - params=store_name,store_id
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+  join_stores_q3_2:
+    build:
+      context: .
+      dockerfile: joinner/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - entradaJoin=exchange,storesExchange
+    - queueEntradaJoin=entradaJoinerJoin_stores_Q3_2
+    - queueEntradaData=Queue_between_aggregator_join_Q3
+    - queuesSalida=Queue_final_Q3
+    - queue_to_send_coordinator=coodinator_Join_stores_Q3_unique_queue
+    - queue_to_receive_coordinator=Join_stores_Q3_2_receive_from_coordinator_Join_stores_Q3
+    - use_diskcache=False
+    - params=store_name,store_id
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
   # coordinator_join_stores_q3:
   #   build:
   #     context: .
@@ -630,48 +630,48 @@ services:
   #   - mynet
   #   volumes:
   #   - ./config.ini:/app/config.ini
-  # join_users_q4_1:
-  #   build:
-  #     context: .
-  #     dockerfile: joinner/Dockerfile
-  #   depends_on:
-  #   - distributor
-  #   restart: on-failure
-  #   environment:
-  #   - PYTHONUNBUFFERED=1
-  #   - entradaJoin=exchange,usersExchange
-  #   - queueEntradaJoin=entradaJoinerJoin_users_Q4_1
-  #   - queueEntradaData=Queue_between_reducer_joiner_Q4
-  #   - queuesSalida=Queue_between_joiner_users_and_joiner_stores_Q4
-  #   - queue_to_send_coordinator=coodinator_Join_users_Q4_unique_queue
-  #   - queue_to_receive_coordinator=Join_users_Q4_1_receive_from_coordinator_Join_users_Q4
-  #   - use_diskcache=True
-  #   - params=birthdate,user_id
-  #   networks:
-  #   - mynet
-  #   volumes:
-  #   - ./config.ini:/app/config.ini
-  # join_users_q4_2:
-  #   build:
-  #     context: .
-  #     dockerfile: joinner/Dockerfile
-  #   depends_on:
-  #   - distributor
-  #   restart: on-failure
-  #   environment:
-  #   - PYTHONUNBUFFERED=1
-  #   - entradaJoin=exchange,usersExchange
-  #   - queueEntradaJoin=entradaJoinerJoin_users_Q4_2
-  #   - queueEntradaData=Queue_between_reducer_joiner_Q4
-  #   - queuesSalida=Queue_between_joiner_users_and_joiner_stores_Q4
-  #   - queue_to_send_coordinator=coodinator_Join_users_Q4_unique_queue
-  #   - queue_to_receive_coordinator=Join_users_Q4_2_receive_from_coordinator_Join_users_Q4
-  #   - use_diskcache=True
-  #   - params=birthdate,user_id
-  #   networks:
-  #   - mynet
-  #   volumes:
-  #   - ./config.ini:/app/config.ini
+  join_users_q4_1:
+    build:
+      context: .
+      dockerfile: joinner/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - entradaJoin=exchange,usersExchange
+    - queueEntradaJoin=entradaJoinerJoin_users_Q4_1
+    - queueEntradaData=Queue_between_reducer_joiner_Q4
+    - queuesSalida=Queue_between_joiner_users_and_joiner_stores_Q4
+    - queue_to_send_coordinator=coodinator_Join_users_Q4_unique_queue
+    - queue_to_receive_coordinator=Join_users_Q4_1_receive_from_coordinator_Join_users_Q4
+    - use_diskcache=True
+    - params=birthdate,user_id
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+  join_users_q4_2:
+    build:
+      context: .
+      dockerfile: joinner/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - entradaJoin=exchange,usersExchange
+    - queueEntradaJoin=entradaJoinerJoin_users_Q4_2
+    - queueEntradaData=Queue_between_reducer_joiner_Q4
+    - queuesSalida=Queue_between_joiner_users_and_joiner_stores_Q4
+    - queue_to_send_coordinator=coodinator_Join_users_Q4_unique_queue
+    - queue_to_receive_coordinator=Join_users_Q4_2_receive_from_coordinator_Join_users_Q4
+    - use_diskcache=True
+    - params=birthdate,user_id
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
   # coordinator_join_users_q4:
   #   build:
   #     context: .
@@ -687,48 +687,48 @@ services:
   #   - mynet
   #   volumes:
   #   - ./config.ini:/app/config.ini
-  # join_stores_q4_1:
-  #   build:
-  #     context: .
-  #     dockerfile: joinner/Dockerfile
-  #   depends_on:
-  #   - distributor
-  #   restart: on-failure
-  #   environment:
-  #   - PYTHONUNBUFFERED=1
-  #   - entradaJoin=exchange,storesExchange
-  #   - queueEntradaJoin=entradaJoinerJoin_stores_Q4_1
-  #   - queueEntradaData=Queue_between_joiner_users_and_joiner_stores_Q4
-  #   - queuesSalida=Queue_final_Q4
-  #   - queue_to_send_coordinator=coodinator_Join_stores_Q4_unique_queue
-  #   - queue_to_receive_coordinator=Join_stores_Q4_1_receive_from_coordinator_Join_stores_Q4
-  #   - use_diskcache=False
-  #   - params=store_name,store_id
-  #   networks:
-  #   - mynet
-  #   volumes:
-  #   - ./config.ini:/app/config.ini
-  # join_stores_q4_2:
-  #   build:
-  #     context: .
-  #     dockerfile: joinner/Dockerfile
-  #   depends_on:
-  #   - distributor
-  #   restart: on-failure
-  #   environment:
-  #   - PYTHONUNBUFFERED=1
-  #   - entradaJoin=exchange,storesExchange
-  #   - queueEntradaJoin=entradaJoinerJoin_stores_Q4_2
-  #   - queueEntradaData=Queue_between_joiner_users_and_joiner_stores_Q4
-  #   - queuesSalida=Queue_final_Q4
-  #   - queue_to_send_coordinator=coodinator_Join_stores_Q4_unique_queue
-  #   - queue_to_receive_coordinator=Join_stores_Q4_2_receive_from_coordinator_Join_stores_Q4
-  #   - use_diskcache=False
-  #   - params=store_name,store_id
-  #   networks:
-  #   - mynet
-  #   volumes:
-  #   - ./config.ini:/app/config.ini
+  join_stores_q4_1:
+    build:
+      context: .
+      dockerfile: joinner/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - entradaJoin=exchange,storesExchange
+    - queueEntradaJoin=entradaJoinerJoin_stores_Q4_1
+    - queueEntradaData=Queue_between_joiner_users_and_joiner_stores_Q4
+    - queuesSalida=Queue_final_Q4
+    - queue_to_send_coordinator=coodinator_Join_stores_Q4_unique_queue
+    - queue_to_receive_coordinator=Join_stores_Q4_1_receive_from_coordinator_Join_stores_Q4
+    - use_diskcache=False
+    - params=store_name,store_id
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+  join_stores_q4_2:
+    build:
+      context: .
+      dockerfile: joinner/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - entradaJoin=exchange,storesExchange
+    - queueEntradaJoin=entradaJoinerJoin_stores_Q4_2
+    - queueEntradaData=Queue_between_joiner_users_and_joiner_stores_Q4
+    - queuesSalida=Queue_final_Q4
+    - queue_to_send_coordinator=coodinator_Join_stores_Q4_unique_queue
+    - queue_to_receive_coordinator=Join_stores_Q4_2_receive_from_coordinator_Join_stores_Q4
+    - use_diskcache=False
+    - params=store_name,store_id
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
   # coordinator_join_stores_q4:
   #   build:
   #     context: .

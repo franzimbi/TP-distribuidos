@@ -75,12 +75,6 @@ class Join:
         self.coordinator_consumer = MessageMiddlewareQueue(host="rabbitmq", queue_name=coordinator_consumer)
         self.coordinator_producer = MessageMiddlewareQueue(host="rabbitmq", queue_name=coordinator_producer)
 
-        self.conection_coordinator = threading.Thread(
-            target=self.coordinator_consumer.start_consuming,
-            args=(self.coordinator_callback,), daemon=True
-        )
-        self.conection_coordinator.start()
-
         self.consumer_queue.start_consuming(self.callback)
 
     def callback_to_receive_join_data(self, ch, method, properties, message):
@@ -94,28 +88,8 @@ class Join:
 
         id = batch.index_of(self.column_id)
         name = batch.index_of(self.column_name)
-
-        if id is None or name is None:
-            logging.debug(f"Column {self.column_id} or {self.column_name} not found in batch header {header}")
-            return
-
-        added = 0
-        total_rows = 0
-        for row in batch:
-            total_rows += 1
-            key = row[id]
-            value = row[name]
-            if key is None or value is None:
-                logging.debug(f"Key or value is None for row: {row}")
-                continue
-            if not self.use_diskcache and key not in self.join_dictionary:
-                self.join_dictionary[key] = value
-                added += 1
-            elif self.use_diskcache and key not in self.join_dictionary and key not in self.disk_buffer:
-                self.disk_buffer[key] = value
-                added += 1
-
-        if batch.is_last_batch():
+        
+        if self.use_diskcache and batch.is_last_batch():
             print(f"[JOINER] Flusheando buffer ({len(self.disk_buffer)} claves) a disco...")
             self._flush_buffer_to_disk()
             self.batch_counter = 0
@@ -127,6 +101,27 @@ class Join:
                 print("[JOINER] stop_consuming() OK")
             except Exception as e:
                 print(f"[JOINER] stop_consuming() lanzó excepción: {e}")
+
+        if id is None or name is None:
+            logging.debug(f"Column {self.column_id} or {self.column_name} not found in batch header {header}")
+            return
+        
+        added = 0
+        total_rows = 0
+        for row in batch:
+            total_rows += 1
+            key = row[id]
+            value = row[name]
+            if key is None or value is None:
+                logging.debug(f"Key or value is None for row: {row}")
+                continue
+            if not self.use_diskcache and key not in self.join_dictionary:
+                print("5")
+                self.join_dictionary[key] = value
+                added += 1
+            elif self.use_diskcache and key not in self.join_dictionary and key not in self.disk_buffer:
+                self.disk_buffer[key] = value
+                added += 1
 
     def _flush_buffer_to_disk(self):
         try:
@@ -140,31 +135,19 @@ class Join:
             print(f"[JOINER] Error durante el flush a disco: {e}")
 
 
-
-
-    def coordinator_callback(self, ch, method, properties, body):
-        msg = body.decode('utf-8')
-        if str(msg) == str(FLUSH_MESSAGE):
-            with self.lock:
-                logging.debug(f"[JOIN] Recibido comando FLUSH del coordinator. Enviando datos al siguiente nodo.")
-                self.coordinator_producer.send(END_MESSAGE)
-        else:
-            logging.error(f"[FILTER] Unknown command from coordinator: {msg}")
-
     def callback(self, ch, method, properties, message):
         with self.lock:
             batch = Batch()
             batch.decode(message)
             logging.debug(f"[JOIN] Procesando batch {batch.id()} de tipo {batch.type()} de la query {batch.get_query_id()}.")
+            if batch.is_last_batch():
+                self.producer_queue.send(batch.encode())
+                return
             try:
                 batch.change_header_name_value(self.column_id, self.column_name, self.join_dictionary)
             except (ValueError, KeyError) as e:
                 logging.error(
                     f'action: join_batch_with_dicctionary | result: fail | error: {e}')
-            if batch.is_last_batch():
-                time.sleep(5)
-                self.coordinator_producer.send(batch.encode())
-                return
             self.producer_queue.send(batch.encode())
 
     def close(self):

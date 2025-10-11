@@ -162,10 +162,10 @@ class Distributor:
             return lambda ch, method, properties, body: self.callback(ch, method, properties, body, query_id)
         
         self.threads_queries['q1']  = threading.Thread(target=lambda: self.q1_results.start_consuming(helper_callback(1)),  daemon=True)
-        self.threads_queries['q21'] = threading.Thread(target=lambda: self.q21_results.start_consuming(helper_callback(21)), daemon=True)
-        self.threads_queries['q22'] = threading.Thread(target=lambda: self.q22_results.start_consuming(helper_callback(22)), daemon=True)
+        # self.threads_queries['q21'] = threading.Thread(target=lambda: self.q21_results.start_consuming(helper_callback(21)), daemon=True)
+        # self.threads_queries['q22'] = threading.Thread(target=lambda: self.q22_results.start_consuming(helper_callback(22)), daemon=True)
         self.threads_queries['q3']  = threading.Thread(target=lambda: self.q3_results.start_consuming(helper_callback(3)),  daemon=True)
-        self.threads_queries['q4']  = threading.Thread(target=lambda: self.q4_results.start_consuming(helper_callback(4)),  daemon=True)
+        # self.threads_queries['q4']  = threading.Thread(target=lambda: self.q4_results.start_consuming(helper_callback(4)),  daemon=True)
 
         for _, t in self.threads_queries.items():
             t.start()

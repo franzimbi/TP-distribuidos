@@ -58,7 +58,7 @@ class Client:
 
         self.client_id = recv_client_id(self.socket)
 
-        # send_batches_from_csv(path_input+STORES_PATH, BATCH_SIZE, self.socket, STORES_TYPE_FILE, self.client_id)
+        send_batches_from_csv(path_input+STORES_PATH, BATCH_SIZE, self.socket, STORES_TYPE_FILE, self.client_id)
 
         # send_batches_from_csv(path_input+USERS_PATH, BATCH_SIZE, self.socket, USERS_TYPE_FILE, self.client_id)
 
@@ -66,14 +66,14 @@ class Client:
 
         #send_batches_from_csv(path_input+TRANSACTION_ITEMS_PATH, BATCH_SIZE, self.socket, TRANSACTION_ITEMS_TYPE_FILE, self.client_id)
         
-        send_batches_from_csv(path_input + TRANSACTION_PATH, BATCH_SIZE, self.socket, TRANSACTION_TYPE_FILE, self.client_id)
+        #send_batches_from_csv(path_input + TRANSACTION_PATH, BATCH_SIZE, self.socket, TRANSACTION_TYPE_FILE, self.client_id)
 
-        # self.sender_transaction = threading.Thread(
-        #     target=send_batches_from_csv,
-        #     args=(path_input + TRANSACTION_PATH, BATCH_SIZE, self.socket, TRANSACTION_TYPE_FILE, self.client_id),
-        #     daemon=True
-        # )
-        # self.sender_transaction.start()
+        self.sender_transaction = threading.Thread(
+            target=send_batches_from_csv,
+            args=(path_input + TRANSACTION_PATH, BATCH_SIZE, self.socket, TRANSACTION_TYPE_FILE, self.client_id),
+            daemon=True
+        )
+        self.sender_transaction.start()
 
         self.receiver_thread = threading.Thread(
             target=self.receiver, args=(path_output,), daemon=True

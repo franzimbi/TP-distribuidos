@@ -8,7 +8,7 @@ if len(sys.argv) != 3:
 
 cant_nodos = int(sys.argv[1])
 cant_clientes = int(sys.argv[2])
-nombre_file = 'docker-compose-dev.yaml'
+nombre_file = 'docker-compose-dev.yaml2'
 
 
 def crear_distributor():
