@@ -8,7 +8,7 @@ from configparser import ConfigParser
 import logging
 import signal
 
-QUERIES_SIZE = 2
+QUERIES_SIZE = 3
 
 def initialize_config():
     config = ConfigParser(os.environ)
@@ -44,7 +44,7 @@ def send_id_to_client(client_id, socket):
 
 
 def handle_client(socket, shutdown, distributor):
-    counter_lasts_batches = 0
+    # counter_lasts_batches = 0
     while not shutdown.is_set():
         # try:
         batch = recv_batch(socket) #TODO: esto hay q cambiarlo para q no explote
@@ -52,13 +52,13 @@ def handle_client(socket, shutdown, distributor):
         #     logging.debug("")
         if batch is not None:
             if batch.is_last_batch():
-                counter_lasts_batches += 1
+                # counter_lasts_batches += 1
                 print(f"[DISTRIBUTOR] Recibido batch final {batch.id()} de tipo {batch.type()} de client_{batch.client_id()}.")
             distributor.distribute_batch_to_workers(batch)
         # print(f"[DISTRIBUTOR] counter: {counter_lasts_batches} y queries: {QUERIES_SIZE}")
-        if counter_lasts_batches == QUERIES_SIZE:
-            print(f"[DISTRIBUTOR] entro al if counter: {counter_lasts_batches} y queries: {QUERIES_SIZE}")
-            return
+        # if counter_lasts_batches == QUERIES_SIZE:
+        #     print(f"[DISTRIBUTOR] entro al if counter: {counter_lasts_batches} y queries: {QUERIES_SIZE}")
+            # return
 
 
 def graceful_quit(signum, frame, shutdown, server_socket, distributor, client_threads):
