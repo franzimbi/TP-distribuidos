@@ -270,7 +270,25 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  
+
+  accumulator_q4:
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=ej2
+    - PRODUCE_QUEUE=Queue_between_aggregator_reducer_Q4
+    - TYPE=accumulator
+    - PARAMS=store_id,purchases_qty,user_id
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+
   accumlator_q3:
     build:
       context: .
@@ -299,7 +317,25 @@ services:
     environment:
     - PYTHONUNBUFFERED=1
     - CONSUME_QUEUE=Queue_begin_4
-    - PRODUCE_QUEUE=Queue_between_aggregator_reducer_Q4
+    - PRODUCE_QUEUE=ej2
+    - TYPE=counter
+    - PARAMS=store_id,user_id,purchases_qty
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+
+  aggregatorcounter_q4_2:
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_begin_4
+    - PRODUCE_QUEUE=ej2
     - TYPE=counter
     - PARAMS=store_id,user_id,purchases_qty
     networks:
@@ -350,7 +386,7 @@ services:
     environment:
     - PYTHONUNBUFFERED=1
     - CONSUME_QUEUE=Queue_between_aggregator_reducer_Q4
-    - PRODUCE_QUEUE=Queue_between_reducer_joiner_Q4
+    - PRODUCE_QUEUE=Queue_final_Q4
     - TOP=3
     - PARAMS=store_id,user_id,purchases_qty
     networks:

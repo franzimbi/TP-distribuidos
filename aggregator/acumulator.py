@@ -12,19 +12,6 @@ config.read("config.ini")
 
 BUFFER_SIZE = int(config["DEFAULT"]["BATCH_SIZE"])
 
-# def year_month(ts: str) -> str:
-#     d = datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")
-#     return f"{d.year}_{d.month:02d}"
-
-# def year_semester(ts: str) -> str:
-#     d = datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")
-#     return f"{d.year}_{'S1' if d.month <= 6 else 'S2'}"
-
-# BUCKET = {
-#     "month": year_month,
-#     "semester": year_semester,
-# }
-
 class Accumulator:
     def __init__(self, consume_queue, produce_queue, *,
                  key_col: str,
