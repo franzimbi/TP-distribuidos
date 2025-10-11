@@ -106,7 +106,7 @@ class Client:
                 # print(f"recibi batch {batch.id()}")
                 qid = batch.get_query_id()
                 if batch.client_id() != self.client_id:
-                    logging.info("[CLIENT] llego un batch con client_id distinto")
+                    logging.info(f"[CLIENT] llego un batch con client_id distinto: {batch}")
                     continue
                     
                 if batch.is_last_batch():

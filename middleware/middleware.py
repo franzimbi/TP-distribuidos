@@ -55,9 +55,19 @@ class MessageMiddleware(ABC):
     def delete(self):
         pass
 
+
 class MessageMiddlewareExchange(MessageMiddleware):
     def __init__(self, host, exchange_name, route_keys, exchange_type, queue_name=None):
-        self.connection = pika.BlockingConnection(pika.ConnectionParameters(host=host))
+        self.connection = pika.BlockingConnection(pika.ConnectionParameters(host=host,
+                                                                            heartbeat=300,  # 5 minutos de tolerancia
+                                                                            blocked_connection_timeout=600,  # evita
+                                                                            # cortar por bloqueos largos
+                                                                            socket_timeout=600,  # lectura/escritura
+                                                                            # más paciente
+                                                                            connection_attempts=10,  # intenta
+                                                                            # reconectarse varias veces
+                                                                            retry_delay=5,  # espera 5s entre intentos
+                                                                            ))
         self.channel = self.connection.channel()
         self.route_keys = route_keys
         self.exchange = exchange_name
@@ -69,7 +79,11 @@ class MessageMiddlewareExchange(MessageMiddleware):
         )
 
         if self.queue:
-            self.channel.queue_declare(queue=self.queue, durable=False, exclusive=False, auto_delete=True)
+            self.channel.queue_declare(queue=self.queue, durable=False, exclusive=False, auto_delete=True, arguments={
+                'x-max-length': 1000000,  # hasta 1 millón de mensajes
+                'x-max-length-bytes': 1073741824,  # o 1 GB de mensajes
+                'x-overflow': 'drop-head'  # descarta los más viejos si se llena
+            })
 
     def start_consuming(self, on_message_callback):
         try:
@@ -89,9 +103,9 @@ class MessageMiddlewareExchange(MessageMiddleware):
             self.channel.stop_consuming()
         except pika.exceptions.AMQPConnectionError as e:
             raise MessageMiddlewareDisconnectedError() from e
-        
+
     def send(self, message):
-        self.channel.basic_publish(exchange=self.exchange, routing_key=self.route_keys[0], body=message, 
+        self.channel.basic_publish(exchange=self.exchange, routing_key=self.route_keys[0], body=message,
                                    properties=pika.BasicProperties(delivery_mode=1))
 
     def close(self):
@@ -118,12 +132,24 @@ class MessageMiddlewareExchange(MessageMiddleware):
             # Cualquier otro error (por ejemplo, la cola no existe, o canal cerrado)
             raise MessageMiddlewareDeleteError() from e
 
+
 class MessageMiddlewareQueue(MessageMiddleware):
     def __init__(self, host, queue_name):
-        self._connection = pika.BlockingConnection(pika.ConnectionParameters(host=host))
+        self._connection = pika.BlockingConnection(pika.ConnectionParameters(
+            host=host,
+            heartbeat=300,  # 5 minutos de tolerancia
+            blocked_connection_timeout=600,  # evita cortar por bloqueos largos
+            socket_timeout=600,  # lectura/escritura más paciente
+            connection_attempts=10,  # intenta reconectarse varias veces
+            retry_delay=5,  # espera 5s entre intentos
+        ))
         self._channel = self._connection.channel()
         self._queue_name = queue_name
-        self._channel.queue_declare(queue=queue_name, durable=False, auto_delete=True)
+        self._channel.queue_declare(queue=queue_name, durable=False, auto_delete=True, arguments={
+            'x-max-length': 1000000,  # hasta 1 millón de mensajes
+            'x-max-length-bytes': 1073741824,  # o 1 GB de mensajes
+            'x-overflow': 'drop-head'  # descarta los más viejos si se llena
+        })
         logging.getLogger("pika").propagate = False
 
     def start_consuming(self, on_message_callback):
@@ -165,7 +191,7 @@ class MessageMiddlewareQueue(MessageMiddleware):
     def send(self, message):
         try:
             self._channel.basic_publish(exchange='', routing_key=self._queue_name, body=message,
-                                    properties=pika.BasicProperties(delivery_mode=1))
+                                        properties=pika.BasicProperties(delivery_mode=1))
         except (pika.exceptions.ConnectionClosed,
                 pika.exceptions.StreamLostError,
                 pika.exceptions.AMQPConnectionError) as e:
@@ -182,7 +208,6 @@ class MessageMiddlewareQueue(MessageMiddleware):
         finally:
             logging.debug("[Middleware] conexión cerrada manualmente")
 
-
     def delete(self):
         try:
             if self._channel and self._channel.is_open:
@@ -193,4 +218,3 @@ class MessageMiddlewareQueue(MessageMiddleware):
             raise MessageMiddlewareDisconnectedError() from e
         except Exception as e:
             raise MessageMiddlewareDeleteError(f"Error al eliminar cola: {e}") from e
-

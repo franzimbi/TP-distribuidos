@@ -159,6 +159,7 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+
   aggregatorsuma_q21_2:
     build:
       context: .
@@ -176,6 +177,42 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+
+  aggregatorsuma_q21_3:
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+      - distributor
+    restart: on-failure
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=Queue_begin2_1
+      - PRODUCE_QUEUE=ej3
+      - TYPE=sum
+      - PARAMS=item_id,quantity,month,year_month,created_at,total_quantity
+    networks:
+      - mynet
+    volumes:
+      - ./config.ini:/app/config.ini
+
+  aggregatorsuma_q21_4:
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+      - distributor
+    restart: on-failure
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=Queue_begin2_1
+      - PRODUCE_QUEUE=ej3
+      - TYPE=sum
+      - PARAMS=item_id,quantity,month,year_month,created_at,total_quantity
+    networks:
+      - mynet
+    volumes:
+      - ./config.ini:/app/config.ini
 
   accumulator_q21:
     build:
@@ -214,6 +251,42 @@ services:
     - ./config.ini:/app/config.ini
 
   aggregatorsuma_q22_2:
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+      - distributor
+    restart: on-failure
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=Queue_begin2_2
+      - PRODUCE_QUEUE=ej4
+      - TYPE=sum
+      - PARAMS=item_id,subtotal,month,year_month,created_at,total_earnings
+    networks:
+      - mynet
+    volumes:
+      - ./config.ini:/app/config.ini
+
+  aggregatorsuma_q22_3:
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+      - distributor
+    restart: on-failure
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=Queue_begin2_2
+      - PRODUCE_QUEUE=ej4
+      - TYPE=sum
+      - PARAMS=item_id,subtotal,month,year_month,created_at,total_earnings
+    networks:
+      - mynet
+    volumes:
+      - ./config.ini:/app/config.ini
+
+  aggregatorsuma_q22_4:
     build:
       context: .
       dockerfile: aggregator/Dockerfile
