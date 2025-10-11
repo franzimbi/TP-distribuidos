@@ -43,14 +43,8 @@ def crear_distributor():
 
 def crear_filters(nombre, cantidad, entrada, salida, type):
     filters = {}
-    queues_to_coordinator = ''
     for i in range(1, cantidad + 1):
         filter_name = f'{nombre}_{i}'
-        conection_coordinator = f'_coordinator_produce_for_{filter_name}'
-        if i == 1:
-            queues_to_coordinator += f'{conection_coordinator}'
-        else:
-            queues_to_coordinator += f',{conection_coordinator}'
         filters[filter_name.lower()] = {
             'build': {
                 'context': '.',
@@ -64,8 +58,6 @@ def crear_filters(nombre, cantidad, entrada, salida, type):
                 'PYTHONUNBUFFERED=1',
                 'CONSUME_QUEUE=' + entrada,
                 'PRODUCE_QUEUE=' + salida,
-                'QUEUE_PRODUCE_FOR_COORDINATOR=coordinator_' + str(nombre) + '_' + 'unique_queue',
-                'QUEUE_CONSUME_FROM_COORDINATOR=' + conection_coordinator,
                 'FILTER_NAME=' + type
             ],
             'networks': [
@@ -75,32 +67,13 @@ def crear_filters(nombre, cantidad, entrada, salida, type):
                 './config.ini:/app/config.ini'
             ],
         }
-    coordinator_name = f'coordinator_{nombre}'
-    filters[coordinator_name.lower()] = {
-        'build': {
-            'context': '.',
-            'dockerfile': 'coordinator/Dockerfile',
-        },
-        'restart': 'on-failure',
-        'environment': [
-            'PYTHONUNBUFFERED=1',
-            'QUEUE_CONSUME_FROM_NODES=coordinator_' + str(nombre) + '_' + 'unique_queue',
-            'NUM_NODES=' + str(cantidad),
-            'QUEUES_PRODUCE_FOR_NODES=' + queues_to_coordinator,
-            'DOWNSTREAM_QUEUE=' + salida,
-        ],
-        'networks': [
-            'mynet'
-        ],
-        'volumes': [
-            './config.ini:/app/config.ini'
-        ],
-    }
 
     return filters
 
 
 def crear_aggregators(nombre, cantidad, entrada, salida, type, params):
+    if type == 'accumulator' and cantidad != 1:
+        raise TypeError('Cantidad invalido para un accumulator')
     aggregators = {}
     for i in range(1, cantidad + 1):
         aggregator_name = f'aggregator{nombre}_{i}'
@@ -130,46 +103,39 @@ def crear_aggregators(nombre, cantidad, entrada, salida, type, params):
     return aggregators
 
 
-def crear_reducers(nombre, cantidad, entrada, salida, top, params):
+def crear_reducers(nombre, entrada, salida, top, params):
     reducers = {}
-    for i in range(1, cantidad + 1):
-        reducer_name = f'reducer{nombre}_{i}'
-        reducers[reducer_name.lower()] = {
-            'build': {
-                'context': '.',
-                'dockerfile': 'reducer/Dockerfile',
-            },
-            'depends_on': [
-                'distributor'
-            ],
-            'restart': 'on-failure',
-            'environment': [
-                'PYTHONUNBUFFERED=1',
-                'CONSUME_QUEUE=' + entrada,
-                'PRODUCE_QUEUE=' + salida,
-                'TOP=' + str(top),
-                'PARAMS=' + params
-            ],
-            'networks': [
-                'mynet'
-            ],
-            'volumes': [
-                './config.ini:/app/config.ini'
-            ],
-        }
+    reducer_name = f'reducer{nombre}'
+    reducers[reducer_name.lower()] = {
+        'build': {
+            'context': '.',
+            'dockerfile': 'reducer/Dockerfile',
+        },
+        'depends_on': [
+            'distributor'
+        ],
+        'restart': 'on-failure',
+        'environment': [
+            'PYTHONUNBUFFERED=1',
+            'CONSUME_QUEUE=' + entrada,
+            'PRODUCE_QUEUE=' + salida,
+            'TOP=' + str(top),
+            'PARAMS=' + params
+        ],
+        'networks': [
+            'mynet'
+        ],
+        'volumes': [
+            './config.ini:/app/config.ini'
+        ],
+    }
     return reducers
 
 
 def crear_joiners(nombre, cantidad, entradaJoin, entradaData, salida, disk_type, params):
     joiners = {}
-    queues_to_coordinator = ''
     for i in range(1, cantidad + 1):
         joiner_name = f'{nombre}_{i}'
-        conection_coordinator = f'{joiner_name}_receive_from_coordinator_{nombre}'
-        if i == 1:
-            queues_to_coordinator += f'{conection_coordinator}'
-        else:
-            queues_to_coordinator += f',{conection_coordinator}'
         joiners[joiner_name.lower()] = {
             'build': {
                 'context': '.',
@@ -185,8 +151,6 @@ def crear_joiners(nombre, cantidad, entradaJoin, entradaData, salida, disk_type,
                 'queueEntradaJoin=entradaJoiner' + nombre + '_' + str(i),
                 'queueEntradaData=' + entradaData,
                 'queuesSalida=' + salida,
-                'queue_to_send_coordinator=coodinator_' + str(nombre) + '_' + 'unique_queue',
-                'queue_to_receive_coordinator=' + conection_coordinator,
                 'use_diskcache=' + str(disk_type),
                 'params=' + params
             ],
@@ -197,28 +161,6 @@ def crear_joiners(nombre, cantidad, entradaJoin, entradaData, salida, disk_type,
                 './config.ini:/app/config.ini'
             ],
         }
-
-    coordinator_name = f'coordinator_{nombre}'
-    joiners[coordinator_name.lower()] = {
-        'build': {
-            'context': '.',
-            'dockerfile': 'coordinator/Dockerfile',
-        },
-        'restart': 'on-failure',
-        'environment': [
-            'PYTHONUNBUFFERED=1',
-            'QUEUE_CONSUME_FROM_NODES=coodinator_' + str(nombre) + '_' + 'unique_queue',
-            'NUM_NODES=' + str(cantidad),
-            'QUEUES_PRODUCE_FOR_NODES=' + queues_to_coordinator,
-            'DOWNSTREAM_QUEUE=' + salida,
-        ],
-        'networks': [
-            'mynet'
-        ],
-        'volumes': [
-            './config.ini:/app/config.ini'
-        ],
-    }
     return joiners
 
 
@@ -268,22 +210,26 @@ with open(nombre_file, 'w') as f:
     services.update(crear_aggregators(nombre='Suma_Q21', cantidad=cant_nodos, entrada='Queue_begin2_1',
                                       salida='Queue_between_aggregator_reducer_Q21', type='sum',
                                       params='item_id,quantity,month,year_month,created_at,total_quantity'))
-    services.update(crear_aggregators(nombre='Suma_Q22', cantidad=1, entrada='Queue_begin2_2',
+    services.update(crear_aggregators(nombre='Suma_Q22', cantidad=cant_nodos, entrada='Queue_begin2_2',
                                       salida='Queue_between_aggregator_reducer_Q22', type='sum',
                                       params='item_id,subtotal,month,year_month,created_at,total_earnings'))
-    services.update(crear_aggregators(nombre='Suma_Q3', cantidad=1, entrada='Queue_3',
-                                      salida='Queue_between_aggregator_join_Q3', type='sum',
+    services.update(crear_aggregators(nombre='Suma_Q3', cantidad=cant_nodos, entrada='Queue_3',
+                                      salida='Queue_between_aggregators_acumulator_Q3', type='sum',
                                       params='store_id,final_amount,semester,year_semester,created_at,tpv'))
-    services.update(crear_aggregators(nombre='Counter_Q4', cantidad=1, entrada='Queue_begin_4',
+    services.update(
+        crear_aggregators(nombre='accumulator_Q3', cantidad=1, entrada='Queue_between_aggregators_acumulator_Q3',
+                          salida='Queue_between_reducer_join_Q3', type='accumulator',
+                          params='store_id,tpv,year_semester'))
+    services.update(crear_aggregators(nombre='Counter_Q4', cantidad=cant_nodos, entrada='Queue_begin_4',
                                       salida='Queue_between_aggregator_reducer_Q4', type='counter',
                                       params='store_id,user_id,purchases_qty'))
-    services.update(crear_reducers(nombre='Reducer_Q21', cantidad=1, entrada='Queue_between_aggregator_reducer_Q21',
+    services.update(crear_reducers(nombre='Reducer_Q21', entrada='Queue_between_aggregator_reducer_Q21',
                                    salida='Queue_between_reducer_joiner_Q21', top=1,
                                    params='year_month,item_id,total_quantity'))
-    services.update(crear_reducers(nombre='Reducer_Q22', cantidad=1, entrada='Queue_between_aggregator_reducer_Q22',
+    services.update(crear_reducers(nombre='Reducer_Q22', entrada='Queue_between_aggregator_reducer_Q22',
                                    salida='Queue_between_reducer_joiner_Q22', top=1,
                                    params='year_month,item_id,total_earnings'))
-    services.update(crear_reducers(nombre='Reducer_Q4', cantidad=1, entrada='Queue_between_aggregator_reducer_Q4',
+    services.update(crear_reducers(nombre='Reducer_Q4', entrada='Queue_between_aggregator_reducer_Q4',
                                    salida='Queue_between_reducer_joiner_Q4', top=3,
                                    params='store_id,user_id,purchases_qty'))
     services.update(crear_filters(nombre='Filter_amount_Q1', cantidad=cant_nodos, entrada='Queue_1',
@@ -300,7 +246,7 @@ with open(nombre_file, 'w') as f:
                       entradaData='Queue_between_reducer_joiner_Q22', salida='Queue_final_Q22',
                       disk_type=False, params='item_name,item_id'))
     services.update(crear_joiners(nombre='Join_stores_Q3', cantidad=cant_nodos, entradaJoin='exchange,storesExchange',
-                                  entradaData='Queue_between_aggregator_join_Q3', salida='Queue_final_Q3',
+                                  entradaData='Queue_between_aggregators_acumulator_Q3', salida='Queue_final_Q3',
                                   disk_type=False, params='store_name,store_id'))
     services.update(crear_joiners(nombre='Join_users_Q4', cantidad=cant_nodos, entradaJoin='exchange,usersExchange',
                                   entradaData='Queue_between_reducer_joiner_Q4',

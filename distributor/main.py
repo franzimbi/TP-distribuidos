@@ -47,7 +47,7 @@ def handle_client(socket, shutdown, distributor):
     counter_lasts_batches = 0
     while not shutdown.is_set():
         # try:
-        batch = recv_batch(socket)
+        batch = recv_batch(socket) #TODO: esto hay q cambiarlo para q no explote
         # except ConnectionError as e:
         #     logging.debug("")
         if batch is not None:
