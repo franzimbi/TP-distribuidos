@@ -91,6 +91,7 @@ class Distributor:
         self.threads_queries = {}
 
         self.lock = threading.Lock()
+        self.socket_lock = threading.Lock()
 
     def add_client(self, client_socket):
         self.number_of_clients += 1
@@ -147,7 +148,10 @@ class Distributor:
             return
         try:
             # logging.debug(f'[DISTRIBUTOR] enviando el batch de resultado {query_id} al client {client_id}, con id {batch.id()}')
-            send_batch(client_socket, batch)
+            
+            with self.socket_lock: #TODO: cambiar este lock a un lock por cliente
+                send_batch(client_socket, batch)
+                
         except Exception as e:
             logging.error(f"[DISTRIBUTOR] error al querer enviar batch:{batch} al cliente:{client_id} | error: {e}")
         if batch.is_last_batch():

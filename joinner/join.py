@@ -29,7 +29,6 @@ class Join:
         self.column_name = column_name
         self.join_queue = join_queue
         self.exchange_name = exchange_name
-        self.lock = threading.Lock()
 
         signal.signal(signal.SIGTERM, self.graceful_quit)
         signal.signal(signal.SIGINT, self.graceful_quit)
@@ -130,19 +129,19 @@ class Join:
 
 
     def callback(self, ch, method, properties, message):
-        with self.lock:
-            batch = Batch()
-            batch.decode(message)
-            logging.debug(f"[JOIN] Procesando batch {batch.id()} de tipo {batch.type()} de la query {batch.get_query_id()}.")
-            if batch.is_last_batch():
-                self.producer_queue.send(batch.encode())
-                return
-            try:
-                batch.change_header_name_value(self.column_id, self.column_name, self.join_dictionary)
-            except (ValueError, KeyError) as e:
-                logging.error(
-                    f'action: join_batch_with_dicctionary | result: fail | error: {e}')
+        batch = Batch()
+        batch.decode(message)
+        print(f"[JOINER] Recibido batch {batch.id()} de tipo {batch.type()} de la query {batch.get_query_id()}.")
+        logging.debug(f"[JOIN] Procesando batch {batch.id()} de tipo {batch.type()} de la query {batch.get_query_id()}.")
+        if batch.is_last_batch():
             self.producer_queue.send(batch.encode())
+            return
+        try:
+            batch.change_header_name_value(self.column_id, self.column_name, self.join_dictionary)
+        except (ValueError, KeyError) as e:
+            logging.error(
+                f'action: join_batch_with_dicctionary | result: fail | error: {e}')
+        self.producer_queue.send(batch.encode())
 
     def close(self):
         # try:

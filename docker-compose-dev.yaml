@@ -473,7 +473,7 @@ services:
     environment:
     - PYTHONUNBUFFERED=1
     - CONSUME_QUEUE=Queue_between_aggregator_reducer_Q4
-    - PRODUCE_QUEUE=Queue_final_Q4
+    - PRODUCE_QUEUE=Queue_between_reducer_joiner_Q4
     - TOP=3
     - PARAMS=store_id,user_id,purchases_qty
     networks:
@@ -698,7 +698,7 @@ services:
     - queuesSalida=Queue_between_joiner_users_and_joiner_stores_Q4
     - queue_to_send_coordinator=coodinator_Join_users_Q4_unique_queue
     - queue_to_receive_coordinator=Join_users_Q4_1_receive_from_coordinator_Join_users_Q4
-    - use_diskcache=True
+    - use_diskcache=False
     - params=birthdate,user_id
     networks:
     - mynet
@@ -719,7 +719,7 @@ services:
     - queuesSalida=Queue_between_joiner_users_and_joiner_stores_Q4
     - queue_to_send_coordinator=coodinator_Join_users_Q4_unique_queue
     - queue_to_receive_coordinator=Join_users_Q4_2_receive_from_coordinator_Join_users_Q4
-    - use_diskcache=True
+    - use_diskcache=False
     - params=birthdate,user_id
     networks:
     - mynet
@@ -791,27 +791,27 @@ services:
     networks:
     - mynet
 
-  cliente_2:
-    build:
-      context: .
-      dockerfile: client/Dockerfile
-    restart: on-failure
-    depends_on:
-      - distributor
-    links:
-      - distributor
-    environment:
-      - PYTHONUNBUFFERED=1
-      - DISTRIBUTOR_HOST=distributor
-      - DISTRIBUTOR_PORT=5000
-    volumes:
-      - ./config.ini:/app/config.ini
-      - ./csvs_files:/app/csvs_files
-      - ./csvs_files_reduced:/app/csvs_files_reduced
-      - ./csvs_files_juguete:/app/csvs_files_juguete
-      - ./results_cliente_2:/app/results
-    networks:
-      - mynet
+  # cliente_2:
+  #   build:
+  #     context: .
+  #     dockerfile: client/Dockerfile
+  #   restart: on-failure
+  #   depends_on:
+  #     - distributor
+  #   links:
+  #     - distributor
+  #   environment:
+  #     - PYTHONUNBUFFERED=1
+  #     - DISTRIBUTOR_HOST=distributor
+  #     - DISTRIBUTOR_PORT=5000
+  #   volumes:
+  #     - ./config.ini:/app/config.ini
+  #     - ./csvs_files:/app/csvs_files
+  #     - ./csvs_files_reduced:/app/csvs_files_reduced
+  #     - ./csvs_files_juguete:/app/csvs_files_juguete
+  #     - ./results_cliente_2:/app/results
+  #   networks:
+  #     - mynet
 networks:
   mynet:
     external: false
