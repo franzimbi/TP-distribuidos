@@ -27,8 +27,6 @@ def initialize_config():
         except ValueError:
             raise ValueError("params debe tener formato 'COLUMN_NAME,COLUMN_ID'")
 
-        # use_disk = os.getenv("use_diskcache", "False").strip().lower() in ("1", "true", "yes")
-
         is_last_join = os.getenv("IS_LAST_JOIN", "False").strip().lower() in ("1", "true", "yes")
         confirmation_queue = os.getenv("CONFIRMATION_QUEUE")
         logging_level  = os.getenv("LOGGING_LEVEL", "DEBUG")
@@ -39,7 +37,6 @@ def initialize_config():
             "PRODUCE_QUEUE": produce_q,
             "CONFIRMATION_QUEUE": confirmation_queue,
             "JOIN_QUEUE": join_q,
-            "EXCHANGE_NAME": "hola",
             "COLUMN_NAME": col_name,
             "COLUMN_ID": col_id,
             "IS_LAST_JOIN": is_last_join,

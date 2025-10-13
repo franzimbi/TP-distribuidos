@@ -4,13 +4,7 @@ import logging
 import signal
 import sys
 import threading
-import time
 
-cache_dir = '/tmp/join_cache'
-cache_size = 10 * (2 ** 30)  # 10GB
-
-FLUSH_MESSAGE = 'FLUSH'
-END_MESSAGE = 'END'
 
 
 class Join:
@@ -123,51 +117,33 @@ class Join:
             self.join_dictionary.pop(client_id, None)
         self.producer_queue.send(batch.encode())
 
+
     def close(self):
-        # try:
-        #     if self.consumer_queue:
-        #         self.consumer_queue.stop_consuming()
-        #         self.consumer_queue.close()
-        #     if self.producer_queue:
-        #         self.producer_queue.close()
-        #     if self.join_queue:
-        #         self.join_queue.close()
-        # except:
-        #     pass
-        def close(self):
-            # Intentamos parar y cerrar todos los queues
-            try:
-                if self.consumer_queue:
-                    try:
-                        self.consumer_queue.stop_consuming()
-                    except Exception:
-                        pass
-                    try:
-                        self.consumer_queue.close()
-                    except Exception:
-                        pass
-
-                if self.producer_queue:
-                    try:
-                        self.producer_queue.close()
-                    except Exception:
-                        pass
-
-                if self.join_queue:
-                    try:
-                        self.join_queue.stop_consuming()
-                    except Exception:
-                        pass
-                    try:
-                        self.join_queue.close()
-                    except Exception:
-                        pass
-            except Exception:
-                pass
-
-            # Cerrar cache si corresponde
-            if isinstance(self.join_dictionary, Cache):
+        try:
+            if self.consumer_queue:
                 try:
-                    self.join_dictionary.close()
+                    self.consumer_queue.stop_consuming()
                 except Exception:
                     pass
+                try:
+                    self.consumer_queue.close()
+                except Exception:
+                    pass
+
+            if self.producer_queue:
+                try:
+                    self.producer_queue.close()
+                except Exception:
+                    pass
+
+            if self.join_queue:
+                try:
+                    self.join_queue.stop_consuming()
+                except Exception:
+                    pass
+                try:
+                    self.join_queue.close()
+                except Exception:
+                    pass
+        except Exception:
+            pass
