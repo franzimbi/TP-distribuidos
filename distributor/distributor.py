@@ -162,7 +162,6 @@ class Distributor:
     def callback(self, ch, method, properties, body: bytes, query_id):
         batch = Batch(); batch.decode(body)
         batch.set_query_id(query_id)
-        print(f"[DISTRIBUTOR] Recibido batch de resultados {query_id} del worker, para el client {batch.client_id()}, con id {batch.id()}")
         client_id = batch.client_id()
         client_socket = self.clients.get(client_id)
         if client_socket is None:

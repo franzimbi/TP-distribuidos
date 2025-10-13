@@ -27,7 +27,7 @@ def initialize_config():
         except ValueError:
             raise ValueError("params debe tener formato 'COLUMN_NAME,COLUMN_ID'")
 
-        is_last_join = os.getenv("IS_LAST_JOIN", "False").strip().lower() in ("1", "true", "yes")
+        is_last_join = os.getenv("is_last_join").strip().lower() in ("1", "true", "yes")
         confirmation_queue = os.getenv("CONFIRMATION_QUEUE")
         logging_level  = os.getenv("LOGGING_LEVEL", "DEBUG")
         listen_backlog = int(os.getenv("SERVER_LISTEN_BACKLOG", "128"))
