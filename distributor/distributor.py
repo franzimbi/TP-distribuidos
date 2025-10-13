@@ -13,9 +13,9 @@ COUNT_OF_PRINTS = 10000
 
 transactionsQueue = os.getenv('transactionsQueue')
 itemsQueue = os.getenv('itemsQueue')
-productsExchange = os.getenv('productsExchange')
-storesExchange = os.getenv('storesExchange')
-usersExchange = os.getenv('usersExchange')
+# productsExchange = os.getenv('productsExchange')
+# storesExchange = os.getenv('storesExchange')
+# usersExchange = os.getenv('usersExchange')
 
 Q1_results = os.getenv('Q1result')
 Q21_results = os.getenv('Q21result')
@@ -23,19 +23,32 @@ Q22_results = os.getenv('Q22result')
 Q3_results = os.getenv('Q3result')
 Q4_results = os.getenv('Q4result')
 
-q3_Stores1 = os.getenv('q3Stores1')
-# q3_Stores2 = os.getenv('q3Stores2')
-q4_Stores1 = os.getenv('q4Stores1')
-# q4_Stores2 = os.getenv('q4Stores2')
-q4_Users1 = os.getenv('q4Users1')
-q4_Users2 = os.getenv('q4Users2')
-q4_Users3 = os.getenv('q4Users3')
-q21_products1 = os.getenv('q21Products1')
-# q21_products2 = os.getenv('q21Products2')
-q22_products1 = os.getenv('q22Products1')
-# q22_products2 = os.getenv('q22Products2')
+# q3_Stores1 = os.getenv('q3Stores1')
+# q4_Stores1 = os.getenv('q4Stores1')
+# q4_Users1 = os.getenv('q4Users1')
+# q4_Users2 = os.getenv('q4Users2')
+# q4_Users3 = os.getenv('q4Users3')
+# q21_products1 = os.getenv('q21Products1')
+# q22_products1 = os.getenv('q22Products1')
 
-q_joins_confirmation = os.getenv('qJoinsConfirmation')
+q_stores = os.getenv('storesQueues')
+q_products = os.getenv('productsQueues')
+q_users = os.getenv('usersQueues')
+
+queues_stores_list = []
+for q in q_stores.split(','):
+    queues_stores_list.append(q.strip())
+
+queue_products_list = []
+for q in q_products.split(','):
+    queue_products_list.append(q.strip())
+
+queue_users_list = []
+for q in q_users.split(','):
+    queue_users_list.append(q.strip())
+
+
+q_joins_confirmation = os.getenv('CONFIRMATION_QUEUE')
 number_of_joins = int(os.getenv('numberOfJoins'))
 
 
@@ -63,22 +76,18 @@ class Distributor:
         #     route_keys=[''], exchange_type='fanout', queue_name=None
         # )
 
-        self.stores_queues = [
-            MessageMiddlewareQueue(host='rabbitmq', queue_name=q3_Stores1),
-            MessageMiddlewareQueue(host='rabbitmq', queue_name=q4_Stores1),
-        ]
-        self.users_queues = [
-            MessageMiddlewareQueue(host='rabbitmq', queue_name=q4_Users1),
-            MessageMiddlewareQueue(host='rabbitmq', queue_name=q4_Users2),
-            MessageMiddlewareQueue(host='rabbitmq', queue_name=q4_Users3),
-        ]
+        self.stores_queues = []
+        for q in queues_stores_list:
+            self.stores_queues.append(MessageMiddlewareQueue(host='rabbitmq', queue_name=q))
 
+        self.users_queues = []
+        for q in queue_users_list:
+            self.users_queues.append(MessageMiddlewareQueue(host='rabbitmq', queue_name=q))
         self.users_index = 0
 
-        self.products_queues = [
-            MessageMiddlewareQueue(host='rabbitmq', queue_name=q21_products1),
-            MessageMiddlewareQueue(host='rabbitmq', queue_name=q22_products1),
-        ]
+        self.products_queues = []
+        for q in queue_products_list:
+            self.products_queues.append(MessageMiddlewareQueue(host='rabbitmq', queue_name=q))
 
         self.route = {
             't': self.transactions,
@@ -153,6 +162,7 @@ class Distributor:
     def callback(self, ch, method, properties, body: bytes, query_id):
         batch = Batch(); batch.decode(body)
         batch.set_query_id(query_id)
+        print(f"[DISTRIBUTOR] Recibido batch de resultados {query_id} del worker, para el client {batch.client_id()}, con id {batch.id()}")
         client_id = batch.client_id()
         client_socket = self.clients.get(client_id)
         if client_socket is None:

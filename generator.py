@@ -276,9 +276,9 @@ def crear_client(cantidad, puerto):
 with open(nombre_file, 'w') as f:
     services = {'distributor': crear_distributor(cant_nodos)}
     # nodos de entrada a todas las queries
-    services.update(crear_filters(nombre='FiltroAnio1', cantidad=cant_nodos, entrada='items_queue',
+    services.update(crear_filters(nombre='FiltroAnio1', cantidad=cant_nodos, entrada='itemsQueue',
                                   salida='Queue_begin2_1,Queue_begin2_2', type='byyear'))
-    services.update(crear_filters(nombre='FiltroAnio2', cantidad=cant_nodos, entrada='transaction_queue',
+    services.update(crear_filters(nombre='FiltroAnio2', cantidad=cant_nodos, entrada='transactionsQueue',
                                   salida='Queue_begin_4,Queue_begin_3_y_1', type='byyear'))
     services.update(crear_filters(nombre='FiltroHora1', cantidad=cant_nodos, entrada='Queue_begin_3_y_1',
                                   salida='Queue_3,Queue_1', type='bytime'))

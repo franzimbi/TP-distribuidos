@@ -32,7 +32,7 @@ services:
     restart: on-failure
     environment:
     - PYTHONUNBUFFERED=1
-    - CONSUME_QUEUE=items_queue
+    - CONSUME_QUEUE=itemsQueue
     - PRODUCE_QUEUE=Queue_begin2_1,Queue_begin2_2
     - FILTER_NAME=byyear
     networks:
@@ -48,7 +48,7 @@ services:
     restart: on-failure
     environment:
     - PYTHONUNBUFFERED=1
-    - CONSUME_QUEUE=items_queue
+    - CONSUME_QUEUE=itemsQueue
     - PRODUCE_QUEUE=Queue_begin2_1,Queue_begin2_2
     - FILTER_NAME=byyear
     networks:
@@ -64,7 +64,7 @@ services:
     restart: on-failure
     environment:
     - PYTHONUNBUFFERED=1
-    - CONSUME_QUEUE=items_queue
+    - CONSUME_QUEUE=itemsQueue
     - PRODUCE_QUEUE=Queue_begin2_1,Queue_begin2_2
     - FILTER_NAME=byyear
     networks:
@@ -80,7 +80,7 @@ services:
     restart: on-failure
     environment:
     - PYTHONUNBUFFERED=1
-    - CONSUME_QUEUE=transaction_queue
+    - CONSUME_QUEUE=transactionsQueue
     - PRODUCE_QUEUE=Queue_begin_4,Queue_begin_3_y_1
     - FILTER_NAME=byyear
     networks:
@@ -96,7 +96,7 @@ services:
     restart: on-failure
     environment:
     - PYTHONUNBUFFERED=1
-    - CONSUME_QUEUE=transaction_queue
+    - CONSUME_QUEUE=transactionsQueue
     - PRODUCE_QUEUE=Queue_begin_4,Queue_begin_3_y_1
     - FILTER_NAME=byyear
     networks:
@@ -112,7 +112,7 @@ services:
     restart: on-failure
     environment:
     - PYTHONUNBUFFERED=1
-    - CONSUME_QUEUE=transaction_queue
+    - CONSUME_QUEUE=transactionsQueue
     - PRODUCE_QUEUE=Queue_begin_4,Queue_begin_3_y_1
     - FILTER_NAME=byyear
     networks:
@@ -738,6 +738,27 @@ services:
     - ./csvs_files_reduced:/app/csvs_files_reduced
     - ./csvs_files_juguete:/app/csvs_files_juguete
     - ./results_cliente_1:/app/results
+    networks:
+    - mynet
+  cliente_2:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    restart: on-failure
+    depends_on:
+    - distributor
+    links:
+    - distributor
+    environment:
+    - PYTHONUNBUFFERED=1
+    - DISTRIBUTOR_HOST=distributor
+    - DISTRIBUTOR_PORT=5000
+    volumes:
+    - ./config.ini:/app/config.ini
+    - ./csvs_files:/app/csvs_files
+    - ./csvs_files_reduced:/app/csvs_files_reduced
+    - ./csvs_files_juguete:/app/csvs_files_juguete
+    - ./results_cliente_2:/app/results
     networks:
     - mynet
 networks:
