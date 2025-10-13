@@ -44,9 +44,9 @@ def main():
     logging.debug(f"action: config | result: success | port: {port} | host: {host}  | "
                   f"listen_backlog: {listen_backlog} | logging_level: {logging_level}")
 
-    time.sleep(5) #TODO: sacar sleep
+    # time.sleep(5) #TODO: sacar sleep
     this_client = Client(host, port)
-    this_client.start('csvs_files_reduced', 'results')
+    this_client.start('csvs_files', 'results')
     this_client.close()
 
 

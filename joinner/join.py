@@ -7,10 +7,11 @@ import threading
 import time
 
 cache_dir = '/tmp/join_cache'
-cache_size =10*(2 ** 30)  # 10GB
+cache_size = 10 * (2 ** 30)  # 10GB
 
 FLUSH_MESSAGE = 'FLUSH'
 END_MESSAGE = 'END'
+
 
 class Join:
     def __init__(self, confirmation_queue, join_queue, column_id, column_name, is_last_join):
@@ -21,9 +22,12 @@ class Join:
         self.is_last_join = is_last_join
         self.batch_counter = 0
         self.join_dictionary = {}
+        self.counter_batches = {}
+        self.waited_batches = {}
         self.column_id = column_id
         self.column_name = column_name
         self.join_queue = join_queue
+        self.lock = threading.Lock()
 
         signal.signal(signal.SIGTERM, self.graceful_quit)
         signal.signal(signal.SIGINT, self.graceful_quit)
@@ -46,15 +50,12 @@ class Join:
         queue_confirm_name = self.confirmation_queue
         self.confirmation_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=queue_confirm_name)
 
-        self.thead_join = threading.Thread(target=self.join_queue.start_consuming, args=(self.callback_to_receive_join_data,), daemon=True)
+        self.thead_join = threading.Thread(target=self.join_queue.start_consuming,
+                                           args=(self.callback_to_receive_join_data,), daemon=True)
         self.thead_join.start()
         print("start del join")
-        # self.join_queue.start_consuming(self.callback_to_receive_join_data)
-
-        # print(f"[JOINER] Soy el joiner {self.column_name} y ya arme el diccionario, ahora tengo que esperar a que me digan FLUSH")
         logging.debug("action: receive_join_data | status: finished | entries: %d",
                       len(self.join_dictionary))
-        # self.join_queue.close()
 
         print("termine de recibir los datos del join")
         self.consumer_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=consumer)
@@ -66,56 +67,60 @@ class Join:
         self.batch_counter += 1
         batch = Batch()
         batch.decode(message)
+        client_id = batch.client_id()
 
-        header = batch.get_header()
-        # if batch.id() == 0 or batch.id() % 5000 == 0:
-        print(f"[JOINER] batch.id={batch.id()} | last={batch.is_last_batch()} | header={header}")
+        if client_id not in self.counter_batches:
+            self.counter_batches[client_id] = 0
+            self.waited_batches[client_id] = None
 
         id = batch.index_of(self.column_id)
         name = batch.index_of(self.column_name)
 
         if batch.is_last_batch():
-            print(f"[JOINER] LAST batch recibido (id={batch.id()}) -> llamo a stop_consuming()")
-            try:
-                self.confirmation_queue.send(batch.encode())
-                print(f"[JOINER] Enviado last batch a confirmation_queue {self.confirmation_queue}")
-                self.join_queue.stop_consuming()
-                print("[JOINER] stop_consuming() OK")
-                return
-            except Exception as e:
-                print(f"[JOINER] stop_consuming() lanzó excepción: {e}")
+            self.confirmation_queue.send(batch.encode())
+            print(f"[JOINER] Enviado last batch a confirmation_queue {self.confirmation_queue}")
+            return
 
         if id is None or name is None:
-            logging.debug(f"Column {self.column_id} or {self.column_name} not found in batch header {header}")
+            logging.debug(
+                f"Column {self.column_id} or {self.column_name} not found in batch header {batch.get_header()}")
             return
-        
-        added = 0
-        total_rows = 0
+
         for row in batch:
-            total_rows += 1
             key = row[id]
             value = row[name]
             if key is None or value is None:
                 logging.debug(f"Key or value is None for row: {row}")
                 continue
-            if key not in self.join_dictionary:
-                self.join_dictionary[key] = value
-                added += 1
-
+            with self.lock:
+                if client_id not in self.join_dictionary:
+                    self.join_dictionary[client_id] = {}
+                if key not in self.join_dictionary[client_id]:
+                    self.join_dictionary[client_id][key] = value
 
     def callback(self, ch, method, properties, message):
         batch = Batch()
         batch.decode(message)
-        print(f"[JOINER] Recibido batch {batch.id()} de tipo {batch.type()} de la query {batch.get_query_id()}.")
-        logging.debug(f"[JOIN] Procesando batch {batch.id()} de tipo {batch.type()} de la query {batch.get_query_id()}.")
+        client_id = batch.client_id()
+
         if batch.is_last_batch():
+            self.waited_batches[client_id] = int(batch[0][batch.get_header().index('cant_batches')])
+            if self.waited_batches[client_id] == self.counter_batches[client_id]:  # llegaron todos
+                self.join_dictionary.pop(client_id, None)
             self.producer_queue.send(batch.encode())
             return
+
         try:
-            batch.change_header_name_value(self.column_id, self.column_name, self.join_dictionary, self.is_last_join)
+            with self.lock:
+                batch.change_header_name_value(self.column_id, self.column_name, self.join_dictionary[client_id],
+                                               self.is_last_join)
         except (ValueError, KeyError) as e:
             logging.error(
-                f'action: join_batch_with_dicctionary | result: fail | error: {e}')
+                f'action: join_batch_with_dicctionary[{client_id}] | result: fail | error: {e}')
+        self.counter_batches[client_id] += 1
+        if self.waited_batches[client_id] is not None and self.counter_batches[client_id] == self.waited_batches[
+            client_id]:
+            self.join_dictionary.pop(client_id, None)
         self.producer_queue.send(batch.encode())
 
     def close(self):
@@ -166,4 +171,3 @@ class Join:
                     self.join_dictionary.close()
                 except Exception:
                     pass
-
