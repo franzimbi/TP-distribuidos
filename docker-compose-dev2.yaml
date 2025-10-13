@@ -16,6 +16,7 @@ services:
     - itemsQueue=itemsQueue
     - productsQueues=join_products_queue_q22_1,join_products_queue_q21_1
     - storesQueues=join_stores_queue_q3_1,join_stores_queue_q4_1
+    - CONFIRMATION_QUEUE=q_joins_confirmation
     - usersQueues=join_users_queue_1,join_users_queue_2,join_users_queue_3
     - numberOfJoins=7
     networks:
@@ -330,7 +331,7 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  reducerreducer_q21:
+  reducer_reducer_q21:
     build:
       context: .
       dockerfile: reducer/Dockerfile
@@ -360,7 +361,7 @@ services:
     - queueEntradaData=Queue_between_reducer_joiner_Q21
     - queuesSalida=Queue_final_Q21
     - is_last_join=True
-    - CONFIRMATION_QUEUE = q_joins_confirmation
+    - CONFIRMATION_QUEUE=q_joins_confirmation
     - params=item_name,item_id
     networks:
     - mynet
@@ -434,7 +435,7 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  reducerreducer_q22:
+  reducer_reducer_q22:
     build:
       context: .
       dockerfile: reducer/Dockerfile
@@ -464,7 +465,7 @@ services:
     - queueEntradaData=Queue_between_reducer_joiner_Q22
     - queuesSalida=Queue_final_Q22
     - is_last_join=True
-    - CONFIRMATION_QUEUE = q_joins_confirmation
+    - CONFIRMATION_QUEUE=q_joins_confirmation
     - params=item_name,item_id
     networks:
     - mynet
@@ -480,7 +481,7 @@ services:
     environment:
     - PYTHONUNBUFFERED=1
     - CONSUME_QUEUE=Queue_3
-    - PRODUCE_QUEUE=Queue_between_aggregators_acumulator_Q3
+    - PRODUCE_QUEUE=Queue_between_aggregators_accumulator_Q3
     - TYPE=sum
     - PARAMS=store_id,final_amount,semester,year_semester,created_at,tpv
     networks:
@@ -497,7 +498,7 @@ services:
     environment:
     - PYTHONUNBUFFERED=1
     - CONSUME_QUEUE=Queue_3
-    - PRODUCE_QUEUE=Queue_between_aggregators_acumulator_Q3
+    - PRODUCE_QUEUE=Queue_between_aggregators_accumulator_Q3
     - TYPE=sum
     - PARAMS=store_id,final_amount,semester,year_semester,created_at,tpv
     networks:
@@ -514,7 +515,7 @@ services:
     environment:
     - PYTHONUNBUFFERED=1
     - CONSUME_QUEUE=Queue_3
-    - PRODUCE_QUEUE=Queue_between_aggregators_acumulator_Q3
+    - PRODUCE_QUEUE=Queue_between_aggregators_accumulator_Q3
     - TYPE=sum
     - PARAMS=store_id,final_amount,semester,year_semester,created_at,tpv
     networks:
@@ -530,7 +531,7 @@ services:
     restart: on-failure
     environment:
     - PYTHONUNBUFFERED=1
-    - CONSUME_QUEUE=Queue_between_aggregators_acumulator_Q3
+    - CONSUME_QUEUE=Queue_between_aggregators_accumulator_Q3
     - PRODUCE_QUEUE=Queue_between_accumulator_join_Q3
     - TYPE=accumulator
     - PARAMS=store_id,tpv,year_semester
@@ -551,7 +552,7 @@ services:
     - queueEntradaData=Queue_between_accumulator_join_Q3
     - queuesSalida=Queue_final_Q3
     - is_last_join=True
-    - CONFIRMATION_QUEUE = q_joins_confirmation
+    - CONFIRMATION_QUEUE=q_joins_confirmation
     - params=store_name,store_id
     networks:
     - mynet
@@ -625,7 +626,7 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  reducerreducer_q4:
+  reducer_reducer_q4:
     build:
       context: .
       dockerfile: reducer/Dockerfile
@@ -655,7 +656,7 @@ services:
     - queueEntradaData=Queue_between_reducer_joiner_Q4
     - queuesSalida=conection_join_1
     - is_last_join=False
-    - CONFIRMATION_QUEUE = q_joins_confirmation
+    - CONFIRMATION_QUEUE=q_joins_confirmation
     - params=birthdate,user_id
     networks:
     - mynet
@@ -689,7 +690,7 @@ services:
     restart: on-failure
     environment:
     - PYTHONUNBUFFERED=1
-    - queueEntradaJoin=join_users_queue_2_2
+    - queueEntradaJoin=join_users_queue_2
     - queueEntradaData=conection_join_1
     - queuesSalida=conection_join_2
     - is_last_join=False
@@ -710,52 +711,16 @@ services:
     - PYTHONUNBUFFERED=1
     - queueEntradaJoin=join_stores_queue_q4_1
     - queueEntradaData=Queue_between_joiner_users_and_joiner_stores_Q4
-    - queuesSalida=conection_join_1
-    - is_last_join=False
-    - CONFIRMATION_QUEUE = q_joins_confirmation
-    - params=store_name,store_id
-    networks:
-    - mynet
-    volumes:
-    - ./config.ini:/app/config.ini
-  join_stores_q4_3:
-    build:
-      context: .
-      dockerfile: joinner/Dockerfile
-    depends_on:
-    - distributor
-    restart: on-failure
-    environment:
-    - PYTHONUNBUFFERED=1
-    - queueEntradaJoin=join_stores_queue_q4_3
-    - queueEntradaData=conection_join_2
     - queuesSalida=Queue_final_Q4
     - is_last_join=True
-    - CONFIRMATION_QUEUE = q_joins_confirmation
+    - CONFIRMATION_QUEUE=q_joins_confirmation
     - params=store_name,store_id
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  join_stores_q4_2:
-    build:
-      context: .
-      dockerfile: joinner/Dockerfile
-    depends_on:
-    - distributor
-    restart: on-failure
-    environment:
-    - PYTHONUNBUFFERED=1
-    - queueEntradaJoin=join_users_queue_2_2
-    - queueEntradaData=conection_join_1
-    - queuesSalida=conection_join_2
-    - is_last_join=False
-    - CONFIRMATION_QUEUE = q_joins_confirmation
-    - params=store_name,store_id
-    networks:
-    - mynet
-    volumes:
-    - ./config.ini:/app/config.ini
+
+
   cliente_1:
     build:
       context: .
