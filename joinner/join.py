@@ -5,7 +5,6 @@ import signal
 import sys
 import threading
 import time
-from diskcache import Cache
 
 cache_dir = '/tmp/join_cache'
 cache_size =10*(2 ** 30)  # 10GB
@@ -14,26 +13,20 @@ FLUSH_MESSAGE = 'FLUSH'
 END_MESSAGE = 'END'
 
 class Join:
-    def __init__(self, exchange_name, join_queue, column_id, column_name, use_diskcache=False):
+    def __init__(self, confirmation_queue, join_queue, column_id, column_name, is_last_join):
         self.producer_queue = None
         self.consumer_queue = None
+        self.confirmation_queue = confirmation_queue
         self.join_dictionary = None
-        self.use_diskcache = use_diskcache
+        self.is_last_join = is_last_join
         self.batch_counter = 0
-        self.disk_buffer = {}
-        if use_diskcache:
-            self.join_dictionary = Cache(cache_dir, size_limit=cache_size)
-        else:
-            self.join_dictionary = {}
+        self.join_dictionary = {}
         self.column_id = column_id
         self.column_name = column_name
         self.join_queue = join_queue
-        self.exchange_name = exchange_name
 
         signal.signal(signal.SIGTERM, self.graceful_quit)
         signal.signal(signal.SIGINT, self.graceful_quit)
-
-        # recibe de join_queue los datos y arma el diccionario de id-valor
 
     def graceful_quit(self, signum, frame):
         try:
@@ -46,21 +39,19 @@ class Join:
         sys.exit(0)
 
     def start(self, consumer, producer):
-        print("entre a start")
         aux = self.join_queue
-
-        print(f"[JOINER] Me BINDEO al exchange {self.exchange_name} y a la cola {aux}")
         self.join_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=aux)
-        # self.join_queue = MessageMiddlewareExchange(
-        #     host='rabbitmq', exchange_name=self.exchange_name,
-        #     route_keys=[''], exchange_type='fanout', queue_name=aux
-        # )
 
         print(f"[JOINER] Soy el joiner {self.column_name} y tengo que armar el diccionario")
+        queue_confirm_name = self.confirmation_queue
+        self.confirmation_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=queue_confirm_name)
 
-        self.join_queue.start_consuming(self.callback_to_receive_join_data)
+        self.thead_join = threading.Thread(target=self.join_queue.start_consuming, args=(self.callback_to_receive_join_data,), daemon=True)
+        self.thead_join.start()
+        print("start del join")
+        # self.join_queue.start_consuming(self.callback_to_receive_join_data)
 
-        print(f"[JOINER] Soy el joiner {self.column_name} y ya arme el diccionario, ahora tengo que esperar a que me digan FLUSH")
+        # print(f"[JOINER] Soy el joiner {self.column_name} y ya arme el diccionario, ahora tengo que esperar a que me digan FLUSH")
         logging.debug("action: receive_join_data | status: finished | entries: %d",
                       len(self.join_dictionary))
         # self.join_queue.close()
@@ -82,17 +73,15 @@ class Join:
 
         id = batch.index_of(self.column_id)
         name = batch.index_of(self.column_name)
-        
-        if self.use_diskcache and batch.is_last_batch():
-            print(f"[JOINER] Flusheando buffer ({len(self.disk_buffer)} claves) a disco...")
-            self._flush_buffer_to_disk()
-            self.batch_counter = 0
 
         if batch.is_last_batch():
             print(f"[JOINER] LAST batch recibido (id={batch.id()}) -> llamo a stop_consuming()")
             try:
+                self.confirmation_queue.send(batch.encode())
+                print(f"[JOINER] Enviado last batch a confirmation_queue {self.confirmation_queue}")
                 self.join_queue.stop_consuming()
                 print("[JOINER] stop_consuming() OK")
+                return
             except Exception as e:
                 print(f"[JOINER] stop_consuming() lanzó excepción: {e}")
 
@@ -109,23 +98,9 @@ class Join:
             if key is None or value is None:
                 logging.debug(f"Key or value is None for row: {row}")
                 continue
-            if not self.use_diskcache and key not in self.join_dictionary:
+            if key not in self.join_dictionary:
                 self.join_dictionary[key] = value
                 added += 1
-            elif self.use_diskcache and key not in self.join_dictionary and key not in self.disk_buffer:
-                self.disk_buffer[key] = value
-                added += 1
-
-    def _flush_buffer_to_disk(self):
-        try:
-            with self.join_dictionary.transact():
-                for k, v in self.disk_buffer.items():
-                    self.join_dictionary[k] = v
-            self.disk_buffer.clear()
-            self.batch_counter = 0
-            print(f"[JOINER] Flush completado correctamente ({len(self.join_dictionary)} total)")
-        except Exception as e:
-            print(f"[JOINER] Error durante el flush a disco: {e}")
 
 
     def callback(self, ch, method, properties, message):
@@ -137,7 +112,7 @@ class Join:
             self.producer_queue.send(batch.encode())
             return
         try:
-            batch.change_header_name_value(self.column_id, self.column_name, self.join_dictionary)
+            batch.change_header_name_value(self.column_id, self.column_name, self.join_dictionary, self.is_last_join)
         except (ValueError, KeyError) as e:
             logging.error(
                 f'action: join_batch_with_dicctionary | result: fail | error: {e}')

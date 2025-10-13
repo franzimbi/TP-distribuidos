@@ -5,7 +5,7 @@ import sys
 import threading
 from time import time
 from middleware.middleware import MessageMiddlewareQueue, MessageMiddlewareExchange
-from common.protocol import send_batch
+from common.protocol import send_batch, send_joins_confirmation_to_client
 from common.batch import Batch
 from functools import partial
 
@@ -24,15 +24,19 @@ Q3_results = os.getenv('Q3result')
 Q4_results = os.getenv('Q4result')
 
 q3_Stores1 = os.getenv('q3Stores1')
-q3_Stores2 = os.getenv('q3Stores2')
+# q3_Stores2 = os.getenv('q3Stores2')
 q4_Stores1 = os.getenv('q4Stores1')
-q4_Stores2 = os.getenv('q4Stores2')
+# q4_Stores2 = os.getenv('q4Stores2')
 q4_Users1 = os.getenv('q4Users1')
 q4_Users2 = os.getenv('q4Users2')
+q4_Users3 = os.getenv('q4Users3')
 q21_products1 = os.getenv('q21Products1')
-q21_products2 = os.getenv('q21Products2')
+# q21_products2 = os.getenv('q21Products2')
 q22_products1 = os.getenv('q22Products1')
-q22_products2 = os.getenv('q22Products2')
+# q22_products2 = os.getenv('q22Products2')
+
+q_joins_confirmation = os.getenv('qJoinsConfirmation')
+number_of_joins = int(os.getenv('numberOfJoins'))
 
 
 shutdown = threading.Event()
@@ -61,20 +65,19 @@ class Distributor:
 
         self.stores_queues = [
             MessageMiddlewareQueue(host='rabbitmq', queue_name=q3_Stores1),
-            MessageMiddlewareQueue(host='rabbitmq', queue_name=q3_Stores2),
             MessageMiddlewareQueue(host='rabbitmq', queue_name=q4_Stores1),
-            MessageMiddlewareQueue(host='rabbitmq', queue_name=q4_Stores2),
         ]
         self.users_queues = [
             MessageMiddlewareQueue(host='rabbitmq', queue_name=q4_Users1),
             MessageMiddlewareQueue(host='rabbitmq', queue_name=q4_Users2),
+            MessageMiddlewareQueue(host='rabbitmq', queue_name=q4_Users3),
         ]
+
+        self.users_index = 0
 
         self.products_queues = [
             MessageMiddlewareQueue(host='rabbitmq', queue_name=q21_products1),
-            MessageMiddlewareQueue(host='rabbitmq', queue_name=q21_products2),
             MessageMiddlewareQueue(host='rabbitmq', queue_name=q22_products1),
-            MessageMiddlewareQueue(host='rabbitmq', queue_name=q22_products2),
         ]
 
         self.route = {
@@ -87,11 +90,14 @@ class Distributor:
         self.q22_results = MessageMiddlewareQueue('rabbitmq', Q22_results)
         self.q3_results = MessageMiddlewareQueue('rabbitmq', Q3_results)
         self.q4_results = MessageMiddlewareQueue('rabbitmq', Q4_results)
+        self.confirmation_queue = MessageMiddlewareQueue('rabbitmq', q_joins_confirmation)
 
         self.threads_queries = {}
 
         self.lock = threading.Lock()
         self.socket_lock = threading.Lock()
+        
+        self.client_counter = {}
 
     def add_client(self, client_socket):
         self.number_of_clients += 1
@@ -119,9 +125,15 @@ class Distributor:
         if batch.type() == 'u':
             if batch.id() == 0 or batch.id() % COUNT_OF_PRINTS == 0:
                 print(f"[DISTRIBUTION] Distribuyendo batch.id={batch.id()} de tipo 'u' a {len(self.users_queues)} colas de users")
-            for u in self.users_queues:
-                with self.lock:
-                    u.send(batch.encode())
+            if batch.is_last_batch():
+                print(f"[DISTRIBUTION] Distribuyendo LASTbatch.id={batch.id()} de tipo 'u' a {len(self.users_queues)} colas de users")
+                for u in self.users_queues:
+                    with self.lock:
+                        u.send(batch.encode())
+                return
+            with self.lock:
+                self.users_queues[self.users_index].send(batch.encode())
+                self.users_index = (self.users_index + 1) % len(self.users_queues)
             return
         if batch.type() == 'm':
             if batch.id() == 0 or batch.id() % COUNT_OF_PRINTS == 0:
@@ -151,7 +163,7 @@ class Distributor:
             
             with self.socket_lock: #TODO: cambiar este lock a un lock por cliente
                 send_batch(client_socket, batch)
-                
+
         except Exception as e:
             logging.error(f"[DISTRIBUTOR] error al querer enviar batch:{batch} al cliente:{client_id} | error: {e}")
         if batch.is_last_batch():
@@ -170,6 +182,7 @@ class Distributor:
         self.threads_queries['q22'] = threading.Thread(target=lambda: self.q22_results.start_consuming(helper_callback(22)), daemon=True)
         self.threads_queries['q3']  = threading.Thread(target=lambda: self.q3_results.start_consuming(helper_callback(3)),  daemon=True)
         self.threads_queries['q4']  = threading.Thread(target=lambda: self.q4_results.start_consuming(helper_callback(4)),  daemon=True)
+        self.threads_queries['confirmations'] = threading.Thread(target=lambda: self.confirmation_queue.start_consuming(self.confirmation_callback), daemon=True)
 
         for _, t in self.threads_queries.items():
             t.start()
@@ -204,3 +217,23 @@ class Distributor:
             except Exception as e:
                 logging.debug(f"[Distributor] Error al join thread {t}: {e}")
 
+
+    def confirmation_callback(self, ch, method, properties, body: bytes):
+        print("hola, soy la callback confirmation")
+        batch = Batch()
+        batch.decode(body)
+        print(f"[DISTRIBUTOR] Recibida confirmacion de joins del client_{batch.client_id()}")
+        if batch.is_last_batch():
+            print("es last batch")
+            cid = batch.client_id()
+
+            if cid not in self.client_counter:
+                self.client_counter[cid] = 0
+
+            self.client_counter[cid] += 1
+            print(f"[DISTRIBUTOR] El client_{cid} tiene {self.client_counter[cid]} confirmaciones de joins.")
+            if self.client_counter[cid] == number_of_joins:
+                print(f"[DISTRIBUTOR] Enviando confirmacion de joins al client_{cid}")
+                client_socket = self.clients.get(cid)
+                with self.socket_lock:
+                    send_joins_confirmation_to_client(client_socket)

@@ -8,7 +8,6 @@ import sys
 
 
 def initialize_config():
-    import os
 
     def req(name: str) -> str:
         v = os.getenv(name)
@@ -20,6 +19,12 @@ def initialize_config():
         consume_q       = req("queueEntradaData")
         produce_q       = req("queuesSalida")
         join_q          = req("queueEntradaJoin")
+        exchange_name   = req("entradaJoin")
+        try:
+            entrada_type, name_e = [p.strip() for p in exchange_name.split(",", 1)]
+        except ValueError:
+            raise ValueError("entradaJoin debe tener formato 'exchange_type,exchange_name'")
+        
 
         params = req("params")
         try:
@@ -27,24 +32,22 @@ def initialize_config():
         except ValueError:
             raise ValueError("params debe tener formato 'COLUMN_NAME,COLUMN_ID'")
 
-        # use_disk = os.getenv("use_diskcache", "False").strip().lower() in ("1", "true", "yes")
-
         is_last_join = os.getenv("IS_LAST_JOIN", "False").strip().lower() in ("1", "true", "yes")
         confirmation_queue = os.getenv("CONFIRMATION_QUEUE")
-        logging_level  = os.getenv("LOGGING_LEVEL", "DEBUG")
+        logging_level  = os.getenv("LOGGING_LEVEL", "INFO")
         listen_backlog = int(os.getenv("SERVER_LISTEN_BACKLOG", "128"))
 
         return {
             "CONSUME_QUEUE": consume_q,
             "PRODUCE_QUEUE": produce_q,
-            "CONFIRMATION_QUEUE": confirmation_queue,
             "JOIN_QUEUE": join_q,
-            "EXCHANGE_NAME": "hola",
+            "EXCHANGE_NAME": name_e,
             "COLUMN_NAME": col_name,
             "COLUMN_ID": col_id,
             "IS_LAST_JOIN": is_last_join,
             "listen_backlog": listen_backlog,
             "logging_level": logging_level,
+            "CONFIRMATION_QUEUE": confirmation_queue
         }
 
     except KeyError as e:
@@ -69,15 +72,17 @@ def main():
 
     join_queue = config_params["JOIN_QUEUE"]
 
+    confirmation_queue = config_params["CONFIRMATION_QUEUE"]
+
     logging_level = config_params["logging_level"]
     listen_backlog = config_params["listen_backlog"]
     initialize_log(logging_level)
 
-    logging.debug(
-        f"action: config | result: success | queue_consumer: {queue_consumer} | queue_producer: {queue_producer} | "
+    print(
+        f"action: config | result: success | queue_consumer: {queue_consumer} | confirmation_q: {confirmation_queue} | queue_producer: {queue_producer} | "
         f"join_queue:{join_queue} | listen_backlog: {listen_backlog} | logging_level: {logging_level}")
 
-    this_join = Join(config_params["CONFIRMATION_QUEUE"], join_queue, config_params["COLUMN_ID"], config_params["COLUMN_NAME"], config_params["IS_LAST_JOIN"])
+    this_join = Join(confirmation_queue, join_queue, config_params["COLUMN_ID"], config_params["COLUMN_NAME"], config_params["IS_LAST_JOIN"])
     this_join.start(queue_consumer, queue_producer)
 
 

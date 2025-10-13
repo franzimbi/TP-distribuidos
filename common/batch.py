@@ -46,19 +46,26 @@ class Batch:
     def set_id(self, id: int):
         self._id_batch = int(id)
 
-    def change_header_name_value(self, old_column, new_column, dictionary):
+    def change_header_name_value(self, old_column, new_column, dictionary, be_rigid=False):
+        '''be_rigid si es true funciona cambiando el nombre de la columna y de todos los ids obligatoriamente, si es false cambia los ids q pueda'''
         try:
             id = self._header.index(old_column)
-            self._header[id] = new_column
+            if be_rigid:
+                self._header[id] = new_column
         except ValueError as e:
             raise ValueError(f'la columna {old_column} no existe en el header')
         body_copy = copy.deepcopy(self._body)
         for i in body_copy:
+            value = i[id]
             try:
-                i[id] = dictionary[i[id]]
+                if isinstance(value, int) or (isinstance(value, str) and value.isdigit()):
+                    i[id] = dictionary[value]
             except KeyError as e:
-                self._header[self._header.index(new_column)] = old_column
-                raise KeyError(f'el id {i[id]} no existe en el dictionary')
+                if be_rigid:
+                    self._header[self._header.index(new_column)] = old_column
+                    raise KeyError(f'el id {i[id]} no existe en el dictionary')
+                else:
+                    continue
         self._body = body_copy
 
     def set_header(self, header):

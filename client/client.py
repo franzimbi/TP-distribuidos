@@ -5,7 +5,7 @@ import logging
 import sys
 import signal
 from collections import defaultdict
-from common.protocol import send_batches_from_csv, recv_batch, recv_client_id
+from common.protocol import send_batches_from_csv, recv_batch, recv_client_id, recv_joins_confirmation_from_distributor
 import time
 
 from configparser import ConfigParser
@@ -64,6 +64,13 @@ class Client:
 
         send_batches_from_csv(path_input+MENU_ITEM_PATH, BATCH_SIZE, self.socket, MENU_ITEM_TYPE_FILE, self.client_id)
 
+        confirmation = recv_joins_confirmation_from_distributor(self.socket)
+        if confirmation != 1:
+            print("no deberia estar aca")
+            logging.error(f"[CLIENT] Error: confirmacion de joins invalida: {confirmation}. Cerrando client.")
+            self.close()
+            return
+        print(f"[CLIENT] Recibida confirmacion de joins del distributor. Continuando con envios.")
         send_batches_from_csv(path_input+TRANSACTION_ITEMS_PATH, BATCH_SIZE, self.socket, TRANSACTION_ITEMS_TYPE_FILE, self.client_id)
         
         #send_batches_from_csv(path_input + TRANSACTION_PATH, BATCH_SIZE, self.socket, TRANSACTION_TYPE_FILE, self.client_id)

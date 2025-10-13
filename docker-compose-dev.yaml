@@ -18,15 +18,14 @@ services:
     - storesExchange=storesExchange
     - usersExchange=usersExchange
     - q21Products1=entradaJoinerJoin_productos_Q21_1
-    - q21Products2=entradaJoinerJoin_productos_Q21_2
     - q22Products1=entradaJoinerJoin_productos_Q22_1
-    - q22Products2=entradaJoinerJoin_productos_Q22_2
     - q3Stores1=entradaJoinerJoin_stores_Q3_1
-    - q3Stores2=entradaJoinerJoin_stores_Q3_2
     - q4Stores1=entradaJoinerJoin_stores_Q4_1
-    - q4Stores2=entradaJoinerJoin_stores_Q4_2
     - q4Users1=entradaJoinerJoin_users_Q4_1
     - q4Users2=entradaJoinerJoin_users_Q4_2
+    - q4Users3=entradaJoinerJoin_users_Q4_3
+    - qJoinsConfirmation=q_joins_confirmation
+    - numberOfJoins=7
     networks:
     - mynet
     volumes:
@@ -569,33 +568,35 @@ services:
     - queuesSalida=Queue_final_Q21
     - queue_to_send_coordinator=coodinator_Join_productos_Q21_unique_queue
     - queue_to_receive_coordinator=Join_productos_Q21_1_receive_from_coordinator_Join_productos_Q21
-    - use_diskcache=False
+    - IS_LAST_JOIN=True
+    - CONFIRMATION_QUEUE=q_joins_confirmation
     - params=item_name,item_id
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  join_productos_q21_2:
-    build:
-      context: .
-      dockerfile: joinner/Dockerfile
-    depends_on:
-    - distributor
-    restart: on-failure
-    environment:
-    - PYTHONUNBUFFERED=1
-    - entradaJoin=exchange,productsExchange
-    - queueEntradaJoin=entradaJoinerJoin_productos_Q21_2
-    - queueEntradaData=Queue_between_reducer_joiner_Q21
-    - queuesSalida=Queue_final_Q21
-    - queue_to_send_coordinator=coodinator_Join_productos_Q21_unique_queue
-    - queue_to_receive_coordinator=Join_productos_Q21_2_receive_from_coordinator_Join_productos_Q21
-    - use_diskcache=False
-    - params=item_name,item_id
-    networks:
-    - mynet
-    volumes:
-    - ./config.ini:/app/config.ini
+  # join_productos_q21_2:
+  #   build:
+  #     context: .
+  #     dockerfile: joinner/Dockerfile
+  #   depends_on:
+  #   - distributor
+  #   restart: on-failure
+  #   environment:
+  #   - PYTHONUNBUFFERED=1
+  #   - entradaJoin=exchange,productsExchange
+  #   - queueEntradaJoin=entradaJoinerJoin_productos_Q21_2
+  #   - queueEntradaData=Queue_between_reducer_joiner_Q21
+  #   - queuesSalida=Queue_final_Q21
+  #   - queue_to_send_coordinator=coodinator_Join_productos_Q21_unique_queue
+  #   - queue_to_receive_coordinator=Join_productos_Q21_2_receive_from_coordinator_Join_productos_Q21
+  #   - IS_LAST_JOIN=True
+  #   - CONFIRMATION_QUEUE=q_joins_confirmation
+  #   - params=item_name,item_id
+  #   networks:
+  #   - mynet
+  #   volumes:
+  #   - ./config.ini:/app/config.ini
 
   join_productos_q22_1:
     build:
@@ -612,33 +613,34 @@ services:
     - queuesSalida=Queue_final_Q22
     - queue_to_send_coordinator=coodinator_Join_productos_Q22_unique_queue
     - queue_to_receive_coordinator=Join_productos_Q22_1_receive_from_coordinator_Join_productos_Q22
-    - use_diskcache=False
+    - IS_LAST_JOIN=True
+    - CONFIRMATION_QUEUE=q_joins_confirmation
     - params=item_name,item_id
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  join_productos_q22_2:
-    build:
-      context: .
-      dockerfile: joinner/Dockerfile
-    depends_on:
-    - distributor
-    restart: on-failure
-    environment:
-    - PYTHONUNBUFFERED=1
-    - entradaJoin=exchange,productsExchange
-    - queueEntradaJoin=entradaJoinerJoin_productos_Q22_2
-    - queueEntradaData=Queue_between_reducer_joiner_Q22
-    - queuesSalida=Queue_final_Q22
-    - queue_to_send_coordinator=coodinator_Join_productos_Q22_unique_queue
-    - queue_to_receive_coordinator=Join_productos_Q22_2_receive_from_coordinator_Join_productos_Q22
-    - use_diskcache=False
-    - params=item_name,item_id
-    networks:
-    - mynet
-    volumes:
-    - ./config.ini:/app/config.ini
+  # join_productos_q22_2:
+  #   build:
+  #     context: .
+  #     dockerfile: joinner/Dockerfile
+  #   depends_on:
+  #   - distributor
+  #   restart: on-failure
+  #   environment:
+  #   - PYTHONUNBUFFERED=1
+  #   - entradaJoin=exchange,productsExchange
+  #   - queueEntradaJoin=entradaJoinerJoin_productos_Q22_2
+  #   - queueEntradaData=Queue_between_reducer_joiner_Q22
+  #   - queuesSalida=Queue_final_Q22
+  #   - queue_to_send_coordinator=coodinator_Join_productos_Q22_unique_queue
+  #   - queue_to_receive_coordinator=Join_productos_Q22_2_receive_from_coordinator_Join_productos_Q22
+  #   - IS_LAST_JOIN=True
+  #   - params=item_name,item_id
+  #   networks:
+  #   - mynet
+  #   volumes:
+  #   - ./config.ini:/app/config.ini
 
   join_stores_q3_1:
     build:
@@ -655,33 +657,34 @@ services:
     - queuesSalida=Queue_final_Q3
     - queue_to_send_coordinator=coodinator_Join_stores_Q3_unique_queue
     - queue_to_receive_coordinator=Join_stores_Q3_1_receive_from_coordinator_Join_stores_Q3
-    - use_diskcache=False
+    - IS_LAST_JOIN=True
+    - CONFIRMATION_QUEUE=q_joins_confirmation
     - params=store_name,store_id
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  join_stores_q3_2:
-    build:
-      context: .
-      dockerfile: joinner/Dockerfile
-    depends_on:
-    - distributor
-    restart: on-failure
-    environment:
-    - PYTHONUNBUFFERED=1
-    - entradaJoin=exchange,storesExchange
-    - queueEntradaJoin=entradaJoinerJoin_stores_Q3_2
-    - queueEntradaData=Queue_between_aggregator_join_Q3
-    - queuesSalida=Queue_final_Q3
-    - queue_to_send_coordinator=coodinator_Join_stores_Q3_unique_queue
-    - queue_to_receive_coordinator=Join_stores_Q3_2_receive_from_coordinator_Join_stores_Q3
-    - use_diskcache=False
-    - params=store_name,store_id
-    networks:
-    - mynet
-    volumes:
-    - ./config.ini:/app/config.ini
+  # join_stores_q3_2:
+  #   build:
+  #     context: .
+  #     dockerfile: joinner/Dockerfile
+  #   depends_on:
+  #   - distributor
+  #   restart: on-failure
+  #   environment:
+  #   - PYTHONUNBUFFERED=1
+  #   - entradaJoin=exchange,storesExchange
+  #   - queueEntradaJoin=entradaJoinerJoin_stores_Q3_2
+  #   - queueEntradaData=Queue_between_aggregator_join_Q3
+  #   - queuesSalida=Queue_final_Q3
+  #   - queue_to_send_coordinator=coodinator_Join_stores_Q3_unique_queue
+  #   - queue_to_receive_coordinator=Join_stores_Q3_2_receive_from_coordinator_Join_stores_Q3
+  #   - IS_LAST_JOIN=True
+  #   - params=store_name,store_id
+  #   networks:
+  #   - mynet
+  #   volumes:
+  #   - ./config.ini:/app/config.ini
 
   join_users_q4_1:
     build:
@@ -695,10 +698,11 @@ services:
     - entradaJoin=exchange,usersExchange
     - queueEntradaJoin=entradaJoinerJoin_users_Q4_1
     - queueEntradaData=Queue_between_reducer_joiner_Q4
-    - queuesSalida=Queue_between_joiner_users_and_joiner_stores_Q4
+    - queuesSalida=j1
     - queue_to_send_coordinator=coodinator_Join_users_Q4_unique_queue
     - queue_to_receive_coordinator=Join_users_Q4_1_receive_from_coordinator_Join_users_Q4
-    - use_diskcache=False
+    - IS_LAST_JOIN=False
+    - CONFIRMATION_QUEUE=q_joins_confirmation
     - params=birthdate,user_id
     networks:
     - mynet
@@ -715,11 +719,35 @@ services:
     - PYTHONUNBUFFERED=1
     - entradaJoin=exchange,usersExchange
     - queueEntradaJoin=entradaJoinerJoin_users_Q4_2
-    - queueEntradaData=Queue_between_reducer_joiner_Q4
+    - queueEntradaData=j1
+    - queuesSalida=j2
+    - queue_to_send_coordinator=coodinator_Join_users_Q4_unique_queue
+    - queue_to_receive_coordinator=Join_users_Q4_2_receive_from_coordinator_Join_users_Q4
+    - IS_LAST_JOIN=False
+    - CONFIRMATION_QUEUE=q_joins_confirmation
+    - params=birthdate,user_id
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+
+  join_users_q4_3:
+    build:
+      context: .
+      dockerfile: joinner/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - entradaJoin=exchange,usersExchange
+    - queueEntradaJoin=entradaJoinerJoin_users_Q4_3
+    - queueEntradaData=j2
     - queuesSalida=Queue_between_joiner_users_and_joiner_stores_Q4
     - queue_to_send_coordinator=coodinator_Join_users_Q4_unique_queue
     - queue_to_receive_coordinator=Join_users_Q4_2_receive_from_coordinator_Join_users_Q4
-    - use_diskcache=False
+    - IS_LAST_JOIN=True
+    - CONFIRMATION_QUEUE=q_joins_confirmation
     - params=birthdate,user_id
     networks:
     - mynet
@@ -736,38 +764,39 @@ services:
     environment:
     - PYTHONUNBUFFERED=1
     - entradaJoin=exchange,storesExchange
+    - CONFIRMATION_QUEUE=q_joins_confirmation
     - queueEntradaJoin=entradaJoinerJoin_stores_Q4_1
     - queueEntradaData=Queue_between_joiner_users_and_joiner_stores_Q4
     - queuesSalida=Queue_final_Q4
     - queue_to_send_coordinator=coodinator_Join_stores_Q4_unique_queue
     - queue_to_receive_coordinator=Join_stores_Q4_1_receive_from_coordinator_Join_stores_Q4
-    - use_diskcache=False
+    - IS_LAST_JOIN=True
     - params=store_name,store_id
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  join_stores_q4_2:
-    build:
-      context: .
-      dockerfile: joinner/Dockerfile
-    depends_on:
-    - distributor
-    restart: on-failure
-    environment:
-    - PYTHONUNBUFFERED=1
-    - entradaJoin=exchange,storesExchange
-    - queueEntradaJoin=entradaJoinerJoin_stores_Q4_2
-    - queueEntradaData=Queue_between_joiner_users_and_joiner_stores_Q4
-    - queuesSalida=Queue_final_Q4
-    - queue_to_send_coordinator=coodinator_Join_stores_Q4_unique_queue
-    - queue_to_receive_coordinator=Join_stores_Q4_2_receive_from_coordinator_Join_stores_Q4
-    - use_diskcache=False
-    - params=store_name,store_id
-    networks:
-    - mynet
-    volumes:
-    - ./config.ini:/app/config.ini
+  # join_stores_q4_2:
+  #   build:
+  #     context: .
+  #     dockerfile: joinner/Dockerfile
+  #   depends_on:
+  #   - distributor
+  #   restart: on-failure
+  #   environment:
+  #   - PYTHONUNBUFFERED=1
+  #   - entradaJoin=exchange,storesExchange
+  #   - queueEntradaJoin=entradaJoinerJoin_stores_Q4_2
+  #   - queueEntradaData=Queue_between_joiner_users_and_joiner_stores_Q4
+  #   - queuesSalida=Queue_final_Q4
+  #   - queue_to_send_coordinator=coodinator_Join_stores_Q4_unique_queue
+  #   - queue_to_receive_coordinator=Join_stores_Q4_2_receive_from_coordinator_Join_stores_Q4
+  #   - CONFIRMATION_QUEUE=False
+  #   - params=store_name,store_id
+  #   networks:
+  #   - mynet
+  #   volumes:
+  #   - ./config.ini:/app/config.ini
 
   cliente_1:
     build:

@@ -27,9 +27,9 @@ def crear_distributor():
             'Q4result=Queue_final_Q4',
             'transactionsQueue=transaction_queue',
             'itemsQueue=items_queue',
-            'productsExchange=productsExchange',
-            'storesExchange=storesExchange',
-            'usersExchange=usersExchange',
+            'productsQueues=productsExchange',
+            'storesQueues=storesExchange',
+            'usersQueues=usersExchange',
         ],
         'networks': [
             'mynet'

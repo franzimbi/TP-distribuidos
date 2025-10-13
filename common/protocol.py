@@ -70,3 +70,13 @@ def recv_batch(socket):
 
 def recv_batches_from_socket(connection: socket):
     return recv_batch(connection)
+
+
+def send_joins_confirmation_to_client(socket):
+    confirmation = 1
+    socket.sendall(confirmation.to_bytes(1, "big"))
+
+def recv_joins_confirmation_from_distributor(socket):
+    size_bytes = recv_exact(socket, 1)
+    confirmation = int.from_bytes(size_bytes, "big")
+    return confirmation
