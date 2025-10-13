@@ -8,7 +8,7 @@ if len(sys.argv) != 3:
 
 cant_nodos = int(sys.argv[1])
 cant_clientes = int(sys.argv[2])
-nombre_file = 'docker-compose-dev.yaml2'
+nombre_file = 'docker-compose-dev2.yaml'
 
 
 def crear_distributor(cantidad_joiners):
@@ -30,11 +30,12 @@ def crear_distributor(cantidad_joiners):
             'Q22result=Queue_final_Q22',
             'Q3result=Queue_final_Q3',
             'Q4result=Queue_final_Q4',
-            'transactionsQueue=transaction_queue',
-            'itemsQueue=items_queue',
-            'productsQueues=join_products_queue_1,join_products_queue_2',
-            'storesQueues=join_stores_queue_1,join_stores_queue_2',
+            'transactionsQueue=transactionsQueue',
+            'itemsQueue=itemsQueue',
+            'productsQueues=join_products_queue_q22_1,join_products_queue_q21_1',
+            'storesQueues=join_stores_queue_q3_1,join_stores_queue_q4_1',
             f'usersQueues={usr_queues}',
+            'numberOfJoins=' + str(cant_nodos+4),
         ],
         'networks': [
             'mynet'
@@ -81,7 +82,7 @@ def crear_aggregators(nombre, cantidad, entrada, salida, type, params):
         raise TypeError('Cantidad invalido para un accumulator')
     aggregators = {}
     for i in range(1, cantidad + 1):
-        aggregator_name = f'aggregator{nombre}_{i}'
+        aggregator_name = f'aggregator_{nombre}_{i}'
         aggregators[aggregator_name.lower()] = {
             'build': {
                 'context': '.',
@@ -105,31 +106,6 @@ def crear_aggregators(nombre, cantidad, entrada, salida, type, params):
                 './config.ini:/app/config.ini'
             ],
         }
-
-    # aggregators[f'accumulator_{nombre}'.lower()] = {
-    #     'build': {
-    #         'context': '.',
-    #         'dockerfile': 'aggregator/Dockerfile',
-    #     },
-    #     'depends_on': [
-    #         'distributor'
-    #     ],
-    #     'restart': 'on-failure',
-    #     'environment': [
-    #         'PYTHONUNBUFFERED=1',
-    #         'CONSUME_QUEUE=' + entrada,
-    #         'PRODUCE_QUEUE=' + salida,
-    #         'TYPE=' + type,
-    #         'PARAMS=' + params,
-    #     ],
-    #     'networks': [
-    #         'mynet'
-    #     ],
-    #     'volumes': [
-    #         './config.ini:/app/config.ini'
-    #     ],
-    # }
-    #
     return aggregators
 
 
@@ -162,7 +138,7 @@ def crear_reducers(nombre, entrada, salida, top, params):
     return reducers
 
 
-def crear_joiners(nombre, cantidad, entrada, salida, params):
+def crear_joiners(nombre, cantidad, entrada, salida, entrada_join, params):
     joiners = {}
     if cantidad > 1:
         salida_j1 = 'conection_join_1'
@@ -181,10 +157,11 @@ def crear_joiners(nombre, cantidad, entrada, salida, params):
         'restart': 'on-failure',
         'environment': [
             'PYTHONUNBUFFERED=1',
-            'queueEntradaJoin=join_users_queue_1',
+            'queueEntradaJoin=' + entrada_join + '_1',
             'queueEntradaData=' + entrada,
             'queuesSalida=' + salida_j1,
             'is_last_join=' + is_last_j1,
+            'CONFIRMATION_QUEUE = q_joins_confirmation',
             'params=' + params
         ],
         'networks': [
@@ -210,10 +187,11 @@ def crear_joiners(nombre, cantidad, entrada, salida, params):
         'restart': 'on-failure',
         'environment': [
             'PYTHONUNBUFFERED=1',
-            f'queueEntradaJoin=join_users_queue_{cantidad}',
+            f'queueEntradaJoin=' + entrada_join + f'_{cantidad}',
             'queueEntradaData=' + entrada_j2,
             'queuesSalida=' + salida,
             'is_last_join=' + 'True',
+            'CONFIRMATION_QUEUE = q_joins_confirmation',
             'params=' + params
         ],
         'networks': [
@@ -242,10 +220,11 @@ def crear_joiners(nombre, cantidad, entrada, salida, params):
                 'restart': 'on-failure',
                 'environment': [
                     'PYTHONUNBUFFERED=1',
-                    'queueEntradaJoin=' + entrada_join,
+                    'queueEntradaJoin=' + entrada_join + f'_{i}',
                     'queueEntradaData=' + join_entrada_data,
                     'queuesSalida=' + join_salida_data,
                     'is_last_join=' + 'False',
+                    'CONFIRMATION_QUEUE = q_joins_confirmation',
                     'params=' + params
                 ],
                 'networks': [
@@ -328,6 +307,7 @@ with open(nombre_file, 'w') as f:
         crear_joiners(nombre='Join_productos_Q21', cantidad=1,
                       entrada='Queue_between_reducer_joiner_Q21',
                       salida='Queue_final_Q21',
+                      entrada_join='join_products_queue_q21',
                       params='item_name,item_id'))
 
     # querie 22
@@ -336,7 +316,7 @@ with open(nombre_file, 'w') as f:
                                       params='item_id,subtotal,month,year_month,created_at,total_earnings'))
 
     services.update(
-        crear_aggregators(nombre='accumulator_Q21', cantidad=1, entrada='Queue_between_aggregator_accumulator_Q22',
+        crear_aggregators(nombre='accumulator_Q22', cantidad=1, entrada='Queue_between_aggregator_accumulator_Q22',
                           salida='Queue_between_accumulator_reducer_Q22', type='accumulator',
                           params='item_id,total_earnings,year_month'))
 
@@ -348,6 +328,7 @@ with open(nombre_file, 'w') as f:
         crear_joiners(nombre='Join_productos_Q22', cantidad=1,
                       entrada='Queue_between_reducer_joiner_Q22',
                       salida='Queue_final_Q22',
+                      entrada_join='join_products_queue_q22',
                       params='item_name,item_id'))
 
     # querie 3
@@ -363,6 +344,7 @@ with open(nombre_file, 'w') as f:
         crear_joiners(nombre='Join_stores_Q3', cantidad=1,
                       entrada='Queue_between_accumulator_join_Q3',
                       salida='Queue_final_Q3',
+                      entrada_join='join_stores_queue_q3',
                       params='store_name,store_id'))
 
     # querie 4
@@ -383,10 +365,12 @@ with open(nombre_file, 'w') as f:
         crear_joiners(nombre='Join_users_Q4', cantidad=cant_nodos,
                       entrada='Queue_between_reducer_joiner_Q4',
                       salida='Queue_between_joiner_users_and_joiner_stores_Q4',
+                      entrada_join='join_users_queue',
                       params='birthdate,user_id'))
     services.update(crear_joiners(nombre='Join_stores_Q4', cantidad=cant_nodos,
                                   entrada='Queue_between_joiner_users_and_joiner_stores_Q4',
                                   salida='Queue_final_Q4',
+                                  entrada_join='join_stores_queue_q4',
                                   params='store_name,store_id'))
 
     # clientes
