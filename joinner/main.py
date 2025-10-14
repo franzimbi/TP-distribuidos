@@ -58,7 +58,6 @@ def initialize_log(logging_level):
     logging.getLogger("pika").setLevel(logging.CRITICAL)
 
 def main():
-    print("Starting Joinner...")
     config_params = initialize_config()
 
     queue_consumer = config_params["CONSUME_QUEUE"]

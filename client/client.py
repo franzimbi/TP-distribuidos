@@ -66,14 +66,11 @@ class Client:
 
         confirmation = recv_joins_confirmation_from_distributor(self.socket)
         if confirmation != 1:
-            print("no deberia estar aca")
             logging.error(f"[CLIENT] Error: confirmacion de joins invalida: {confirmation}. Cerrando client.")
             self.close()
             return
-        print(f"[CLIENT] Recibida confirmacion de joins del distributor. Continuando con envios.")
+        logging.debug(f"[CLIENT] Recibida confirmacion de joins del distributor. Continuando con envios.")
         send_batches_from_csv(path_input+TRANSACTION_ITEMS_PATH, BATCH_SIZE, self.socket, TRANSACTION_ITEMS_TYPE_FILE, self.client_id)
-        
-        #send_batches_from_csv(path_input + TRANSACTION_PATH, BATCH_SIZE, self.socket, TRANSACTION_TYPE_FILE, self.client_id)
 
         self.sender_transaction = threading.Thread(
             target=send_batches_from_csv,
@@ -110,7 +107,6 @@ class Client:
         try:
             while not self.shutdown_event.is_set():
                 batch = recv_batch(self.socket)
-                # print(f"recibi batch {batch.id()}")
                 qid = batch.get_query_id()
                 if batch.client_id() != self.client_id:
                     logging.info(f"[CLIENT] llego un batch con client_id distinto: {batch}")

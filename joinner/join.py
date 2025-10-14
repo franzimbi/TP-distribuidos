@@ -21,6 +21,7 @@ class Join:
         self.column_id = column_id
         self.column_name = column_name
         self.join_queue = join_queue
+        self.thead_join = None
         self.lock = threading.Lock()
 
         signal.signal(signal.SIGTERM, self.graceful_quit)
@@ -39,19 +40,15 @@ class Join:
     def start(self, consumer, producer):
         aux = self.join_queue
         self.join_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=aux)
-
-        print(f"[JOINER] Soy el joiner {self.column_name} y tengo que armar el diccionario")
         queue_confirm_name = self.confirmation_queue
         self.confirmation_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=queue_confirm_name)
 
         self.thead_join = threading.Thread(target=self.join_queue.start_consuming,
                                            args=(self.callback_to_receive_join_data,), daemon=True)
         self.thead_join.start()
-        print("start del join")
         logging.debug("action: receive_join_data | status: finished | entries: %d",
                       len(self.join_dictionary))
 
-        print("termine de recibir los datos del join")
         self.consumer_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=consumer)
         self.producer_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=producer)
 
@@ -144,5 +141,8 @@ class Join:
                     self.join_queue.close()
                 except Exception:
                     pass
+
+            if self.thead_join is not None:
+                self.thead_join.join()
         except Exception:
             pass
