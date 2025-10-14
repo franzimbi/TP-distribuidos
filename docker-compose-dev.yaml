@@ -411,6 +411,40 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+  aggregator_suma_q21_5:
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_begin2_1
+    - PRODUCE_QUEUE=Queue_between_aggregator_accumulator_Q21
+    - TYPE=sum
+    - PARAMS=item_id,quantity,month,year_month,created_at,total_quantity
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+  aggregator_suma_q21_6:
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_begin2_1
+    - PRODUCE_QUEUE=Queue_between_aggregator_accumulator_Q21
+    - TYPE=sum
+    - PARAMS=item_id,quantity,month,year_month,created_at,total_quantity
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
   aggregator_accumulator_q21_1:
     build:
       context: .
@@ -516,6 +550,40 @@ services:
     volumes:
     - ./config.ini:/app/config.ini
   aggregator_suma_q22_4:
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_begin2_2
+    - PRODUCE_QUEUE=Queue_between_aggregator_accumulator_Q22
+    - TYPE=sum
+    - PARAMS=item_id,subtotal,month,year_month,created_at,total_earnings
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+  aggregator_suma_q22_5:
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_begin2_2
+    - PRODUCE_QUEUE=Queue_between_aggregator_accumulator_Q22
+    - TYPE=sum
+    - PARAMS=item_id,subtotal,month,year_month,created_at,total_earnings
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+  aggregator_suma_q22_6:
     build:
       context: .
       dockerfile: aggregator/Dockerfile
@@ -653,6 +721,40 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+  aggregator_suma_q3_5:
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_3
+    - PRODUCE_QUEUE=Queue_between_aggregators_accumulator_Q3
+    - TYPE=sum
+    - PARAMS=store_id,final_amount,semester,year_semester,created_at,tpv
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+  aggregator_suma_q3_6:
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_3
+    - PRODUCE_QUEUE=Queue_between_aggregators_accumulator_Q3
+    - TYPE=sum
+    - PARAMS=store_id,final_amount,semester,year_semester,created_at,tpv
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
   aggregator_accumulator_q3_1:
     build:
       context: .
@@ -741,6 +843,40 @@ services:
     volumes:
     - ./config.ini:/app/config.ini
   aggregator_counter_q4_4:
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_begin_4
+    - PRODUCE_QUEUE=Queue_between_aggregators_accumulator_Q4
+    - TYPE=counter
+    - PARAMS=store_id,user_id,purchases_qty
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+  aggregator_counter_q4_5:
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_begin_4
+    - PRODUCE_QUEUE=Queue_between_aggregators_accumulator_Q4
+    - TYPE=counter
+    - PARAMS=store_id,user_id,purchases_qty
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+  aggregator_counter_q4_6:
     build:
       context: .
       dockerfile: aggregator/Dockerfile
@@ -926,6 +1062,27 @@ services:
     - ./csvs_files_reduced:/app/csvs_files_reduced
     - ./csvs_files_juguete:/app/csvs_files_juguete
     - ./results_cliente_2:/app/results
+    networks:
+    - mynet
+  cliente_3:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    restart: on-failure
+    depends_on:
+    - distributor
+    links:
+    - distributor
+    environment:
+    - PYTHONUNBUFFERED=1
+    - DISTRIBUTOR_HOST=distributor
+    - DISTRIBUTOR_PORT=5000
+    volumes:
+    - ./config.ini:/app/config.ini
+    - ./csvs_files:/app/csvs_files
+    - ./csvs_files_reduced:/app/csvs_files_reduced
+    - ./csvs_files_juguete:/app/csvs_files_juguete
+    - ./results_cliente_3:/app/results
     networks:
     - mynet
 networks:
