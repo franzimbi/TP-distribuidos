@@ -43,13 +43,13 @@ def send_id_to_client(client_id, socket):
     socket.sendall(client_id.to_bytes(4, "big"))
 
 
-def handle_client(socket, shutdown, distributor):
+def handle_client(socket, shutdown, distributor, id_client):
     while not shutdown.is_set():
         try:
             batch = recv_batch(socket) #TODO: esto hay q cambiarlo para q no explote
         except ConnectionError as e:
+            distributor.remove_client(id_client)
             return
-        #     logging.debug("")
         if batch is not None:
             if batch.is_last_batch():
                 logging.debug(f"[DISTRIBUTOR] Recibido batch final {batch.id()} de tipo {batch.type()} de client_{batch.client_id()}.")
@@ -67,6 +67,7 @@ def graceful_quit(signum, frame, shutdown, server_socket, distributor, client_th
     distributor.stop_consuming_from_all_workers()
     for i in client_threads:
         i.join()
+    print("Distributor apagado limpio.")
 
 
 def main():
@@ -99,12 +100,14 @@ def main():
         try:
             client_socket, client_address = server_socket.accept()
         except OSError as e:
+            if e.errno == 9:  # Bad file descriptor
+                break # socket ya cerrado, salida limpia sin log adicional
             logging.debug(f"[DISTRIBUTOR] Socket cerrado, saliendo del loop: {e}")
             break
         logging.info(f"[DISTRIBUTOR] Cliente conectado desde {client_address}")
         id_client = distributor.add_client(client_socket)
         send_id_to_client(id_client, client_socket)
-        new_client = threading.Thread(target=handle_client, args=(client_socket, shutdown, distributor),
+        new_client = threading.Thread(target=handle_client, args=(client_socket, shutdown, distributor, id_client),
                                       daemon=True)
         client_threads.append(new_client)
         new_client.start()

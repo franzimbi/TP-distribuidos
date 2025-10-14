@@ -89,8 +89,8 @@ class Client:
         if self.receiver_thread:
             self.receiver_thread.join()
             logging.debug("[CLIENT] joinee receiver...")
-        # if self.sender_transaction:
-        #     self.sender_transaction.join()
+        if self.sender_transaction:
+            self.sender_transaction.join()
             logging.debug("[CLIENT] joinee sender transactions...")
         self.socket.close()
         logging.info("[CLIENT] socket cerrado.")

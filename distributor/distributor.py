@@ -90,8 +90,13 @@ class Distributor:
     def remove_client(self, client_id):
         sock = self.clients.pop(client_id, None)
         if sock:
+            sock.close()
             self.number_of_clients -= 1
         return sock
+    
+    def remove_all_clients(self):
+        for client_id in list(self.clients.keys()):
+            self.remove_client(client_id)
 
     def distribute_batch_to_workers(self, batch: Batch):
         if batch.is_last_batch():
@@ -180,6 +185,7 @@ class Distributor:
             t.start()
 
     def stop_consuming_from_all_workers(self):
+        self.remove_all_clients()
         middlewares = [
             self.transactions,
             self.transaction_items,
@@ -187,7 +193,8 @@ class Distributor:
             self.q21_results,
             self.q22_results,
             self.q3_results,
-            self.q4_results
+            self.q4_results,
+            self.confirmation_queue
         ]
         for mw in middlewares:
             try:

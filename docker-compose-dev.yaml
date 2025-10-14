@@ -55,6 +55,38 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+  filtroanio1_3:
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=itemsQueue
+    - PRODUCE_QUEUE=Queue_begin2_1,Queue_begin2_2
+    - FILTER_NAME=byyear
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+  filtroanio1_4:
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=itemsQueue
+    - PRODUCE_QUEUE=Queue_begin2_1,Queue_begin2_2
+    - FILTER_NAME=byyear
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
   filtroanio2_1:
     build:
       context: .
@@ -72,6 +104,38 @@ services:
     volumes:
     - ./config.ini:/app/config.ini
   filtroanio2_2:
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=transactionsQueue
+    - PRODUCE_QUEUE=Queue_begin_4,Queue_begin_3_y_1
+    - FILTER_NAME=byyear
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+  filtroanio2_3:
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=transactionsQueue
+    - PRODUCE_QUEUE=Queue_begin_4,Queue_begin_3_y_1
+    - FILTER_NAME=byyear
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+  filtroanio2_4:
     build:
       context: .
       dockerfile: filter/Dockerfile
@@ -119,6 +183,38 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+  filtrohora1_3:
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_begin_3_y_1
+    - PRODUCE_QUEUE=Queue_3,Queue_1
+    - FILTER_NAME=bytime
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+  filtrohora1_4:
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_begin_3_y_1
+    - PRODUCE_QUEUE=Queue_3,Queue_1
+    - FILTER_NAME=bytime
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
   filter_amount_q1_1:
     build:
       context: .
@@ -151,6 +247,38 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+  filter_amount_q1_3:
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_1
+    - PRODUCE_QUEUE=Queue_between_filter_amount_filter_columna_Q1
+    - FILTER_NAME=byamount
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+  filter_amount_q1_4:
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_1
+    - PRODUCE_QUEUE=Queue_between_filter_amount_filter_columna_Q1
+    - FILTER_NAME=byamount
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
   filter_column_q1_1:
     build:
       context: .
@@ -168,6 +296,38 @@ services:
     volumes:
     - ./config.ini:/app/config.ini
   filter_column_q1_2:
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_between_filter_amount_filter_columna_Q1
+    - PRODUCE_QUEUE=Queue_final_Q1
+    - FILTER_NAME=bycolumn
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+  filter_column_q1_3:
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_between_filter_amount_filter_columna_Q1
+    - PRODUCE_QUEUE=Queue_final_Q1
+    - FILTER_NAME=bycolumn
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+  filter_column_q1_4:
     build:
       context: .
       dockerfile: filter/Dockerfile
@@ -218,6 +378,23 @@ services:
     volumes:
     - ./config.ini:/app/config.ini
   aggregator_suma_q21_3:
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_begin2_1
+    - PRODUCE_QUEUE=Queue_between_aggregator_accumulator_Q21
+    - TYPE=sum
+    - PARAMS=item_id,quantity,month,year_month,created_at,total_quantity
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+  aggregator_suma_q21_4:
     build:
       context: .
       dockerfile: aggregator/Dockerfile
@@ -338,6 +515,23 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+  aggregator_suma_q22_4:
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_begin2_2
+    - PRODUCE_QUEUE=Queue_between_aggregator_accumulator_Q22
+    - TYPE=sum
+    - PARAMS=item_id,subtotal,month,year_month,created_at,total_earnings
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
   aggregator_accumulator_q22_1:
     build:
       context: .
@@ -442,6 +636,23 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+  aggregator_suma_q3_4:
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_3
+    - PRODUCE_QUEUE=Queue_between_aggregators_accumulator_Q3
+    - TYPE=sum
+    - PARAMS=store_id,final_amount,semester,year_semester,created_at,tpv
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
   aggregator_accumulator_q3_1:
     build:
       context: .
@@ -513,6 +724,23 @@ services:
     volumes:
     - ./config.ini:/app/config.ini
   aggregator_counter_q4_3:
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_begin_4
+    - PRODUCE_QUEUE=Queue_between_aggregators_accumulator_Q4
+    - TYPE=counter
+    - PARAMS=store_id,user_id,purchases_qty
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+  aggregator_counter_q4_4:
     build:
       context: .
       dockerfile: aggregator/Dockerfile
