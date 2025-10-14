@@ -2,12 +2,14 @@
 import sys
 import yaml
 
-if len(sys.argv) != 3:
-    print("Uso: python3 generador.py <cantidad nodos> <cantidad clientes>")
+if len(sys.argv) != 5:
+    print("Uso: python3 generador.py <cantidad filtros> <cantidad aggregators> <cantidad joins> <cantidad clientes>")
     sys.exit(1)
 
-cant_nodos = int(sys.argv[1])
-cant_clientes = int(sys.argv[2])
+cant_filtros = int(sys.argv[1])
+cant_aggregators = int(sys.argv[2])
+cant_joins = int(sys.argv[3])
+cant_clientes = int(sys.argv[4])
 nombre_file = 'docker-compose-dev.yaml'
 
 
@@ -36,7 +38,7 @@ def crear_distributor(cantidad_joiners):
             'storesQueues=join_stores_queue_q3_1,join_stores_queue_q4_1',
             'CONFIRMATION_QUEUE=q_joins_confirmation',
             f'usersQueues={usr_queues}',
-            'numberOfJoins=' + str(cant_nodos+4),
+            'numberOfJoins=' + str(cant_joins+4),
         ],
         'networks': [
             'mynet'
@@ -274,25 +276,25 @@ def crear_client(cantidad, puerto):
 
 
 with open(nombre_file, 'w') as f:
-    services = {'distributor': crear_distributor(cant_nodos)}
+    services = {'distributor': crear_distributor(cant_joins)}
     # nodos de entrada a todas las queries
-    services.update(crear_filters(nombre='FiltroAnio1', cantidad=cant_nodos, entrada='itemsQueue',
+    services.update(crear_filters(nombre='FiltroAnio1', cantidad=cant_filtros, entrada='itemsQueue',
                                   salida='Queue_begin2_1,Queue_begin2_2', type='byyear'))
-    services.update(crear_filters(nombre='FiltroAnio2', cantidad=cant_nodos, entrada='transactionsQueue',
+    services.update(crear_filters(nombre='FiltroAnio2', cantidad=cant_filtros, entrada='transactionsQueue',
                                   salida='Queue_begin_4,Queue_begin_3_y_1', type='byyear'))
-    services.update(crear_filters(nombre='FiltroHora1', cantidad=cant_nodos, entrada='Queue_begin_3_y_1',
+    services.update(crear_filters(nombre='FiltroHora1', cantidad=cant_filtros, entrada='Queue_begin_3_y_1',
                                   salida='Queue_3,Queue_1', type='bytime'))
 
     # querie 1
-    services.update(crear_filters(nombre='Filter_amount_Q1', cantidad=cant_nodos, entrada='Queue_1',
+    services.update(crear_filters(nombre='Filter_amount_Q1', cantidad=cant_filtros, entrada='Queue_1',
                                   salida='Queue_between_filter_amount_filter_columna_Q1', type='byamount'))
 
-    services.update(crear_filters(nombre='Filter_column_Q1', cantidad=cant_nodos,
+    services.update(crear_filters(nombre='Filter_column_Q1', cantidad=cant_filtros,
                                   entrada='Queue_between_filter_amount_filter_columna_Q1',
                                   salida='Queue_final_Q1', type='bycolumn'))
 
     # querie 21
-    services.update(crear_aggregators(nombre='Suma_Q21', cantidad=cant_nodos, entrada='Queue_begin2_1',
+    services.update(crear_aggregators(nombre='Suma_Q21', cantidad=cant_aggregators, entrada='Queue_begin2_1',
                                       salida='Queue_between_aggregator_accumulator_Q21', type='sum',
                                       params='item_id,quantity,month,year_month,created_at,total_quantity'))
 
@@ -312,7 +314,7 @@ with open(nombre_file, 'w') as f:
                       params='item_name,item_id'))
 
     # querie 22
-    services.update(crear_aggregators(nombre='Suma_Q22', cantidad=cant_nodos, entrada='Queue_begin2_2',
+    services.update(crear_aggregators(nombre='Suma_Q22', cantidad=cant_aggregators, entrada='Queue_begin2_2',
                                       salida='Queue_between_aggregator_accumulator_Q22', type='sum',
                                       params='item_id,subtotal,month,year_month,created_at,total_earnings'))
 
@@ -333,7 +335,7 @@ with open(nombre_file, 'w') as f:
                       params='item_name,item_id'))
 
     # querie 3
-    services.update(crear_aggregators(nombre='Suma_Q3', cantidad=cant_nodos, entrada='Queue_3',
+    services.update(crear_aggregators(nombre='Suma_Q3', cantidad=cant_aggregators, entrada='Queue_3',
                                       salida='Queue_between_aggregators_accumulator_Q3', type='sum',
                                       params='store_id,final_amount,semester,year_semester,created_at,tpv'))
     services.update(
@@ -349,7 +351,7 @@ with open(nombre_file, 'w') as f:
                       params='store_name,store_id'))
 
     # querie 4
-    services.update(crear_aggregators(nombre='Counter_Q4', cantidad=cant_nodos, entrada='Queue_begin_4',
+    services.update(crear_aggregators(nombre='Counter_Q4', cantidad=cant_aggregators, entrada='Queue_begin_4',
                                       salida='Queue_between_aggregators_accumulator_Q4', type='counter',
                                       params='store_id,user_id,purchases_qty'))
 
@@ -363,7 +365,7 @@ with open(nombre_file, 'w') as f:
                                    params='store_id,user_id,purchases_qty'))
 
     services.update(
-        crear_joiners(nombre='Join_users_Q4', cantidad=cant_nodos,
+        crear_joiners(nombre='Join_users_Q4', cantidad=cant_joins,
                       entrada='Queue_between_reducer_joiner_Q4',
                       salida='Queue_between_joiner_users_and_joiner_stores_Q4',
                       entrada_join='join_users_queue',

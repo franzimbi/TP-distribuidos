@@ -5,8 +5,11 @@ if [ $# -lt 2 ]; then
   exit 1
 fi
 
-echo "Cantidad de nodos: $1"
-echo "Cantidad de clientes: $2"
+echo "Cantidad de filtros: $1"
+echo "Cantidad de aggregators: $2"
+echo "Cantidad de joins: $3"
+echo "Cantidad de clientes: $4"
+echo "Generando docker-compose.yml..."
 
 # Verificar si PyYAML está instalado
 if ! python3 -c "import yaml" &> /dev/null; then
@@ -20,4 +23,4 @@ if ! python3 -c "import yaml" &> /dev/null; then
 fi
 
 # Ejecutar el generador
-python3 generator.py "$1" "$2"
+python3 generator.py "$1" "$2" "$3" "$4"
