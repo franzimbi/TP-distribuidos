@@ -72,7 +72,6 @@ class Join:
 
         if batch.is_last_batch():
             self.confirmation_queue.send(batch.encode())
-            print(f"[JOINER] Enviado last batch a confirmation_queue {self.confirmation_queue}")
             return
 
         if id is None or name is None:

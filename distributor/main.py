@@ -44,21 +44,16 @@ def send_id_to_client(client_id, socket):
 
 
 def handle_client(socket, shutdown, distributor):
-    # counter_lasts_batches = 0
     while not shutdown.is_set():
-        # try:
-        batch = recv_batch(socket) #TODO: esto hay q cambiarlo para q no explote
-        # except ConnectionError as e:
+        try:
+            batch = recv_batch(socket) #TODO: esto hay q cambiarlo para q no explote
+        except ConnectionError as e:
+            return
         #     logging.debug("")
         if batch is not None:
             if batch.is_last_batch():
-                # counter_lasts_batches += 1
-                print(f"[DISTRIBUTOR] Recibido batch final {batch.id()} de tipo {batch.type()} de client_{batch.client_id()}.")
+                logging.debug(f"[DISTRIBUTOR] Recibido batch final {batch.id()} de tipo {batch.type()} de client_{batch.client_id()}.")
             distributor.distribute_batch_to_workers(batch)
-        # print(f"[DISTRIBUTOR] counter: {counter_lasts_batches} y queries: {QUERIES_SIZE}")
-        # if counter_lasts_batches == QUERIES_SIZE:
-        #     print(f"[DISTRIBUTOR] entro al if counter: {counter_lasts_batches} y queries: {QUERIES_SIZE}")
-            # return
 
 
 def graceful_quit(signum, frame, shutdown, server_socket, distributor, client_threads):
@@ -100,13 +95,13 @@ def main():
 
     while True:
         client_threads = [t for t in client_threads if t.is_alive()]
-        print(f"\n[DISTRIBUTOR] Esperando conexiones de clientes en {host}:{port}...\n")
+        logging.info(f"\n[DISTRIBUTOR] Esperando conexiones de clientes en {host}:{port}...\n")
         try:
             client_socket, client_address = server_socket.accept()
         except OSError as e:
             logging.debug(f"[DISTRIBUTOR] Socket cerrado, saliendo del loop: {e}")
             break
-        print(f"[DISTRIBUTOR] Cliente conectado desde {client_address}")
+        logging.info(f"[DISTRIBUTOR] Cliente conectado desde {client_address}")
         id_client = distributor.add_client(client_socket)
         send_id_to_client(id_client, client_socket)
         new_client = threading.Thread(target=handle_client, args=(client_socket, shutdown, distributor),

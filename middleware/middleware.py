@@ -161,8 +161,7 @@ class MessageMiddlewareQueue(MessageMiddleware):
             )
             self._channel.start_consuming()
         except Exception as e:
-            # loguea el error en vez de levantarlo
-            logging.debug(f"[Middleware] Error en start_consuming: {e}")
+            return
         finally:
             # cerrar canal y conexión de forma segura
             try:
@@ -184,7 +183,8 @@ class MessageMiddlewareQueue(MessageMiddleware):
         except (pika.exceptions.ConnectionClosed,
                 pika.exceptions.StreamLostError,
                 pika.exceptions.AMQPConnectionError) as e:
-            raise MessageMiddlewareDisconnectedError() from e
+            return
+            # raise MessageMiddlewareDisconnectedError() from e
         except Exception as e:
             raise MessageMiddlewareMessageError(f"Error al detener consumo: {e}") from e
 
@@ -204,7 +204,8 @@ class MessageMiddlewareQueue(MessageMiddleware):
             if self._connection and self._connection.is_open:
                 self._connection.close()
         except Exception as e:
-            raise MessageMiddlewareCloseError(f"Error al cerrar conexión: {e}") from e
+            # raise MessageMiddlewareCloseError(f"Error al cerrar conexión: {e}") from e
+            return
         finally:
             logging.debug("[Middleware] conexión cerrada manualmente")
 
