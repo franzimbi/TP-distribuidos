@@ -9,7 +9,7 @@ from common.protocol import send_batch, send_joins_confirmation_to_client
 from common.batch import Batch
 from functools import partial
 
-COUNT_OF_PRINTS = 10000
+COUNT_OF_PRINTS = 3000
 
 transactionsQueue = os.getenv('transactionsQueue')
 itemsQueue = os.getenv('itemsQueue')
@@ -114,7 +114,7 @@ class Distributor:
         if batch.type() == 'u':
             if batch.id() == 0 or batch.id() % COUNT_OF_PRINTS == 0:
                 logging.debug(
-                    f"[DISTRIBUTION] Distribuyendo batch.id={batch.id()} de tipo 'u' a {len(self.users_queues)} colas de users")
+                    f"[DISTRIBUTION] Distribuyendo batch.id={batch.id()} de tipo 'u' del cliente{batch.client_id()} a {len(self.users_queues)} colas de users")
             if batch.is_last_batch():
                 logging.debug(
                     f"[DISTRIBUTION] Distribuyendo LASTbatch.id={batch.id()} de tipo 'u' a {len(self.users_queues)} colas de users")
@@ -153,13 +153,15 @@ class Distributor:
             return
         try:
             with self.socket_lock:  # TODO: cambiar este lock a un lock por cliente
+                if batch.id() == 0 or batch.id() % COUNT_OF_PRINTS == 0:
+                    print(f"[DISTRIBUTOR] Enviando batch procesado con id={batch.id()} de query{query_id} al cliente{client_id}")
                 send_batch(client_socket, batch)
 
         except Exception as e:
             logging.error(f"[DISTRIBUTOR] error al querer enviar batch:{batch} al cliente:{client_id} | error: {e}")
         if batch.is_last_batch():
             logging.debug(
-                f"\n[DISTRIBUTOR] Cliente {client_id} recibió todos los resultados de la query {query_id}.\n")
+                f"\n[DISTRIBUTOR] Recibido last batch de query{query_id} para el cliente{client_id}.\n")
             return
 
     def start_consuming_from_workers(self):

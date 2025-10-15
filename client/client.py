@@ -131,13 +131,13 @@ class Client:
                     path = os.path.join(out_dir, f"q{qid}.csv")
                     files[qid] = open(path, "w")
                     wrote_header[qid] = False
-                    logging.debug(f"[CLIENT] Abierto archivo de salida: {path}")
+                    # logging.debug(f"[CLIENT] Abierto archivo de salida: {path}")
 
                 f = files[qid]
                 if not wrote_header[qid]:
                     f.write(",".join(batch.get_header()) + "\n")
                     wrote_header[qid] = True
-                    logging.debug(f"[CLIENT] Escribí header para Q{qid}: {batch.get_header()}")
+                    # logging.debug(f"[CLIENT] Escribí header para Q{qid}: {batch.get_header()}")
 
                 for row in batch:
                     f.write(",".join(row) + "\n")
