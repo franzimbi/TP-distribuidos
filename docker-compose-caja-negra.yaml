@@ -1,0 +1,323 @@
+version: "3.9"
+
+services:
+  distributor:
+    build: 
+      context: .
+      dockerfile: distributor/Dockerfile
+    restart: on-failure
+    environment:
+      - PYTHONUNBUFFERED=1
+      - Q1result=Queue_final_Q1
+      - Q21result=Queue_final_Q21
+      - Q22result=Queue_final_Q22
+      - Q3result=Queue_final_Q3
+      - Q4result=Queue_final_Q4
+      - transactionsQueue=transactionsQueue
+      - itemsQueue=itemsQueue
+      - productsQueues=join_products_queue_q21_1,join_products_queue_q22_1
+      - storesQueues=join_stores_queue_q4_1
+      - usersQueues=join_users_queue_1
+      - CONFIRMATION_QUEUE=q_joins_confirmation
+      - numberOfJoins=1
+    volumes:
+      - ./config.ini:/app/config.ini
+    networks:
+      - mynet
+
+# ---------- Q1 ----------
+  filtroanio2_1:
+    build: 
+      context: .
+      dockerfile: filter/Dockerfile
+    depends_on:
+      - distributor
+    restart: on-failure
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=transactionsQueue
+      - PRODUCE_QUEUE=Queue_begin_4,Queue_begin_3_y_1
+      - FILTER_NAME=byyear
+    volumes:
+      - ./config.ini:/app/config.ini
+    networks:
+      - mynet
+
+  filtroanio1_1:
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    depends_on:
+      - distributor
+    restart: on-failure
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=itemsQueue
+      - PRODUCE_QUEUE=Queue_begin2_1,Queue_begin2_2
+      - FILTER_NAME=byyear
+    volumes:
+      - ./config.ini:/app/config.ini
+    networks:
+      - mynet
+
+  filtrohora1_1:
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    depends_on:
+      - distributor
+    restart: on-failure
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=Queue_begin_3_y_1
+      - PRODUCE_QUEUE=Queue_3,Queue_final_Q1
+      - FILTER_NAME=bytime
+    volumes:
+      - ./config.ini:/app/config.ini
+    networks:
+      - mynet
+
+# ---------- Query 21 ----------
+  aggregator_suma_q21_1:
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+      - distributor
+    restart: on-failure
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=Queue_begin2_1
+      - PRODUCE_QUEUE=Queue_between_aggregator_reducer_Q21
+      - TYPE=sum
+      - PARAMS=item_id,quantity,month,year_month,created_at,total_quantity
+    volumes:
+      - ./config.ini:/app/config.ini
+    networks:
+      - mynet
+
+  reducer_reducer_q21:
+    build:
+      context: .
+      dockerfile: reducer/Dockerfile
+    depends_on:
+      - distributor
+    restart: on-failure
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=Queue_between_aggregator_reducer_Q21
+      - PRODUCE_QUEUE=Queue_final_Q21
+      - TOP=1
+      - PARAMS=year_month,item_id,total_quantity
+    volumes:
+      - ./config.ini:/app/config.ini
+    networks:
+      - mynet
+
+# ---------- Query 22 ----------
+  aggregator_suma_q22_1:
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+      - distributor
+    restart: on-failure
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=Queue_begin2_2
+      - PRODUCE_QUEUE=Queue_between_aggregator_reducer_Q22
+      - TYPE=sum
+      - PARAMS=item_id,subtotal,month,year_month,created_at,total_earnings
+    volumes:
+      - ./config.ini:/app/config.ini
+    networks:
+      - mynet
+
+  reducer_reducer_q22:
+    build:
+      context: .
+      dockerfile: reducer/Dockerfile
+    depends_on:
+      - distributor
+    restart: on-failure
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=Queue_between_aggregator_reducer_Q22
+      - PRODUCE_QUEUE=Queue_final_Q22
+      - TOP=1
+      - PARAMS=year_month,item_id,total_earnings
+    volumes:
+      - ./config.ini:/app/config.ini
+    networks:
+      - mynet
+
+# ---------- Query 3 ----------
+  aggregator_suma_q3_1:
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+      - distributor
+    restart: on-failure
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=Queue_3
+      - PRODUCE_QUEUE=Queue_between_aggregators_accumulator_Q3
+      - TYPE=sum
+      - PARAMS=store_id,final_amount,semester,year_semester,created_at,tpv
+    volumes:
+      - ./config.ini:/app/config.ini
+    networks:
+      - mynet
+
+  aggregator_accumulator_q3_1:
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+      - distributor
+    restart: on-failure
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=Queue_between_aggregators_accumulator_Q3
+      - PRODUCE_QUEUE=Queue_final_Q3
+      - TYPE=accumulator
+      - PARAMS=store_id,tpv,year_semester
+    volumes:
+      - ./config.ini:/app/config.ini
+    networks:
+      - mynet
+
+# ---------- Q4 ----------
+  aggregator_counter_q4_1:
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+      - distributor
+    restart: on-failure
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=Queue_begin_4
+      - PRODUCE_QUEUE=Queue_between_aggregators_accumulator_Q4
+      - TYPE=counter
+      - PARAMS=store_id,user_id,purchases_qty
+    volumes:
+      - ./config.ini:/app/config.ini
+    networks:
+      - mynet
+
+  aggregator_accumulator_q4_1:
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+      - distributor
+    restart: on-failure
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=Queue_between_aggregators_accumulator_Q4
+      - PRODUCE_QUEUE=Queue_between_accumulator_reducer_Q4
+      - TYPE=accumulator
+      - PARAMS=store_id,purchases_qty,user_id
+    volumes:
+      - ./config.ini:/app/config.ini
+    networks:
+      - mynet
+
+  reducer_reducer_q4:
+    build:
+      context: .
+      dockerfile: reducer/Dockerfile
+    depends_on:
+      - distributor
+    restart: on-failure
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONSUME_QUEUE=Queue_between_accumulator_reducer_Q4
+      - PRODUCE_QUEUE=Queue_between_reducer_joiner_Q4
+      - TOP=3
+      - PARAMS=store_id,user_id,purchases_qty
+    volumes:
+      - ./config.ini:/app/config.ini
+    networks:
+      - mynet
+
+  join_stores_q4_1:
+    build:
+      context: .
+      dockerfile: joinner/Dockerfile
+    depends_on:
+      - distributor
+    restart: on-failure
+    environment:
+      - PYTHONUNBUFFERED=1
+      - queueEntradaJoin=join_stores_queue_q4_1
+      - queueEntradaData=Queue_between_reducer_joiner_Q4
+      - queuesSalida=Queue_final_Q4
+      - is_last_join=True
+      - CONFIRMATION_QUEUE=q_joins_confirmation
+      - params=store_name,store_id
+    volumes:
+      - ./config.ini:/app/config.ini
+    networks:
+      - mynet
+
+  # ---------- Clientes ----------
+  cliente_1:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    restart: on-failure
+    depends_on:
+      - distributor
+    links:
+      - distributor
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DISTRIBUTOR_HOST=distributor
+      - DISTRIBUTOR_PORT=5000
+    volumes:
+      - ./config.ini:/app/config.ini
+      - ./csvs_files:/app/csvs_files
+      - ./csvs_files_reduced:/app/csvs_files_reduced
+      - ./csvs_files_juguete:/app/csvs_files_juguete
+      - ./results_cliente_1:/app/results
+    networks:
+      - mynet
+
+  cliente_2:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    restart: on-failure
+    depends_on:
+      - distributor
+    links:
+      - distributor
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DISTRIBUTOR_HOST=distributor
+      - DISTRIBUTOR_PORT=5000
+    volumes:
+      - ./config.ini:/app/config.ini
+      - ./csvs_files:/app/csvs_files
+      - ./csvs_files_reduced:/app/csvs_files_reduced
+      - ./csvs_files_juguete:/app/csvs_files_juguete
+      - ./results_cliente_2:/app/results
+    networks:
+      - mynet
+
+networks:
+  mynet:
+    driver: bridge
+
+# Q1: byyear(transacciones) → bytime → Queue_final_Q1 (y en paralelo alimenta Q3 vía Queue_3).
+
+# Q21: sum(items) → reducer → Queue_final_Q21.
+
+# Q22: sum(items) → reducer → Queue_final_Q22.
+
+# Q3: sum(Queue_3) → accumulator → Queue_final_Q3.
+
+# Q4: counter(Queue_begin_4) → accumulator → reducer → join_stores(last) → Queue_final_Q4
