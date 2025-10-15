@@ -117,30 +117,17 @@ class Join:
     def close(self):
         try:
             if self.consumer_queue:
-                try:
-                    self.consumer_queue.stop_consuming()
-                except Exception:
-                    pass
-                try:
-                    self.consumer_queue.close()
-                except Exception:
-                    pass
+                self.consumer_queue.stop_consuming()
+                self.consumer_queue.close()
+
 
             if self.producer_queue:
-                try:
-                    self.producer_queue.close()
-                except Exception:
-                    pass
+                self.producer_queue.close()
+
 
             if self.join_queue:
-                try:
-                    self.join_queue.stop_consuming()
-                except Exception:
-                    pass
-                try:
-                    self.join_queue.close()
-                except Exception:
-                    pass
+                self.join_queue.stop_consuming()
+                self.join_queue.close()
 
             if self.thead_join is not None:
                 self.thead_join.join()

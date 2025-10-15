@@ -182,7 +182,7 @@ class MessageMiddlewareQueue(MessageMiddleware):
                 self._channel.stop_consuming()
         except (pika.exceptions.ConnectionClosed,
                 pika.exceptions.StreamLostError,
-                pika.exceptions.AMQPConnectionError) as e:
+                pika.exceptions.AMQPConnectionErrorm, AttributeError) as e:
             return
             # raise MessageMiddlewareDisconnectedError() from e
         except Exception as e:

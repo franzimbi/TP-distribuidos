@@ -49,5 +49,6 @@ def main():
     this_client.start('csvs_files_reduced', 'results')
     this_client.close()
 
+
 if __name__ == "__main__":
     main()

@@ -204,7 +204,8 @@ class Distributor:
                     try:
                         mw.stop_consuming()
                     except Exception as e:
-                        logging.debug(f"[Distributor] Error deteniendo consumo de {mw}: {e}")
+                        pass
+                        # logging.debug(f"[Distributor] deteniendo consumo de {mw}: {e}")
                 try:
                     mw.close()
                 except Exception as e:
