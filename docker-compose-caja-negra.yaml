@@ -20,7 +20,7 @@ services:
       - CONFIRMATION_QUEUE=q_joins_confirmation
       - numberOfJoins=1
     volumes:
-      - ./config.ini:/app/config.ini
+      - ./config_test.ini:/app/config.ini
     networks:
       - mynet
 
@@ -38,7 +38,7 @@ services:
       - PRODUCE_QUEUE=Queue_begin_4,Queue_begin_3_y_1
       - FILTER_NAME=byyear
     volumes:
-      - ./config.ini:/app/config.ini
+      - ./config_test.ini:/app/config.ini
     networks:
       - mynet
 
@@ -55,7 +55,7 @@ services:
       - PRODUCE_QUEUE=Queue_begin2_1,Queue_begin2_2
       - FILTER_NAME=byyear
     volumes:
-      - ./config.ini:/app/config.ini
+      - ./config_test.ini:/app/config.ini
     networks:
       - mynet
 
@@ -72,7 +72,7 @@ services:
       - PRODUCE_QUEUE=Queue_3,Queue_final_Q1
       - FILTER_NAME=bytime
     volumes:
-      - ./config.ini:/app/config.ini
+      - ./config_test.ini:/app/config.ini
     networks:
       - mynet
 
@@ -91,7 +91,7 @@ services:
       - TYPE=sum
       - PARAMS=item_id,quantity,month,year_month,created_at,total_quantity
     volumes:
-      - ./config.ini:/app/config.ini
+      - ./config_test.ini:/app/config.ini
     networks:
       - mynet
 
@@ -109,7 +109,7 @@ services:
       - TOP=1
       - PARAMS=year_month,item_id,total_quantity
     volumes:
-      - ./config.ini:/app/config.ini
+      - ./config_test.ini:/app/config.ini
     networks:
       - mynet
 
@@ -128,7 +128,7 @@ services:
       - TYPE=sum
       - PARAMS=item_id,subtotal,month,year_month,created_at,total_earnings
     volumes:
-      - ./config.ini:/app/config.ini
+      - ./config_test.ini:/app/config.ini
     networks:
       - mynet
 
@@ -146,7 +146,7 @@ services:
       - TOP=1
       - PARAMS=year_month,item_id,total_earnings
     volumes:
-      - ./config.ini:/app/config.ini
+      - ./config_test.ini:/app/config.ini
     networks:
       - mynet
 
@@ -165,7 +165,7 @@ services:
       - TYPE=sum
       - PARAMS=store_id,final_amount,semester,year_semester,created_at,tpv
     volumes:
-      - ./config.ini:/app/config.ini
+      - ./config_test.ini:/app/config.ini
     networks:
       - mynet
 
@@ -183,7 +183,7 @@ services:
       - TYPE=accumulator
       - PARAMS=store_id,tpv,year_semester
     volumes:
-      - ./config.ini:/app/config.ini
+      - ./config_test.ini:/app/config.ini
     networks:
       - mynet
 
@@ -202,7 +202,7 @@ services:
       - TYPE=counter
       - PARAMS=store_id,user_id,purchases_qty
     volumes:
-      - ./config.ini:/app/config.ini
+      - ./config_test.ini:/app/config.ini
     networks:
       - mynet
 
@@ -220,7 +220,7 @@ services:
       - TYPE=accumulator
       - PARAMS=store_id,purchases_qty,user_id
     volumes:
-      - ./config.ini:/app/config.ini
+      - ./config_test.ini:/app/config.ini
     networks:
       - mynet
 
@@ -238,7 +238,7 @@ services:
       - TOP=3
       - PARAMS=store_id,user_id,purchases_qty
     volumes:
-      - ./config.ini:/app/config.ini
+      - ./config_test.ini:/app/config.ini
     networks:
       - mynet
 
@@ -258,7 +258,7 @@ services:
       - CONFIRMATION_QUEUE=q_joins_confirmation
       - params=store_name,store_id
     volumes:
-      - ./config.ini:/app/config.ini
+      - ./config_test.ini:/app/config.ini
     networks:
       - mynet
 
@@ -277,7 +277,7 @@ services:
       - DISTRIBUTOR_HOST=distributor
       - DISTRIBUTOR_PORT=5000
     volumes:
-      - ./config.ini:/app/config.ini
+      - ./config_test.ini:/app/config.ini
       - ./csvs_files:/app/csvs_files
       - ./csvs_files_reduced:/app/csvs_files_reduced
       - ./csvs_files_juguete:/app/csvs_files_juguete
@@ -299,7 +299,7 @@ services:
       - DISTRIBUTOR_HOST=distributor
       - DISTRIBUTOR_PORT=5000
     volumes:
-      - ./config.ini:/app/config.ini
+      - ./config_test.ini:/app/config.ini
       - ./csvs_files:/app/csvs_files
       - ./csvs_files_reduced:/app/csvs_files_reduced
       - ./csvs_files_juguete:/app/csvs_files_juguete
