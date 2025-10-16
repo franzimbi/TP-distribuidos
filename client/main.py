@@ -18,9 +18,9 @@ def initialize_config():
             os.getenv('SERVER_LISTEN_BACKLOG', config["DEFAULT"]["SYSTEM_LISTEN_BACKLOG"]))
         config_params["logging_level"] = os.getenv('LOGGING_LEVEL', config["DEFAULT"]["LOGGING_LEVEL"])
     except KeyError as e:
-        raise KeyError("Key was not found. Error: {} .Aborting server".format(e))
+        raise KeyError(f"Key was not found. Error: {e} .Aborting server")
     except ValueError as e:
-        raise ValueError("Key could not be parsed. Error: {}. Aborting server".format(e))
+        raise ValueError(f"Key could not be parsed. Error: {e}. Aborting server")
 
     return config_params
 
@@ -42,11 +42,17 @@ def main():
     listen_backlog = config_params["listen_backlog"]
     initialize_log(logging_level)
 
-    logging.debug(f"action: config | result: success | port: {port} | host: {host}  | "
-                  f"listen_backlog: {listen_backlog} | logging_level: {logging_level}")
+    input_dir = os.getenv('CSV_INPUT_DIR')
+    output_dir = 'results'
+
+    logging.debug(
+        f"action: config | result: success | port: {port} | host: {host} | "
+        f"listen_backlog: {listen_backlog} | logging_level: {logging_level} | "
+        f"input_dir: {input_dir} | output_dir: {output_dir}"
+    )
 
     this_client = Client(host, port)
-    this_client.start('csvs_files_reduced', 'results')
+    this_client.start(input_dir, output_dir)
     this_client.close()
 
 

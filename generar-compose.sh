@@ -9,6 +9,7 @@ echo "Cantidad de filtros: $1"
 echo "Cantidad de aggregators: $2"
 echo "Cantidad de joins: $3"
 echo "Cantidad de clientes: $4"
+echo "CSV input directory: $5"
 echo "Generando docker-compose.yml..."
 
 # Verificar si PyYAML está instalado
@@ -23,4 +24,4 @@ if ! python3 -c "import yaml" &> /dev/null; then
 fi
 
 # Ejecutar el generador
-python3 generator.py "$1" "$2" "$3" "$4"
+python3 generator.py "$1" "$2" "$3" "$4" "$5"

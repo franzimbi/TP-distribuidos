@@ -2,14 +2,15 @@
 import sys
 import yaml
 
-if len(sys.argv) != 5:
-    print("Uso: python3 generador.py <cantidad filtros> <cantidad aggregators> <cantidad joins> <cantidad clientes>")
+if len(sys.argv) != 6:
+    print("Uso: python3 generador.py <cantidad filtros> <cantidad aggregators> <cantidad joins> <cantidad clientes> <csv_input_dir>")
     sys.exit(1)
 
 cant_filtros = int(sys.argv[1])
 cant_aggregators = int(sys.argv[2])
 cant_joins = int(sys.argv[3])
 cant_clientes = int(sys.argv[4])
+csv_input_dir = sys.argv[5]
 nombre_file = 'docker-compose-dev.yaml'
 
 
@@ -239,8 +240,7 @@ def crear_joiners(nombre, cantidad, entrada, salida, entrada_join, params):
             }
     return joiners
 
-
-def crear_client(cantidad, puerto):
+def crear_client(cantidad, puerto, input_dir):
     clients = {}
     for i in range(1, cantidad + 1):
         client_name = f'cliente_{i}'
@@ -260,6 +260,7 @@ def crear_client(cantidad, puerto):
                 'PYTHONUNBUFFERED=1',
                 'DISTRIBUTOR_HOST=distributor',
                 'DISTRIBUTOR_PORT=' + str(puerto),
+                'CSV_INPUT_DIR=' + input_dir,
             ],
             'volumes': [
                 './config.ini:/app/config.ini',
@@ -377,8 +378,8 @@ with open(nombre_file, 'w') as f:
                                   params='store_name,store_id'))
 
     # clientes
-    services.update(crear_client(cant_clientes, 5000))
-
+    services.update(crear_client(cant_clientes, 5000, csv_input_dir))
+    
     # red
     data = {'services': services,
             'networks': {
