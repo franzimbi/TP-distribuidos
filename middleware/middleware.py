@@ -152,18 +152,20 @@ class MessageMiddlewareQueue(MessageMiddleware):
         })
         logging.getLogger("pika").propagate = False
 
-    def start_consuming(self, on_message_callback):
+    def start_consuming(self, on_message_callback, *, auto_ack=False, prefetch_count=1):
         try:
+            # if prefetch_count and prefetch_count > 0:
+            # self._channel.basic_qos(prefetch_count=prefetch_count)
+
             self._channel.basic_consume(
                 queue=self._queue_name,
                 on_message_callback=on_message_callback,
-                auto_ack=True
+                auto_ack=auto_ack
             )
             self._channel.start_consuming()
-        except Exception as e:
+        except Exception:
             return
         finally:
-            # cerrar canal y conexión de forma segura
             try:
                 if self._channel and self._channel.is_open:
                     self._channel.close()

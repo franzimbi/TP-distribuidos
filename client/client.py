@@ -14,7 +14,7 @@ config = ConfigParser()
 config.read("config.ini")
 
 BATCH_SIZE = int(config["DEFAULT"]["BATCH_SIZE"])
-AMOUNT_OF_QUERIES = 5
+AMOUNT_OF_QUERIES = 1
 
 STORES_PATH = '/stores'
 TRANSACTION_PATH = '/transactions'
@@ -58,19 +58,19 @@ class Client:
 
         self.client_id = recv_client_id(self.socket)
 
-        send_batches_from_csv(path_input+STORES_PATH, BATCH_SIZE, self.socket, STORES_TYPE_FILE, self.client_id)
+        # send_batches_from_csv(path_input+STORES_PATH, BATCH_SIZE, self.socket, STORES_TYPE_FILE, self.client_id)
 
-        send_batches_from_csv(path_input+USERS_PATH, BATCH_SIZE, self.socket, USERS_TYPE_FILE, self.client_id)
+        # send_batches_from_csv(path_input+USERS_PATH, BATCH_SIZE, self.socket, USERS_TYPE_FILE, self.client_id)
 
-        send_batches_from_csv(path_input+MENU_ITEM_PATH, BATCH_SIZE, self.socket, MENU_ITEM_TYPE_FILE, self.client_id)
+        # send_batches_from_csv(path_input+MENU_ITEM_PATH, BATCH_SIZE, self.socket, MENU_ITEM_TYPE_FILE, self.client_id)
 
-        confirmation = recv_joins_confirmation_from_distributor(self.socket)
-        if confirmation != 1:
-            logging.error(f"[CLIENT] Error: confirmacion de joins invalida: {confirmation}. Cerrando client.")
-            self.close()
-            return
-        logging.debug(f"[CLIENT] Recibida confirmacion de joins del distributor. Continuando con envios.")
-        send_batches_from_csv(path_input+TRANSACTION_ITEMS_PATH, BATCH_SIZE, self.socket, TRANSACTION_ITEMS_TYPE_FILE, self.client_id)
+        # confirmation = recv_joins_confirmation_from_distributor(self.socket)
+        # if confirmation != 1:
+        #     logging.error(f"[CLIENT] Error: confirmacion de joins invalida: {confirmation}. Cerrando client.")
+        #     self.close()
+        #     return
+        # logging.debug(f"[CLIENT] Recibida confirmacion de joins del distributor. Continuando con envios.")
+        # send_batches_from_csv(path_input+TRANSACTION_ITEMS_PATH, BATCH_SIZE, self.socket, TRANSACTION_ITEMS_TYPE_FILE, self.client_id)
 
         self.sender_transaction = threading.Thread(
             target=send_batches_from_csv,
@@ -116,8 +116,9 @@ class Client:
                     idx = batch.get_header().index('cant_batches')
                     expected_batches[qid] = int(batch[0][idx])
                     logging.debug(f"[CLIENT] Q{qid} espera {expected_batches[qid]} batches.")
+                    logging.debug(f"[CLIENT] batches que llegaron ya:  {received_batches[qid]}")
 
-                    if qid in expected_batches and received_batches[qid] == expected_batches[qid]:
+                    if qid in expected_batches and received_batches[qid] >= expected_batches[qid]:
                         ended.add(qid)
                         logging.debug(f"[CLIENT] Recibido END de Q{qid}. Pendientes: {AMOUNT_OF_QUERIES - len(ended)}")
                         if len(ended) >= AMOUNT_OF_QUERIES:

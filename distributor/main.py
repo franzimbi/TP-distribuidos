@@ -8,7 +8,7 @@ from configparser import ConfigParser
 import logging
 import signal
 
-QUERIES_SIZE = 3
+# QUERIES_SIZE = 3
 
 def initialize_config():
     config = ConfigParser(os.environ)
@@ -46,7 +46,7 @@ def send_id_to_client(client_id, socket):
 def handle_client(socket, shutdown, distributor, id_client):
     while not shutdown.is_set():
         try:
-            batch = recv_batch(socket) #TODO: esto hay q cambiarlo para q no explote
+            batch = recv_batch(socket)
         except ConnectionError as e:
             distributor.remove_client(id_client)
             return

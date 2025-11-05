@@ -1,10 +1,10 @@
-FROM python:3.9.7-slim
+FROM python:3.9.7-alpine
 
 WORKDIR /app
-COPY filter/main.py /app/
-#COPY filter/filters.py /app/
-COPY common/ /app/common/
-COPY filter/common/ /app/
-COPY middleware/ /app/middleware/
-RUN pip install --no-cache-dir pika
+COPY healthchecker/main.py /app/
+COPY healthchecker/healthchecker.py /app/
+
+RUN apk update
+RUN apk add docker
+
 ENTRYPOINT ["python3", "main.py"]

@@ -3,6 +3,8 @@ from common.batch import Batch
 import logging
 import signal
 import sys
+import socket
+import threading
 
 from configparser import ConfigParser
 
@@ -10,6 +12,7 @@ config = ConfigParser()
 config.read("config.ini")
 
 BUFFER_SIZE = int(config["DEFAULT"]["BATCH_SIZE"])
+HEALTH_PORT = 3030
 
 class Filter:
     def __init__(self, consume_queue, produce_queue, filter):
@@ -22,6 +25,10 @@ class Filter:
             self._produce_queues.append(queue)
 
         self._filter = filter
+
+        self._health_sock = None
+        self._health_thread = None
+
         signal.signal(signal.SIGTERM, self.graceful_shutdown)
 
 
@@ -34,15 +41,35 @@ class Filter:
         sys.exit(0)
 
     def start(self):
-        self._consume_queue.start_consuming(self.callback)
+        self._health_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._health_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self._health_sock.bind(('', HEALTH_PORT))
+        self._health_sock.listen()
+
+        def loop():
+            while True:
+                conn, addr = self._health_sock.accept()
+                conn.close()
+
+        self._health_thread = threading.Thread(target=loop, daemon=True)
+        self._health_thread.start()
+        logging.info(f"[FILTER] Healthcheck escuchando en puerto {HEALTH_PORT}")
+
+        self._consume_queue.start_consuming(self.callback, auto_ack=False)
 
     def callback(self, ch, method, properties, message):
-        batch = Batch(); batch.decode(message)
-        if not batch.is_last_batch():
-            batch = self._filter(batch)
-        for q in self._produce_queues:
-            q.send(batch.encode())
-        
+        try:
+            batch = Batch(); batch.decode(message)
+            print(f"[FILTER] Recibido batch con {batch.id()}")
+            if not batch.is_last_batch():
+                batch = self._filter(batch)
+            for q in self._produce_queues:
+                q.send(batch.encode())
+
+            ch.basic_ack(delivery_tag=method.delivery_tag)
+        except Exception:
+            logging.exception("[FILTER] Error al procesar el batch")
+            ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
 
     def close(self):
         self._consume_queue.stop_consuming()
