@@ -1,3 +1,5 @@
+import time
+
 from middleware.middleware import MessageMiddlewareQueue
 from common.batch import Batch
 import logging
@@ -65,7 +67,6 @@ class Filter:
                 batch = self._filter(batch)
             for q in self._produce_queues:
                 q.send(batch.encode())
-
             ch.basic_ack(delivery_tag=method.delivery_tag)
         except Exception:
             logging.exception("[FILTER] Error al procesar el batch")

@@ -3,8 +3,8 @@ import random
 import time
 
 CONTAINER_NAMES = [
-    "filtroanio1_1","filtroanio2_1","filtrohora1_1","filter_amount_q1_1","filter_column_q1_1"]
-SECONDS = 300
+    "filtroanio2_1","filtrohora1_1","filter_amount_q1_1","filter_column_q1_1"]
+SECONDS = 7
 def run():
     while True:
         container = random.choice(CONTAINER_NAMES)

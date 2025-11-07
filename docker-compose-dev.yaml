@@ -390,29 +390,6 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-  
-  cliente_1:
-    build:
-      context: .
-      dockerfile: client/Dockerfile
-    restart: on-failure
-    depends_on:
-    - distributor
-    links:
-    - distributor
-    environment:
-    - PYTHONUNBUFFERED=1
-    - DISTRIBUTOR_HOST=distributor
-    - DISTRIBUTOR_PORT=5000
-    - CSV_INPUT_DIR=csvs_files_reduced
-    volumes:
-    - ./config.ini:/app/config.ini
-    - ./csvs_files:/app/csvs_files
-    - ./csvs_files_reduced:/app/csvs_files_reduced
-    - ./csvs_files_juguete:/app/csvs_files_juguete
-    - ./results_cliente_1:/app/results
-    networks:
-    - mynet
 
   healthchecker:
     build:
@@ -421,7 +398,6 @@ services:
     restart: on-failure
     depends_on:
     - distributor
-    - cliente_1
     - filter_amount_q1_1
     - filter_column_q1_1
     - filtroanio1_1
@@ -432,8 +408,30 @@ services:
       - ./config.ini:/app/config.ini
     environment:
       PORT: 3030
-      NODES: "filtroanio1_1,filtroanio2_1,filtrohora1_1,filter_amount_q1_1,filter_column_q1_1"
-    
+      NODES: "filtroanio1_1,filtrohora1_1,filter_amount_q1_1,filter_column_q1_1"
+  cliente_1:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    restart: on-failure
+    depends_on:
+      - distributor
+      - healthchecker
+    links:
+      - distributor
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DISTRIBUTOR_HOST=distributor
+      - DISTRIBUTOR_PORT=5000
+      - CSV_INPUT_DIR=csvs_files_juguete
+    volumes:
+      - ./config.ini:/app/config.ini
+      - ./csvs_files:/app/csvs_files
+      - ./csvs_files_reduced:/app/csvs_files_reduced
+      - ./csvs_files_juguete:/app/csvs_files_juguete
+      - ./results_cliente_1:/app/results
+    networks:
+      - mynet
 networks:
   mynet:
     external: false

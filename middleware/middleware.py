@@ -139,28 +139,28 @@ class MessageMiddlewareQueue(MessageMiddleware):
             host=host,
             heartbeat=300,  # 5 minutos de tolerancia
             blocked_connection_timeout=600,  # evita cortar por bloqueos largos
-            socket_timeout=600,  # lectura/escritura más paciente
+            socket_timeout=600,  # lectura/escritura
             connection_attempts=10,  # intenta reconectarse varias veces
             retry_delay=5,  # espera 5s entre intentos
         ))
         self._channel = self._connection.channel()
         self._queue_name = queue_name
-        self._channel.queue_declare(queue=queue_name, durable=False, auto_delete=True, arguments={
-            'x-max-length': 1000000,  # hasta 1 millón de mensajes
+        self._channel.queue_declare(queue=queue_name, durable=True, arguments={
+            'x-max-length': 1000000,  # hasta 1 millon de mensajes
             'x-max-length-bytes': 1073741824,  # o 1 GB de mensajes
-            'x-overflow': 'drop-head'  # descarta los más viejos si se llena
+            'x-overflow': 'drop-head'  # descarta los mas viejos si se llena
         })
-        logging.getLogger("pika").propagate = False
+        logging.getLogger("pika").propagate = False # para q pika no llore
 
     def start_consuming(self, on_message_callback, *, auto_ack=False, prefetch_count=1):
         try:
-            # if prefetch_count and prefetch_count > 0:
-            # self._channel.basic_qos(prefetch_count=prefetch_count)
+            if prefetch_count and prefetch_count > 0:
+                self._channel.basic_qos(prefetch_count=prefetch_count)
 
             self._channel.basic_consume(
                 queue=self._queue_name,
                 on_message_callback=on_message_callback,
-                auto_ack=auto_ack
+                auto_ack=False
             )
             self._channel.start_consuming()
         except Exception:
