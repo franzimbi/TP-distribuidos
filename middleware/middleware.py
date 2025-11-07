@@ -144,6 +144,7 @@ class MessageMiddlewareQueue(MessageMiddleware):
             retry_delay=5,  # espera 5s entre intentos
         ))
         self._channel = self._connection.channel()
+        # self._channel.confirm_delivery()  # activa publisher confirms
         self._queue_name = queue_name
         self._channel.queue_declare(queue=queue_name, durable=True, arguments={
             'x-max-length': 1000000,  # hasta 1 millon de mensajes
@@ -193,7 +194,7 @@ class MessageMiddlewareQueue(MessageMiddleware):
     def send(self, message):
         try:
             self._channel.basic_publish(exchange='', routing_key=self._queue_name, body=message,
-                                        properties=pika.BasicProperties(delivery_mode=1))
+                                        properties=pika.BasicProperties(delivery_mode=2), mandatory=True)
         except (pika.exceptions.ConnectionClosed,
                 pika.exceptions.StreamLostError,
                 pika.exceptions.AMQPConnectionError) as e:
