@@ -8,7 +8,7 @@ from middleware.middleware import MessageMiddlewareQueue, MessageMiddlewareExcha
 from common.protocol import send_batch, send_joins_confirmation_to_client
 from common.batch import Batch
 from functools import partial
-
+from collections import defaultdict
 COUNT_OF_PRINTS = 3000
 
 transactionsQueue = os.getenv('transactionsQueue')
@@ -41,7 +41,6 @@ number_of_joins = int(os.getenv('numberOfJoins'))
 
 shutdown = threading.Event()
 
-
 class Distributor:
     def __init__(self):
         self.number_of_clients = 0
@@ -67,6 +66,9 @@ class Distributor:
             't': self.transactions,
             'i': self.transaction_items,
         }
+
+        self._last_sent = defaultdict(lambda: -1)
+        self._last_sent_lock = threading.Lock()
 
         self.q1_results = MessageMiddlewareQueue('rabbitmq', Q1_results)
         self.q21_results = MessageMiddlewareQueue('rabbitmq', Q21_results)
@@ -151,12 +153,26 @@ class Distributor:
         if client_socket is None:
             logging.error(f"[DISTRIBUTOR] No existe el cliente {client_id} para enviarle los resultados.")
             return
+
+        key = (client_id, query_id)
+
+        with self._last_sent_lock:
+            last = self._last_sent[key]
+            if batch.id() <= last:
+                logging.debug(f"[DISTRIBUTOR] Duplicado/atrasado (cid={client_id}, q={query_id}, id={batch.id()} ≤ {last}) → skip")
+                # ch.basic_ack(delivery_tag=method.delivery_tag)
+                return    
+
         try:
             with self.socket_lock:  # TODO: cambiar este lock a un lock por cliente
                 if batch.id() == 0 or batch.id() % COUNT_OF_PRINTS == 0:
                     print(f"[DISTRIBUTOR] Enviando batch procesado con id={batch.id()} de query{query_id} al cliente{client_id}")
                 send_batch(client_socket, batch)
-                ch.basic_ack(delivery_tag=method.delivery_tag)
+    
+            with self._last_sent_lock:
+                if batch.id() > self._last_sent[key]:
+                    self._last_sent[key] = batch.id()
+            ch.basic_ack(delivery_tag=method.delivery_tag)
 
         except Exception as e:
             logging.error(f"[DISTRIBUTOR] error al querer enviar batch:{batch} al cliente:{client_id} | error: {e}")
@@ -164,7 +180,6 @@ class Distributor:
             logging.debug(
                 f"\n[DISTRIBUTOR] Recibido last batch de query{query_id} para el cliente{client_id}.\n")
             return
-        
 
     def start_consuming_from_workers(self):
         # TODO: lanza los hilos de start_consuming de las 4 queries y se las manda al client por id
