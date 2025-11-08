@@ -85,17 +85,19 @@ class Distributor:
 
         self.client_counter = {}
 
-        self.ids_counter = IDRangeCounter()
+        self.ids_counter = {}
 
 
 
     def add_client(self, client_socket):
         self.number_of_clients += 1
         self.clients[self.number_of_clients] = client_socket
+        self.ids_counter[self.number_of_clients] = IDRangeCounter()
         return self.number_of_clients
 
     def remove_client(self, client_id):
         sock = self.clients.pop(client_id, None)
+        _ = self.ids_counter.pop(client_id, None)
         if sock:
             sock.close()
             self.number_of_clients -= 1
@@ -158,14 +160,12 @@ class Distributor:
         if client_socket is None:
             logging.error(f"[DISTRIBUTOR] No existe el cliente {client_id} para enviarle los resultados.")
             return
-        if batch.id() == 97492:
-            logging.info(f"[DISTRIBUTION]\n\n\n LLEGO\n\n")
 
-        if self.ids_counter.already_processed(batch.id(), batch.type()):
+        if self.ids_counter[client_id].already_processed(batch.id(), query_id):
             ch.basic_ack(delivery_tag=method.delivery_tag)
             return
         try:
-            self.ids_counter.add_id(batch.id(), batch.type())
+            self.ids_counter[client_id].add_id(batch.id(), query_id)
             with self.socket_lock:  # TODO: cambiar este lock a un lock por cliente
                 # if batch.id() == 0 or batch.id() % COUNT_OF_PRINTS == 0:
                 print(f"[DISTRIBUTOR] Enviando batch procesado con id={batch.id()} de query{query_id} al cliente{client_id}")
@@ -176,7 +176,7 @@ class Distributor:
             logging.error(f"[DISTRIBUTOR] error al querer enviar batch:{batch} al cliente:{client_id} | error: {e}")
         if batch.is_last_batch():
             logging.debug(
-                f"\n[DISTRIBUTOR] Recibido last batch de query{query_id} para el cliente{client_id} con id {batch.id()}. el range id es {self.ids_counter}\n")
+                f"\n[DISTRIBUTOR] Recibido last batch de query{query_id} para el cliente{client_id} con id {batch.id()}. el range id es {self.ids_counter[client_id]}\n")
             return
 
     def start_consuming_from_workers(self):
