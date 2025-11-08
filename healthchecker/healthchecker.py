@@ -31,7 +31,7 @@ class Healthchecker:
                     con.shutdown(socket.SHUT_RDWR)
                     con.close()
                 except socket.error:
-                    logging.error(f"{node} murio, intentando revivir...(reza por su alma)")
+                    logging.info(f"{node} murio, intentando revivir...(reza por su alma)")
                     self.revive_node(node)
     
     def revive_node(self, node):

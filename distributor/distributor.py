@@ -7,6 +7,7 @@ from time import time
 from middleware.middleware import MessageMiddlewareQueue, MessageMiddlewareExchange
 from common.protocol import send_batch, send_joins_confirmation_to_client
 from common.batch import Batch
+from common.id_range_counter import IDRangeCounter
 from functools import partial
 from collections import defaultdict
 COUNT_OF_PRINTS = 3000
@@ -84,6 +85,10 @@ class Distributor:
 
         self.client_counter = {}
 
+        self.ids_counter = IDRangeCounter()
+
+
+
     def add_client(self, client_socket):
         self.number_of_clients += 1
         self.clients[self.number_of_clients] = client_socket
@@ -153,32 +158,25 @@ class Distributor:
         if client_socket is None:
             logging.error(f"[DISTRIBUTOR] No existe el cliente {client_id} para enviarle los resultados.")
             return
+        if batch.id() == 97492:
+            logging.info(f"[DISTRIBUTION]\n\n\n LLEGO\n\n")
 
-        key = (client_id, query_id)
-
-        with self._last_sent_lock:
-            last = self._last_sent[key]
-            if batch.id() <= last:
-                logging.debug(f"[DISTRIBUTOR] Duplicado/atrasado (cid={client_id}, q={query_id}, id={batch.id()} ≤ {last}) → skip")
-                # ch.basic_ack(delivery_tag=method.delivery_tag)
-                return    
-
-        try:
-            with self.socket_lock:  # TODO: cambiar este lock a un lock por cliente
-                if batch.id() == 0 or batch.id() % COUNT_OF_PRINTS == 0:
-                    print(f"[DISTRIBUTOR] Enviando batch procesado con id={batch.id()} de query{query_id} al cliente{client_id}")
-                send_batch(client_socket, batch)
-    
-            with self._last_sent_lock:
-                if batch.id() > self._last_sent[key]:
-                    self._last_sent[key] = batch.id()
+        if self.ids_counter.already_processed(batch.id(), batch.type()):
             ch.basic_ack(delivery_tag=method.delivery_tag)
+            return
+        try:
+            self.ids_counter.add_id(batch.id(), batch.type())
+            with self.socket_lock:  # TODO: cambiar este lock a un lock por cliente
+                # if batch.id() == 0 or batch.id() % COUNT_OF_PRINTS == 0:
+                print(f"[DISTRIBUTOR] Enviando batch procesado con id={batch.id()} de query{query_id} al cliente{client_id}")
+                send_batch(client_socket, batch)
+                ch.basic_ack(delivery_tag=method.delivery_tag)
 
         except Exception as e:
             logging.error(f"[DISTRIBUTOR] error al querer enviar batch:{batch} al cliente:{client_id} | error: {e}")
         if batch.is_last_batch():
             logging.debug(
-                f"\n[DISTRIBUTOR] Recibido last batch de query{query_id} para el cliente{client_id}.\n")
+                f"\n[DISTRIBUTOR] Recibido last batch de query{query_id} para el cliente{client_id} con id {batch.id()}. el range id es {self.ids_counter}\n")
             return
 
     def start_consuming_from_workers(self):
