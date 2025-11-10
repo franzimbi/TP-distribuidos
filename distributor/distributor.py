@@ -68,9 +68,6 @@ class Distributor:
             'i': self.transaction_items,
         }
 
-        self._last_sent = defaultdict(lambda: -1)
-        self._last_sent_lock = threading.Lock()
-
         self.q1_results = MessageMiddlewareQueue('rabbitmq', Q1_results)
         self.q21_results = MessageMiddlewareQueue('rabbitmq', Q21_results)
         self.q22_results = MessageMiddlewareQueue('rabbitmq', Q22_results)
@@ -191,10 +188,10 @@ class Distributor:
         #     target=lambda: self.q21_results.start_consuming(helper_callback(21)), daemon=True)
         # self.threads_queries['q22'] = threading.Thread(
         #     target=lambda: self.q22_results.start_consuming(helper_callback(22)), daemon=True)
-        # self.threads_queries['q3'] = threading.Thread(
-        #     target=lambda: self.q3_results.start_consuming(helper_callback(3)), daemon=True)
-        # self.threads_queries['q4'] = threading.Thread(
-        #     target=lambda: self.q4_results.start_consuming(helper_callback(4)), daemon=True)
+        self.threads_queries['q3'] = threading.Thread(
+            target=lambda: self.q3_results.start_consuming(helper_callback(3)), daemon=True)
+        self.threads_queries['q4'] = threading.Thread(
+            target=lambda: self.q4_results.start_consuming(helper_callback(4)), daemon=True)
         # self.threads_queries['confirmations'] = threading.Thread(
         #     target=lambda: self.confirmation_queue.start_consuming(self.confirmation_callback), daemon=True)
 

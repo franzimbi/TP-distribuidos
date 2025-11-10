@@ -43,6 +43,7 @@ class Reducer:
             self.waited_batches[client_id] = int(batch[0][batch.get_header().index('cant_batches')])
             if self.waited_batches[client_id] == self.counter_batches[client_id]:  # llegaron todos
                 self.send_last_batch(batch, client_id)
+                ch.basic_ack(delivery_tag=method.delivery_tag)
                 return
 
         for i in batch.iter_per_header():
@@ -62,6 +63,8 @@ class Reducer:
         if self.waited_batches[client_id] is not None and self.counter_batches[client_id] == self.waited_batches[
             client_id]:
             self.send_last_batch(batch, client_id)
+        
+        ch.basic_ack(delivery_tag=method.delivery_tag)
 
     def send_last_batch(self, batch, client_id):
         rows = []

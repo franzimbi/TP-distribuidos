@@ -5,6 +5,7 @@ from datetime import datetime
 from collections import defaultdict
 from middleware.middleware import MessageMiddlewareQueue
 from common.batch import Batch
+from common.id_range_counter import IDRangeCounter
 from configparser import ConfigParser
 
 config = ConfigParser()
@@ -31,6 +32,7 @@ class Accumulator:
             "expected": None,
             "received": 0,
             "type": None,
+            "id_counter": IDRangeCounter(),
         })
         signal.signal(signal.SIGTERM, self.graceful_quit)
 
@@ -50,9 +52,12 @@ class Accumulator:
 
     def callback(self, ch, method, properties, message):
         batch = Batch(); batch.decode(message)
-
         cid = batch.client_id()
         state = self.client_state[cid]
+
+        if state["id_counter"].already_processed(batch.id(), ' '):
+            ch.basic_ack(delivery_tag=method.delivery_tag)
+            return
 
         if batch.is_last_batch():
             try:
@@ -65,6 +70,8 @@ class Accumulator:
             if state["expected"] is not None and state["received"] == state["expected"]:
                 logging.debug(f"[aggregator] flusheo pq state[received] == state[expected]")
                 self._flush_client(cid)
+            state["id_counter"].add_id(batch.id(), ' ')
+            ch.basic_ack(delivery_tag=method.delivery_tag)
             return
 
         state["type"] = batch.type()
@@ -85,6 +92,9 @@ class Accumulator:
         if state["expected"] is not None and state["received"] == state["expected"]:
             logging.debug(f"[aggregator]llegue a la cantidad esperada")
             self._flush_client(cid)
+
+        state["id_counter"].add_id(batch.id(), ' ')
+        ch.basic_ack(delivery_tag=method.delivery_tag)
 
     def _flush_client(self, cid: int):
         state = self.client_state[cid]
@@ -124,7 +134,8 @@ class Accumulator:
         )
         self._produce_queue.send(last_batch.encode())
 
-        state["accumulator"].clear()
+        state["accumulator"].clear() #TODO: borrar los states
         state["expected"] = None
         state["received"] = 0
         state["type"] = None
+        state["id_counter"] = IDRangeCounter()

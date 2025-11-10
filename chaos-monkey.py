@@ -2,9 +2,11 @@ import subprocess
 import random
 import time
 
-CONTAINER_NAMES = ["filtroanio2_1","filtrohora1_1","filter_amount_q1_1","filter_column_q1_1"]
-# CONTAINER_NAMES = [
-#     "filtrohora1_1"]
+# CONTAINER_NAMES = ["filtroanio2_1","filtrohora1_1","filter_amount_q1_1","filter_column_q1_1","aggregator_suma_q3_1"]
+CONTAINER_NAMES = [
+    "aggregator_counter_q4_1","aggregator_counter_q4_2",
+]
+
 SECONDS = 5
 def run():
     while True:

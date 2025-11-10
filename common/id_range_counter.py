@@ -102,9 +102,19 @@ class IDRangeCounter:
     def __str__(self):
         return str(self.dic_files)
 
+    # def len(self, type: str):
+    #     total_count = 0
+    #     ranges = self.dic_files.get(type)[RANGES_POSITION]
+    #     ids = self.dic_files.get(type)[SET_POSITION]
+
+    #     for start, end in ranges:
+    #         total_count += (end - start + 1)
+    #     total_count += len(ids)
+            
+    #     return total_count
 
 # counter = IDRangeCounter()
-#
+
 # counter.add_id(1, 'a')
 # print(counter.already_processed(1, 'a'))
 # counter.add_id(3, 'a')
@@ -113,7 +123,7 @@ class IDRangeCounter:
 # print(counter.already_processed(5, 'a'))
 # counter.add_id(7, 'a')
 # print(counter.already_processed(7, 'a'))
-#
+
 # counter.add_id(1, 'b')
 # print(counter.already_processed(1, 'b'))
 # counter.add_id(3, 'b')
@@ -123,11 +133,11 @@ class IDRangeCounter:
 # counter.add_id(7, 'b')
 # print(counter.already_processed(7, 'b'))
 # print(counter)
-#
+# #
 # counter.add_id(2, 'a')
 # print(counter.already_processed(2, 'a'))
 # print(counter)
-#
+# #
 # counter.add_id(6, 'a')
 # print(counter.already_processed(6, 'a'))
 # counter.add_id(10, 'a')
@@ -135,6 +145,7 @@ class IDRangeCounter:
 # print(counter.already_processed(20, 'a'))
 # counter.add_id(0, 'a')
 # print(counter)
+# print("len: ", counter.len('a'))
 #
 # counter.add_id(4, 'a')
 # print(counter)

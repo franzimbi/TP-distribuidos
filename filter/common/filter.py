@@ -62,7 +62,7 @@ class Filter:
     def callback(self, ch, method, properties, message):
         try:
             batch = Batch(); batch.decode(message)
-            print(f"[FILTER] Recibido batch con {batch.id()}")
+            # print(f"[FILTER] Recibido batch con {batch.id()}")
             if not batch.is_last_batch():
                 batch = self._filter(batch)
             for q in self._produce_queues:
