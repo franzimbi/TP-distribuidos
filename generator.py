@@ -56,6 +56,7 @@ def crear_filters(nombre, cantidad, entrada, salida, type):
     for i in range(1, cantidad + 1):
         filter_name = f'{nombre}_{i}'
         filters[filter_name.lower()] = {
+            'container_name': f'{nombre}_{i}'.lower(),
             'build': {
                 'context': '.',
                 'dockerfile': 'filter/Dockerfile',
@@ -88,6 +89,7 @@ def crear_aggregators(nombre, cantidad, entrada, salida, type, params):
     for i in range(1, cantidad + 1):
         aggregator_name = f'aggregator_{nombre}_{i}'
         aggregators[aggregator_name.lower()] = {
+            'container_name': f'aggregator_{nombre}_{i}'.lower(),
             'build': {
                 'context': '.',
                 'dockerfile': 'aggregator/Dockerfile',
@@ -117,6 +119,7 @@ def crear_reducers(nombre, entrada, salida, top, params):
     reducers = {}
     reducer_name = f'reducer_{nombre}'
     reducers[reducer_name.lower()] = {
+        'container_name': f'reducer_{nombre}',
         'build': {
             'context': '.',
             'dockerfile': 'reducer/Dockerfile',
@@ -274,6 +277,8 @@ def crear_client(cantidad, puerto, input_dir):
             ],
         }
     return clients
+
+def crear_healthcheckers(cantidad, puerto):
 
 
 with open(nombre_file, 'w') as f:
