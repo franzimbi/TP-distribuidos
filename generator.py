@@ -3,7 +3,8 @@ import sys
 import yaml
 
 if len(sys.argv) != 6:
-    print("Uso: python3 generador.py <cantidad filtros> <cantidad aggregators> <cantidad joins> <cantidad clientes> <csv_input_dir>")
+    print(
+        "Uso: python3 generador.py <cantidad filtros> <cantidad aggregators> <cantidad joins> <cantidad clientes> <csv_input_dir>")
     sys.exit(1)
 
 cant_filtros = int(sys.argv[1])
@@ -21,6 +22,7 @@ def crear_distributor(cantidad_joiners):
             usr_queues += ','
         usr_queues += f'join_users_queue_{i}'
     data = {
+        'container_name': 'distributor',
         'build': {
             'context': '.',
             'dockerfile': 'distributor/Dockerfile',
@@ -39,7 +41,7 @@ def crear_distributor(cantidad_joiners):
             'storesQueues=join_stores_queue_q3_1,join_stores_queue_q4_1',
             'CONFIRMATION_QUEUE=q_joins_confirmation',
             f'usersQueues={usr_queues}',
-            'numberOfJoins=' + str(cant_joins+4),
+            'numberOfJoins=' + str(cant_joins + 4),
         ],
         'networks': [
             'mynet'
@@ -154,6 +156,7 @@ def crear_joiners(nombre, cantidad, entrada, salida, entrada_join, params):
         salida_j1 = salida
         is_last_j1 = 'True'
     joiners[f'{nombre}_{1}'.lower()] = {
+        'container_name': f'{nombre}_{1}'.lower(),
         'build': {
             'context': '.',
             'dockerfile': 'joinner/Dockerfile',
@@ -184,6 +187,7 @@ def crear_joiners(nombre, cantidad, entrada, salida, entrada_join, params):
     else:
         return joiners
     joiners[f'{nombre}_{cantidad}'.lower()] = {
+        'container_name': f'{nombre}_{cantidad}'.lower(),
         'build': {
             'context': '.',
             'dockerfile': 'joinner/Dockerfile',
@@ -217,6 +221,7 @@ def crear_joiners(nombre, cantidad, entrada, salida, entrada_join, params):
             join_salida_data = f'conection_join_{i}'
 
             joiners[joiner_name.lower()] = {
+                'container_name': joiner_name.lower(),
                 'build': {
                     'context': '.',
                     'dockerfile': 'joinner/Dockerfile',
@@ -243,11 +248,13 @@ def crear_joiners(nombre, cantidad, entrada, salida, entrada_join, params):
             }
     return joiners
 
+
 def crear_client(cantidad, puerto, input_dir):
     clients = {}
     for i in range(1, cantidad + 1):
         client_name = f'cliente_{i}'
-        clients[client_name] = {
+        clients[client_name.lower()] = {
+            'container_name': client_name.lower(),
             'build': {
                 'context': '.',
                 'dockerfile': 'client/Dockerfile',
@@ -278,7 +285,58 @@ def crear_client(cantidad, puerto, input_dir):
         }
     return clients
 
-def crear_healthcheckers(cantidad, puerto):
+
+def crear_healthcheckers(cantidad, puerto, nodos_a_controlar):
+    healthcheckers = {}
+    listas_nodos = {}
+    for i in range(1, cantidad + 1):
+        listas_nodos[i] = ''
+
+    j = 1
+    for i in nodos_a_controlar:
+        if listas_nodos[j] == '':
+            listas_nodos[j] = listas_nodos[j] + i
+        else:
+            listas_nodos[j] = listas_nodos[j] + ',' + i
+        j = j + 1
+        if j == cantidad + 1:
+            j = 1
+    for i in listas_nodos.keys():
+        if i == cantidad:
+            listas_nodos[i] = listas_nodos[i] + ',' + f'healthchecker_1'
+        else:
+            listas_nodos[i] = listas_nodos[i] + ',' + f'healthchecker_{i + 1}'
+
+    for i in range(1, cantidad + 1):
+        hc_name = f'healthchecker_{i}'
+
+        healthcheckers[hc_name.lower()] = {
+            'container_name': f'healthchecker_{i}'.lower(),
+            'build': {
+                'context': '.',
+                'dockerfile': 'healthchecker/Dockerfile',
+            },
+            'restart': 'on-failure',
+            'depends_on': [
+                'distributor',
+                'filter_amount_q1_1',
+                'filter_column_q1_1',
+                'filtroanio1_1'
+            ],
+            'networks': [
+                'mynet'
+            ],
+            'volumes': [
+                '/var/run/docker.sock:/var/run/docker.sock',
+                './config.ini:/app/config.ini',
+            ],
+            'environment': {
+                'PORT': str(puerto),
+                'NODES': listas_nodos[i],
+            }
+        }
+
+    return healthcheckers
 
 
 with open(nombre_file, 'w') as f:
@@ -384,7 +442,19 @@ with open(nombre_file, 'w') as f:
 
     # clientes
     services.update(crear_client(cant_clientes, 5000, csv_input_dir))
-    
+
+    nodos_a_controlar = list(services.keys())
+
+    nodos_a_controlar.remove('distributor')
+    nodos_a_sacar = []
+    for i in nodos_a_controlar:
+        if 'cliente' in i:
+            nodos_a_sacar.append(i)
+    for i in nodos_a_sacar:
+        nodos_a_controlar.remove(i)
+
+    services.update(crear_healthcheckers(3, 3030, nodos_a_controlar))
+
     # red
     data = {'services': services,
             'networks': {

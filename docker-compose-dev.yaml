@@ -1118,7 +1118,7 @@ services:
     - PYTHONUNBUFFERED=1
     - DISTRIBUTOR_HOST=distributor
     - DISTRIBUTOR_PORT=5000
-    - CSV_INPUT_DIR=csvs_files_reduced
+    - CSV_INPUT_DIR=csvs_files
     volumes:
     - ./config.ini:/app/config.ini
     - ./csvs_files:/app/csvs_files
@@ -1127,26 +1127,63 @@ services:
     - ./results_cliente_1:/app/results
     networks:
     - mynet
-
-  healthchecker:
+  healthchecker_1:
+    container_name: healthchecker_1
     build:
       context: .
       dockerfile: healthchecker/Dockerfile
     restart: on-failure
     depends_on:
-      - distributor
-      - filter_amount_q1_1
-      - filter_column_q1_1
-      - filtroanio1_1
+    - distributor
+    - filter_amount_q1_1
+    - filter_column_q1_1
+    - filtroanio1_1
     networks:
-      - mynet
+    - mynet
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./config.ini:/app/config.ini
+    - /var/run/docker.sock:/var/run/docker.sock
+    - ./config.ini:/app/config.ini
     environment:
-      PORT: 3030
-      NODES: "filtroanio1_1,filtroanio1_2,filtroanio1_3,filtroanio1_4,filtroanio1_5,filtroanio2_1,filtroanio2_2,filtroanio2_3,filtroanio2_4,filtroanio2_5,filtrohora1_1,filtrohora1_2,filtrohora1_3,filtrohora1_4,filtrohora1_5,filter_amount_q1_1,filter_amount_q1_2,filter_amount_q1_3,filter_amount_q1_4,filter_amount_q1_5,filter_column_q1_1,filter_column_q1_2,filter_column_q1_3,filter_column_q1_4,filter_column_q1_5,aggregator_suma_q21_1,aggregator_suma_q21_2,aggregator_suma_q21_3,aggregator_suma_q21_4,aggregator_suma_q21_5,aggregator_suma_q22_1,aggregator_suma_q22_2,aggregator_suma_q22_3,aggregator_suma_q22_4,aggregator_suma_q22_5,aggregator_suma_q3_1,aggregator_suma_q3_2,aggregator_suma_q3_3,aggregator_suma_q3_4,aggregator_suma_q3_5"
-
+      PORT: '3030'
+      NODES: filtroanio1_1,filtroanio1_4,filtroanio2_2,filtroanio2_5,filtrohora1_3,filter_amount_q1_1,filter_amount_q1_4,filter_column_q1_2,filter_column_q1_5,aggregator_suma_q21_3,aggregator_suma_q22_1,aggregator_suma_q22_4,aggregator_suma_q3_2,aggregator_suma_q3_5,aggregator_counter_q4_1,aggregator_counter_q4_4,healthchecker_2
+  healthchecker_2:
+    container_name: healthchecker_2
+    build:
+      context: .
+      dockerfile: healthchecker/Dockerfile
+    restart: on-failure
+    depends_on:
+    - distributor
+    - filter_amount_q1_1
+    - filter_column_q1_1
+    - filtroanio1_1
+    networks:
+    - mynet
+    volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
+    - ./config.ini:/app/config.ini
+    environment:
+      PORT: '3030'
+      NODES: filtroanio1_2,filtroanio1_5,filtroanio2_3,filtrohora1_1,filtrohora1_4,filter_amount_q1_2,filter_amount_q1_5,filter_column_q1_3,aggregator_suma_q21_1,aggregator_suma_q21_4,aggregator_suma_q22_2,aggregator_suma_q22_5,aggregator_suma_q3_3,aggregator_counter_q4_2,aggregator_counter_q4_5,healthchecker_3
+  healthchecker_3:
+    container_name: healthchecker_3
+    build:
+      context: .
+      dockerfile: healthchecker/Dockerfile
+    restart: on-failure
+    depends_on:
+    - distributor
+    - filter_amount_q1_1
+    - filter_column_q1_1
+    - filtroanio1_1
+    networks:
+    - mynet
+    volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
+    - ./config.ini:/app/config.ini
+    environment:
+      PORT: '3030'
+      NODES: filtroanio1_3,filtroanio2_1,filtroanio2_4,filtrohora1_2,filtrohora1_5,filter_amount_q1_3,filter_column_q1_1,filter_column_q1_4,aggregator_suma_q21_2,aggregator_suma_q21_5,aggregator_suma_q22_3,aggregator_suma_q3_1,aggregator_suma_q3_4,aggregator_counter_q4_3,healthchecker_1
 networks:
   mynet:
     external: false
