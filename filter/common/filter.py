@@ -50,11 +50,11 @@ class Filter:
 
         def loop():
             while True:
-                conn, addr = self._health_sock.accept()
+                conn, addr = self._health_sock.accept() 
                 conn.close()
 
         self._health_thread = threading.Thread(target=loop, daemon=True)
-        self._health_thread.start()
+        self._health_thread.start() #no se esta joineando esto en graceful shutdown
         logging.info(f"[FILTER] Healthcheck escuchando en puerto {HEALTH_PORT}")
 
         self._consume_queue.start_consuming(self.callback, auto_ack=False)

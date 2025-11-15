@@ -3,6 +3,7 @@ import logging
 import subprocess
 import signal
 import time
+import threading
 
 class Healthchecker:
     def __init__(self, port, nodes):
@@ -13,6 +14,9 @@ class Healthchecker:
         signal.signal(signal.SIGTERM, self._handle_shutdown)
         signal.signal(signal.SIGINT, self._handle_shutdown)
 
+        self._health_thread = None
+        self._health_sock = None
+
 
     def _handle_shutdown(self, sig, frame):
         logging.info("Graceful exit")
@@ -20,6 +24,19 @@ class Healthchecker:
 
     def start(self):
         logging.info(f"Arrancando healthcheck")
+
+        self._health_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._health_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self._health_sock.bind(('', self.port))
+        self._health_sock.listen()
+
+        def loop():
+            while True:
+                conn, addr = self._health_sock.accept()
+                conn.close()
+
+        self._health_thread = threading.Thread(target=loop, daemon=True)
+        self._health_thread.start()
 
         while True:
             time.sleep(5)
