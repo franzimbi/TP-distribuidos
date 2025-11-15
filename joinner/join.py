@@ -5,8 +5,6 @@ import signal
 import sys
 import threading
 
-
-
 class Join:
     def __init__(self, confirmation_queue, join_queue, column_id, column_name, is_last_join):
         self.producer_queue = None
@@ -69,11 +67,13 @@ class Join:
 
         if batch.is_last_batch():
             self.confirmation_queue.send(batch.encode())
+            ch.basic_ack(delivery_tag=method.delivery_tag)
             return
 
         if id is None or name is None:
             logging.debug(
                 f"Column {self.column_id} or {self.column_name} not found in batch header {batch.get_header()}")
+            ch.basic_ack(delivery_tag=method.delivery_tag)
             return
 
         for row in batch:
@@ -87,6 +87,7 @@ class Join:
                     self.join_dictionary[client_id] = {}
                 if key not in self.join_dictionary[client_id]:
                     self.join_dictionary[client_id][key] = value
+        ch.basic_ack(delivery_tag=method.delivery_tag)
 
     def callback(self, ch, method, properties, message):
         batch = Batch()
@@ -98,6 +99,7 @@ class Join:
             if self.waited_batches[client_id] == self.counter_batches[client_id]:  # llegaron todos
                 self.join_dictionary.pop(client_id, None)
             self.producer_queue.send(batch.encode())
+            ch.basic_ack(delivery_tag=method.delivery_tag)
             return
 
         try:
@@ -112,7 +114,7 @@ class Join:
             client_id]:
             self.join_dictionary.pop(client_id, None)
         self.producer_queue.send(batch.encode())
-
+        ch.basic_ack(delivery_tag=method.delivery_tag)
 
     def close(self):
         try:

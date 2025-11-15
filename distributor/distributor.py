@@ -184,16 +184,16 @@ class Distributor:
 
         self.threads_queries['q1'] = threading.Thread(
             target=lambda: self.q1_results.start_consuming(helper_callback(1)), daemon=True)
-        # self.threads_queries['q21'] = threading.Thread(
-        #     target=lambda: self.q21_results.start_consuming(helper_callback(21)), daemon=True)
-        # self.threads_queries['q22'] = threading.Thread(
-        #     target=lambda: self.q22_results.start_consuming(helper_callback(22)), daemon=True)
+        self.threads_queries['q21'] = threading.Thread(
+            target=lambda: self.q21_results.start_consuming(helper_callback(21)), daemon=True)
+        self.threads_queries['q22'] = threading.Thread(
+            target=lambda: self.q22_results.start_consuming(helper_callback(22)), daemon=True)
         self.threads_queries['q3'] = threading.Thread(
             target=lambda: self.q3_results.start_consuming(helper_callback(3)), daemon=True)
         self.threads_queries['q4'] = threading.Thread(
             target=lambda: self.q4_results.start_consuming(helper_callback(4)), daemon=True)
-        # self.threads_queries['confirmations'] = threading.Thread(
-        #     target=lambda: self.confirmation_queue.start_consuming(self.confirmation_callback), daemon=True)
+        self.threads_queries['confirmations'] = threading.Thread(
+            target=lambda: self.confirmation_queue.start_consuming(self.confirmation_callback), daemon=True)
 
         for _, t in self.threads_queries.items():
             t.start()
@@ -231,18 +231,20 @@ class Distributor:
             except Exception as e:
                 logging.debug(f"[Distributor] Error al join thread {t}: {e}")
 
-    # def confirmation_callback(self, ch, method, properties, body: bytes):
-    #     batch = Batch()
-    #     batch.decode(body)
-    #     if batch.is_last_batch():
-    #         cid = batch.client_id()
+    def confirmation_callback(self, ch, method, properties, body: bytes):
+        batch = Batch()
+        batch.decode(body)
+        if batch.is_last_batch():
+            cid = batch.client_id()
 
-    #         if cid not in self.client_counter:
-    #             self.client_counter[cid] = 0
+            if cid not in self.client_counter:
+                self.client_counter[cid] = 0
 
-    #         self.client_counter[cid] += 1
-    #         if self.client_counter[cid] == number_of_joins:
-    #             client_socket = self.clients.get(cid)
-    #             with self.socket_lock:
-    #                 send_joins_confirmation_to_client(client_socket)
-    #                 ch.basic_ack(delivery_tag=method.delivery_tag)
+            self.client_counter[cid] += 1
+            logging.debug(f"\n\n[DISTRIBUTOR] Recibida confirmacion de join {self.client_counter[cid]} de client{cid}\n\n")
+            if self.client_counter[cid] == number_of_joins:
+                client_socket = self.clients.get(cid)
+                with self.socket_lock:
+                    logging.debug(f"\n\n[DISTRIBUTOR] Enviando confirmacion de joins al client{cid}\n\n")
+                    send_joins_confirmation_to_client(client_socket)
+        ch.basic_ack(delivery_tag=method.delivery_tag)
