@@ -135,13 +135,15 @@ def crear_reducers(nombre, entrada, salida, top, params):
             'CONSUME_QUEUE=' + entrada,
             'PRODUCE_QUEUE=' + salida,
             'TOP=' + str(top),
-            'PARAMS=' + params
+            'PARAMS=' + params,
+            'folder_backup_reducer=backups/' + f'reducer_{nombre}_backup'
         ],
         'networks': [
             'mynet'
         ],
         'volumes': [
-            './config.ini:/app/config.ini'
+            './config.ini:/app/config.ini',
+            './backups:/app/backups/'
         ],
     }
     return reducers

@@ -17,8 +17,11 @@ def initialize_config():
         config_params["TOP"] = int(os.getenv('TOP'))
         config_params["COLUMN_NAME"] = str(os.getenv('PARAMS')) ## chequear esto
 
+        config_params["folder_backup_reducer"] = os.getenv('folder_backup_reducer')
+
         config_params["listen_backlog"] = int(
             os.getenv('SERVER_LISTEN_BACKLOG', config["DEFAULT"]["SYSTEM_LISTEN_BACKLOG"]))
+
         config_params["logging_level"] = os.getenv('LOGGING_LEVEL', config["DEFAULT"]["LOGGING_LEVEL"])
     except KeyError as e:
         raise KeyError("Key was not found. Error: {} .Aborting server".format(e))
@@ -55,7 +58,7 @@ def main():
     consumer = MessageMiddlewareQueue(host="rabbitmq", queue_name=queue_consumer)
     producer = MessageMiddlewareQueue(host="rabbitmq", queue_name=queue_producer)
 
-    reducer = Reducer(consumer, producer, top, columns)
+    reducer = Reducer(consumer, producer, top, columns, config_params["folder_backup_reducer"])
 
     reducer.start()
 

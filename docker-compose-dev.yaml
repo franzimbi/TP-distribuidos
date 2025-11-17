@@ -1,6 +1,7 @@
 ---
 services:
   distributor:
+    container_name: distributor
     build:
       context: .
       dockerfile: distributor/Dockerfile
@@ -570,11 +571,14 @@ services:
     - PRODUCE_QUEUE=Queue_between_reducer_joiner_Q21
     - TOP=1
     - PARAMS=year_month,item_id,total_quantity
+    - folder_backup_reducer=backups/reducer_Reducer_Q21_backup
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
   join_productos_q21_1:
+    container_name: join_productos_q21_1
     build:
       context: .
       dockerfile: joinner/Dockerfile
@@ -715,11 +719,14 @@ services:
     - PRODUCE_QUEUE=Queue_between_reducer_joiner_Q22
     - TOP=1
     - PARAMS=year_month,item_id,total_earnings
+    - folder_backup_reducer=backups/reducer_Reducer_Q22_backup
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
   join_productos_q22_1:
+    container_name: join_productos_q22_1
     build:
       context: .
       dockerfile: joinner/Dockerfile
@@ -847,6 +854,7 @@ services:
     volumes:
     - ./config.ini:/app/config.ini
   join_stores_q3_1:
+    container_name: join_stores_q3_1
     build:
       context: .
       dockerfile: joinner/Dockerfile
@@ -987,11 +995,14 @@ services:
     - PRODUCE_QUEUE=Queue_between_reducer_joiner_Q4
     - TOP=3
     - PARAMS=store_id,user_id,purchases_qty
+    - folder_backup_reducer=backups/reducer_Reducer_Q4_backup
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
   join_users_q4_1:
+    container_name: join_users_q4_1
     build:
       context: .
       dockerfile: joinner/Dockerfile
@@ -1011,6 +1022,7 @@ services:
     volumes:
     - ./config.ini:/app/config.ini
   join_users_q4_5:
+    container_name: join_users_q4_5
     build:
       context: .
       dockerfile: joinner/Dockerfile
@@ -1030,6 +1042,7 @@ services:
     volumes:
     - ./config.ini:/app/config.ini
   join_users_q4_2:
+    container_name: join_users_q4_2
     build:
       context: .
       dockerfile: joinner/Dockerfile
@@ -1049,6 +1062,7 @@ services:
     volumes:
     - ./config.ini:/app/config.ini
   join_users_q4_3:
+    container_name: join_users_q4_3
     build:
       context: .
       dockerfile: joinner/Dockerfile
@@ -1068,6 +1082,7 @@ services:
     volumes:
     - ./config.ini:/app/config.ini
   join_users_q4_4:
+    container_name: join_users_q4_4
     build:
       context: .
       dockerfile: joinner/Dockerfile
@@ -1087,6 +1102,7 @@ services:
     volumes:
     - ./config.ini:/app/config.ini
   join_stores_q4_1:
+    container_name: join_stores_q4_1
     build:
       context: .
       dockerfile: joinner/Dockerfile
@@ -1106,6 +1122,7 @@ services:
     volumes:
     - ./config.ini:/app/config.ini
   cliente_1:
+    container_name: cliente_1
     build:
       context: .
       dockerfile: client/Dockerfile
@@ -1118,7 +1135,7 @@ services:
     - PYTHONUNBUFFERED=1
     - DISTRIBUTOR_HOST=distributor
     - DISTRIBUTOR_PORT=5000
-    - CSV_INPUT_DIR=csvs_files
+    - CSV_INPUT_DIR=csvs_files_reduced
     volumes:
     - ./config.ini:/app/config.ini
     - ./csvs_files:/app/csvs_files
