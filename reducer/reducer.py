@@ -47,14 +47,15 @@ class Reducer:
         self._consumer_queue.start_consuming(self.callback)
 
     def callback(self, ch, method, properties, message):
-        to_disk = ''
         batch = Batch()
         batch.decode(message)
         client_id = batch.client_id()
+
         if client_id not in self.counter_batches:
             self.counter_batches[client_id] = 0
             self.waited_batches[client_id] = None
 
+        # Si es el batch de control (cant_batches)
         if batch.is_last_batch():
             self.waited_batches[client_id] = int(batch[0][batch.get_header().index('cant_batches')])
             if self.waited_batches[client_id] == self.counter_batches[client_id]:  # llegaron todos
@@ -62,40 +63,58 @@ class Reducer:
                 ch.basic_ack(delivery_tag=method.delivery_tag)
                 return
 
-        # users_updated = []
-        for i in batch.iter_per_header():
-            store = i[self._columns[0]]
-            user = i[self._columns[1]]
-            qty = int(float(i[self._columns[2]]))
+        # Acá procesamos los datos "normales"
+        lines_to_write = []  # una línea por store cuyo top haya cambiado
+
+        for row in batch.iter_per_header():
+            store = row[self._columns[0]]
+            user = row[self._columns[1]]
+            qty = int(float(row[self._columns[2]]))
+
             if client_id not in self.top_users:
                 self.top_users[client_id] = {}
-                # buffer
-                #bufferear el log
             if store not in self.top_users[client_id]:
                 self.top_users[client_id][store] = {}
-                #bufferear el log
+
+            # Top anterior de ESTE store (para este client_id)
+            prev_top = self.top_users[client_id][store].copy()
+
+            # Actualizo cantidad del usuario
             self.top_users[client_id][store][user] = qty
-                #bufferear el log
 
-            old_top = self.top_users[client_id][store].copy()
-            top_keys = heapq.nlargest(self._top, self.top_users[client_id][store], key=self.top_users[client_id][store].get)  # se queda con el top n mas grande en orden
-            # print(f"[REDUCER]")
-            # if top_keys != list(old_top.keys()):
-            #     users_updated.append((store, top_keys))
-            self.top_users[client_id][store] = {k: self.top_users[client_id][store][k] for k in top_keys}
-                # to_disk += f"top_users,client_id,store," + ",".join([f"{user}:{qty}" for user, qty in self.top_users[client_id][store].items()] + '\n')
-            #bufferear el log
+            # Recalculo top N
+            store_dict = self.top_users[client_id][store]
+            top_keys = heapq.nlargest(self._top, store_dict, key=store_dict.get)
+            new_top = {k: store_dict[k] for k in top_keys}
 
-            #loggear al disco?
+            # Piso el dict del store con sólo el top N
+            self.top_users[client_id][store] = new_top
 
+            # Sólo si el top cambió respecto del anterior, genero línea para disco
+            if new_top != prev_top:
+                to_disk = (
+                    f"top_users,{client_id},{store},"
+                    + ",".join(f"{u}:{q}" for u, q in new_top.items())
+                )
+                lines_to_write.append(to_disk)
+
+        # Terminé de procesar el batch
         self.counter_batches[client_id] += 1
-        to_disk +=  ',' + str(self.counter_batches[client_id])
-        if self.waited_batches[client_id] is not None and self.counter_batches[client_id] == self.waited_batches[
-            client_id]:
+
+        # Si ya llegaron todos los batches de este cliente, mando el último batch
+        if (
+            self.waited_batches[client_id] is not None
+            and self.counter_batches[client_id] == self.waited_batches[client_id]
+        ):
             self.send_last_batch(batch, client_id)
-        
-        logging.info(f'[REDUCER] guardo en disco: {to_disk[0:10]}. en self.log_file_path: {self.log_file_path}')
-        self.register_to_disk(to_disk, self.log_file_path)
+
+        # Persisto SOLO los cambios detectados
+        for line in lines_to_write:
+            logging.info(
+                f"[REDUCER] guardo en disco: {line[0:10]}. en self.log_file_path: {self.log_file_path}"
+            )
+            self.register_to_disk(line, self.log_file_path)
+
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
     def register_to_disk(self, register, log_file_path):
