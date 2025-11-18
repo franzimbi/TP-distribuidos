@@ -7,35 +7,59 @@ import sys
 import os
 import json
 import tempfile
+import socket
+import threading
 
+HEALTH_PORT = 3030
 
 class Reducer:
     def __init__(self, consumer, producer, top, columns, path_log_file):
         self._consumer_queue = consumer
         self._producer_queue = producer
-        try:
-            if  os.listdir(path_log_file):
-                logging.info(f"[REDUCER] La carpeta de backups existe. creando estado de recovery...")
-        except FileNotFoundError as e:
-            logging.info(f"[REDUCER] La carpeta de backups no existe.")
-            os.makedirs(path_log_file)
-        nombre_asignado = ""
-        try:
-            with open("/etc/hostname", "r") as f:
-                nombre_asignado = f.read().strip()
-        except Exception as e:
-            return f"Error al leer el hostname: {e}"
-            
-        self.log_file_path = path_log_file + f'/{nombre_asignado}.txt'
+
         self._top = int(top)
         self.top_users = {}  # key: store_id, value: dict of user_id -> purchases_qty
         self.counter_batches = {}
         self.waited_batches = {}
         self._columns = [n.strip() for n in columns.split(",")]  # store_id, user_id,purchases_qty
 
+        self.log_file_path = path_log_file + f'/snapshot.json'
+        try:
+            if os.listdir(path_log_file):
+                logging.info(f"[REDUCER] La carpeta de backups existe. creando estado de recovery...")
+                self.load_snapshot()
+        except FileNotFoundError as e:
+            logging.info(f"[REDUCER] La carpeta de backups no existe.")
+            os.makedirs(path_log_file)
+
+        self._health_sock = None
+        self._health_thread = None
+
         logging.debug(f"[REDUCER] Initialized with top={self._top} and columns={self._columns}")
         signal.signal(signal.SIGTERM, self.graceful_shutdown)
         signal.signal(signal.SIGINT, self.graceful_shutdown)
+
+    def load_snapshot(self):
+        if not os.path.exists(self.log_file_path):
+            return
+
+        try:
+            with open(self.log_file_path, "r") as f:
+                snapshot = json.load(f)
+
+            client_id = snapshot["client_id"]
+
+            self.top_users[client_id] = snapshot.get("top_users", {})
+            self.waited_batches[client_id] = snapshot.get("waited_batches")
+
+            counter = IDRangeCounter()
+            counter = IDRangeCounter.from_dict(snapshot.get("counter_batches", {}))
+            self.counter_batches[client_id] = counter
+
+            logging.info(f"[RECOVERY] Snapshot cargado para client_id={client_id}")
+
+        except Exception as e:
+            logging.error(f"[RECOVERY] Error cargando snapshot: {e}")
 
     def graceful_shutdown(self, signum, frame):
         try:
@@ -47,9 +71,24 @@ class Reducer:
         sys.exit(0)
 
     def start(self):
+        self._health_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._health_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self._health_sock.bind(('', HEALTH_PORT))
+        self._health_sock.listen()
+
+        def loop():
+            while True:
+                conn, addr = self._health_sock.accept()
+                conn.close()
+
+        self._health_thread = threading.Thread(target=loop, daemon=True)
+        self._health_thread.start()  # no se esta joineando esto en graceful shutdown
+        logging.info(f"[FILTER] Healthcheck escuchando en puerto {HEALTH_PORT}")
+
         self._consumer_queue.start_consuming(self.callback)
 
     def callback(self, ch, method, properties, message):
+        print(f"[reducer] Received batch\n\n")
         batch = Batch()
         batch.decode(message)
         client_id = batch.client_id()
@@ -117,8 +156,8 @@ class Reducer:
             "waited_batches": self.waited_batches.get(client_id),
         }
 
-        line = "SNAPSHOT," + json.dumps(snapshot)
-        self.register_to_disk(line, self.log_file_path)
+        json_str = json.dumps(snapshot, indent=2)
+        self.register_to_disk(json_str, self.log_file_path)
 
     def register_to_disk(self, register, log_file_path):
         dirpath = os.path.dirname(log_file_path)
@@ -126,7 +165,7 @@ class Reducer:
 
         try:
             with os.fdopen(tmp_fd, "w") as f:
-                f.write(register + "\nCHECKPOINT!!COPADO\n")
+                f.write(register)
                 f.flush()
                 os.fsync(f.fileno())
             os.replace(tmp_path, log_file_path)

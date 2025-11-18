@@ -1200,7 +1200,7 @@ services:
     - ./config.ini:/app/config.ini
     environment:
       PORT: '3030'
-      NODES: filtroanio1_3,filtroanio2_1,filtroanio2_4,filtrohora1_2,filtrohora1_5,filter_amount_q1_3,filter_column_q1_1,filter_column_q1_4,aggregator_suma_q21_2,aggregator_suma_q21_5,aggregator_suma_q22_3,aggregator_suma_q3_1,aggregator_suma_q3_4,aggregator_counter_q4_3,healthchecker_1
+      NODES: reducer_Reducer_Q4,filtroanio1_3,filtroanio2_1,filtroanio2_4,filtrohora1_2,filtrohora1_5,filter_amount_q1_3,filter_column_q1_1,filter_column_q1_4,aggregator_suma_q21_2,aggregator_suma_q21_5,aggregator_suma_q22_3,aggregator_suma_q3_1,aggregator_suma_q3_4,aggregator_counter_q4_3,healthchecker_1
 networks:
   mynet:
     external: false
