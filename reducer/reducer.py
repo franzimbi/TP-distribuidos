@@ -55,16 +55,14 @@ class Reducer:
             self.counter_batches[client_id] = 0
             self.waited_batches[client_id] = None
 
-        # Si es el batch de control (cant_batches)
         if batch.is_last_batch():
             self.waited_batches[client_id] = int(batch[0][batch.get_header().index('cant_batches')])
-            if self.waited_batches[client_id] == self.counter_batches[client_id]:  # llegaron todos
+            if self.waited_batches[client_id] == self.counter_batches[client_id]:  
                 self.send_last_batch(batch, client_id)
                 ch.basic_ack(delivery_tag=method.delivery_tag)
                 return
 
-        # Acá procesamos los datos "normales"
-        lines_to_write = []  # una línea por store cuyo top haya cambiado
+        lines_to_write = []
 
         for row in batch.iter_per_header():
             store = row[self._columns[0]]
@@ -76,39 +74,34 @@ class Reducer:
             if store not in self.top_users[client_id]:
                 self.top_users[client_id][store] = {}
 
-            # Top anterior de ESTE store (para este client_id)
             prev_top = self.top_users[client_id][store].copy()
 
-            # Actualizo cantidad del usuario
             self.top_users[client_id][store][user] = qty
-
-            # Recalculo top N
+           
             store_dict = self.top_users[client_id][store]
             top_keys = heapq.nlargest(self._top, store_dict, key=store_dict.get)
             new_top = {k: store_dict[k] for k in top_keys}
 
-            # Piso el dict del store con sólo el top N
             self.top_users[client_id][store] = new_top
 
-            # Sólo si el top cambió respecto del anterior, genero línea para disco
             if new_top != prev_top:
                 to_disk = (
                     f"top_users,{client_id},{store},"
                     + ",".join(f"{u}:{q}" for u, q in new_top.items())
                 )
                 lines_to_write.append(to_disk)
+            #en el log queda: 
+            #client_id,store_id,user1:qty1,user2:qty2,user3:qty3
 
-        # Terminé de procesar el batch
+        # termine de procesar el batch
         self.counter_batches[client_id] += 1
 
-        # Si ya llegaron todos los batches de este cliente, mando el último batch
         if (
             self.waited_batches[client_id] is not None
             and self.counter_batches[client_id] == self.waited_batches[client_id]
         ):
             self.send_last_batch(batch, client_id)
 
-        # Persisto SOLO los cambios detectados
         for line in lines_to_write:
             logging.info(
                 f"[REDUCER] guardo en disco: {line[0:10]}. en self.log_file_path: {self.log_file_path}"
