@@ -4,6 +4,8 @@ import heapq
 import signal
 import sys
 import os
+import json
+import tempfile
 
 
 class Reducer:
@@ -84,14 +86,19 @@ class Reducer:
 
             self.top_users[client_id][store] = new_top
 
-            if new_top != prev_top:
-                to_disk = (
-                    f"top_users,{client_id},{store},"
-                    + ",".join(f"{u}:{q}" for u, q in new_top.items())
-                )
-                lines_to_write.append(to_disk)
+            # if new_top != prev_top:
+            #     to_disk = (
+            #         f"top_users,{client_id},{store},"
+            #         + ",".join(f"{u}:{q}" for u, q in new_top.items())
+            #     )
+            #     lines_to_write.append(to_disk)
             #en el log queda: 
             #client_id,store_id,user1:qty1,user2:qty2,user3:qty3
+
+            #         self.top_users = {}  # key: store_id, value: dict of user_id -> purchases_qty
+            #         self.counter_batches = {}
+            #         self.waited_batches = {}
+            #         self._columns = [n.strip() for n in columns.split(",")]
 
         # termine de procesar el batch
         self.counter_batches[client_id] += 1
@@ -107,25 +114,39 @@ class Reducer:
                 f"[REDUCER] guardo en disco: {line[0:10]}. en self.log_file_path: {self.log_file_path}"
             )
             self.register_to_disk(line, self.log_file_path)
-
+        self.write_snapshot(client_id)
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
+    def write_snapshot(self, client_id):
+        snapshot = {
+            "client_id": client_id,
+            "top_users": self.top_users.get(client_id, {}),
+            "counter_batches": self.counter_batches.get(client_id),
+            "waited_batches": self.waited_batches.get(client_id),
+        }
+
+        line = "SNAPSHOT," + json.dumps(snapshot)
+
+        self.register_to_disk(line, self.log_file_path)
+
     def register_to_disk(self, register, log_file_path):
-        # if register == '':
-        #     return True
+        dirpath = os.path.dirname(log_file_path)
+        tmp_fd, tmp_path = tempfile.mkstemp(dir=dirpath)
+
         try:
-            logging.info(f"[LOG] Escribiendo en {log_file_path}:")
-            with open(log_file_path, "a") as f:
+            with os.fdopen(tmp_fd, "w") as f:
                 f.write(register + "\nCHECKPOINT!!COPADO\n")
-                logging.info(f"[LOG] ok. flush")
                 f.flush()
-                logging.info(f"[LOG] ok")
-                logging.info(f"[LOG] fsync...")
-                os.fsync(f.fileno()) 
-                logging.info(f"[LOG] ok. cerrado.")
+                os.fsync(f.fileno())
+            os.replace(tmp_path, log_file_path)
+
             return True
         except Exception as e:
-            logging.error(f"[LOG] Error escribiendo entradas atomicas a {log_file_path}: {e}")
+            logging.error(f"[LOG] Error escribiendo atomico {log_file_path}: {e}")
+            try:
+                os.unlink(tmp_path)
+            except Exception:
+                pass
             return False
 
     def send_last_batch(self, batch, client_id):

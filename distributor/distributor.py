@@ -164,16 +164,14 @@ class Distributor:
         try:
             self.ids_counter[client_id].add_id(batch.id(), query_id)
             with self.socket_lock:  # TODO: cambiar este lock a un lock por cliente
-                # if batch.id() == 0 or batch.id() % COUNT_OF_PRINTS == 0:
-                print(f"[DISTRIBUTOR] Enviando batch procesado con id={batch.id()} de query{query_id} al cliente{client_id}")
+                if batch.id() == 0 or batch.id() % COUNT_OF_PRINTS == 0:
+                    logging.info(f"[DISTRIBUTOR] Enviando batch procesado con id={batch.id()} de query{query_id} al cliente{client_id}")
                 send_batch(client_socket, batch)
                 ch.basic_ack(delivery_tag=method.delivery_tag)
 
         except Exception as e:
             logging.error(f"[DISTRIBUTOR] error al querer enviar batch:{batch} al cliente:{client_id} | error: {e}")
         if batch.is_last_batch():
-            logging.debug(
-                f"\n[DISTRIBUTOR] Recibido last batch de query{query_id} para el cliente{client_id} con id {batch.id()}. el range id es {self.ids_counter[client_id]}\n")
             return
 
     def start_consuming_from_workers(self):
@@ -241,10 +239,8 @@ class Distributor:
                 self.client_counter[cid] = 0
 
             self.client_counter[cid] += 1
-            logging.debug(f"\n\n[DISTRIBUTOR] Recibida confirmacion de join {self.client_counter[cid]} de client{cid}\n\n")
             if self.client_counter[cid] == number_of_joins:
                 client_socket = self.clients.get(cid)
                 with self.socket_lock:
-                    logging.debug(f"\n\n[DISTRIBUTOR] Enviando confirmacion de joins al client{cid}\n\n")
                     send_joins_confirmation_to_client(client_socket)
         ch.basic_ack(delivery_tag=method.delivery_tag)

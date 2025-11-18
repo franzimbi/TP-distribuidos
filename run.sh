@@ -1,3 +1,9 @@
+CARPETA="backups"
+if [ -d "$CARPETA" ]; then
+    echo "Borrando carpeta $CARPETA..."
+    rm -rf "$CARPETA"
+fi
+
 docker-compose -f docker-compose-mw.yaml up --build -d
 
 # esperar a rabbit

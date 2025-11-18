@@ -1,0 +1,2 @@
+SNAPSHOT,{"client_id": 1, "top_users": {"2024_01": {"8": 3098440}, "2025_01": {"8": 3104830}}, "counter_batches": 1, "waited_batches": null}
+CHECKPOINT!!COPADO
