@@ -17,6 +17,8 @@ class Healthchecker:
         self._health_thread = None
         self._health_sock = None
 
+        self.stop_event = threading.Event()
+
 
     def _handle_shutdown(self, sig, frame):
         logging.info("Graceful exit")
@@ -31,15 +33,15 @@ class Healthchecker:
         self._health_sock.listen()
 
         def loop():
-            while True:
+            while not self.stop_event.is_set():
                 conn, addr = self._health_sock.accept()
                 conn.close()
 
         self._health_thread = threading.Thread(target=loop, daemon=True)
         self._health_thread.start()
 
-        while True:
-            time.sleep(5)
+        while not self.stop_event.is_set():
+            time.sleep(0.5)
             for node in self.nodes:
                 # logging.info(f"Verificando nodo {node}")
                 try:
@@ -62,4 +64,8 @@ class Healthchecker:
             logging.error(f"Error {e} en revive node")
 
     def stop(self): 
+        self.stop_event.set()
+        if self._health_sock:
+            self._health_sock.shutdown(socket.SHUT_RDWR)
+            self._health_sock.close()
         logging.info("Healthchecker detenido")
