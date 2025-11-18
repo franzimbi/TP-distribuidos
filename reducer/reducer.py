@@ -1,4 +1,5 @@
 from common.batch import Batch
+from common.id_range_counter import IDRangeCounter
 import logging
 import heapq
 import signal
@@ -54,12 +55,16 @@ class Reducer:
         client_id = batch.client_id()
 
         if client_id not in self.counter_batches:
-            self.counter_batches[client_id] = 0
+            self.counter_batches[client_id] = IDRangeCounter()
             self.waited_batches[client_id] = None
+
+        if self.counter_batches[client_id].already_processed(batch.id(), ' '):
+            ch.basic_ack(delivery_tag=method.delivery_tag)
+            return
 
         if batch.is_last_batch():
             self.waited_batches[client_id] = int(batch[0][batch.get_header().index('cant_batches')])
-            if self.waited_batches[client_id] == self.counter_batches[client_id]:  
+            if self.waited_batches[client_id] == self.counter_batches[client_id].amount_ids(' '):
                 self.send_last_batch(batch, client_id)
                 ch.basic_ack(delivery_tag=method.delivery_tag)
                 return
@@ -76,7 +81,7 @@ class Reducer:
             if store not in self.top_users[client_id]:
                 self.top_users[client_id][store] = {}
 
-            prev_top = self.top_users[client_id][store].copy()
+            # prev_top = self.top_users[client_id][store].copy()
 
             self.top_users[client_id][store][user] = qty
            
@@ -86,34 +91,21 @@ class Reducer:
 
             self.top_users[client_id][store] = new_top
 
-            # if new_top != prev_top:
-            #     to_disk = (
-            #         f"top_users,{client_id},{store},"
-            #         + ",".join(f"{u}:{q}" for u, q in new_top.items())
-            #     )
-            #     lines_to_write.append(to_disk)
-            #en el log queda: 
-            #client_id,store_id,user1:qty1,user2:qty2,user3:qty3
-
-            #         self.top_users = {}  # key: store_id, value: dict of user_id -> purchases_qty
-            #         self.counter_batches = {}
-            #         self.waited_batches = {}
-            #         self._columns = [n.strip() for n in columns.split(",")]
-
         # termine de procesar el batch
-        self.counter_batches[client_id] += 1
+        # self.counter_batches[client_id].add_id(batch.id(), ' ')
 
         if (
             self.waited_batches[client_id] is not None
-            and self.counter_batches[client_id] == self.waited_batches[client_id]
+            and self.counter_batches[client_id].amount_ids(' ') + 1 == self.waited_batches[client_id]
         ):
             self.send_last_batch(batch, client_id)
 
-        for line in lines_to_write:
-            logging.info(
-                f"[REDUCER] guardo en disco: {line[0:10]}. en self.log_file_path: {self.log_file_path}"
-            )
-            self.register_to_disk(line, self.log_file_path)
+        # for line in lines_to_write:
+        #     logging.info(
+        #         f"[REDUCER] guardo en disco: {line[0:10]}. en self.log_file_path: {self.log_file_path}"
+        #     )
+        #     self.register_to_disk(line, self.log_file_path)
+        self.counter_batches[client_id].add_id(batch.id(), ' ')
         self.write_snapshot(client_id)
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
@@ -121,12 +113,11 @@ class Reducer:
         snapshot = {
             "client_id": client_id,
             "top_users": self.top_users.get(client_id, {}),
-            "counter_batches": self.counter_batches.get(client_id),
+            "counter_batches": self.counter_batches[client_id].to_dict(),
             "waited_batches": self.waited_batches.get(client_id),
         }
 
         line = "SNAPSHOT," + json.dumps(snapshot)
-
         self.register_to_disk(line, self.log_file_path)
 
     def register_to_disk(self, register, log_file_path):

@@ -102,19 +102,37 @@ class IDRangeCounter:
     def __str__(self):
         return str(self.dic_files)
 
-    # def len(self, type: str):
-    #     total_count = 0
-    #     ranges = self.dic_files.get(type)[RANGES_POSITION]
-    #     ids = self.dic_files.get(type)[SET_POSITION]
+    def amount_ids(self, type: str):
+        total_count = 0
+        ranges = self.dic_files.get(type)[RANGES_POSITION]
 
-    #     for start, end in ranges:
-    #         total_count += (end - start + 1)
-    #     total_count += len(ids)
+        for start, end in ranges:
+            total_count += (end - start + 1)
             
-    #     return total_count
+        return total_count
 
+    def to_dict(self):
+        # convierte: file_type → {"ranges": [...], "individual": [...]}
+        return {
+            file_type: {
+                "ranges": list(map(list, data[1])),
+                "individual": list(data[0])
+            }
+            for file_type, data in self.dic_files.items()
+        }
+
+    @staticmethod
+    def from_dict(data):
+        obj = IDRangeCounter()
+        for file_type, content in data.items():
+            obj.dic_files[file_type] = [
+                set(content["individual"]),
+                [tuple(r) for r in content["ranges"]]
+            ]
+        return obj
+#
 # counter = IDRangeCounter()
-
+#
 # counter.add_id(1, 'a')
 # print(counter.already_processed(1, 'a'))
 # counter.add_id(3, 'a')
@@ -123,7 +141,7 @@ class IDRangeCounter:
 # print(counter.already_processed(5, 'a'))
 # counter.add_id(7, 'a')
 # print(counter.already_processed(7, 'a'))
-
+#
 # counter.add_id(1, 'b')
 # print(counter.already_processed(1, 'b'))
 # counter.add_id(3, 'b')
@@ -145,7 +163,7 @@ class IDRangeCounter:
 # print(counter.already_processed(20, 'a'))
 # counter.add_id(0, 'a')
 # print(counter)
-# print("len: ", counter.len('a'))
+# print("len: ", counter.amount_ids('a'))
 #
 # counter.add_id(4, 'a')
 # print(counter)
