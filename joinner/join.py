@@ -9,6 +9,7 @@ import os
 
 HEALTH_PORT = 3030
 
+
 class Join:
     def __init__(self, confirmation_queue, join_queue, column_id, column_name, is_last_join, backup_dir):
         self.producer_queue = None
@@ -25,18 +26,16 @@ class Join:
         self.thead_join = None
         self.lock = threading.Lock()
 
-        #/backups/joiner_Join_productos_Q21_backup
-
-        # print(f"[joiner] Backup directory set to: {backup_dir}")
-        # self.backup_dir = backup_dir
-        # os.makedirs(self.backup_dir, exist_ok=True)
-
-        # print(f"[joiner] Backup directory created if it did not exist: {self.backup_dir}")
+        self.backup_dir = backup_dir
+        os.makedirs(self.backup_dir, exist_ok=True)
 
         self._health_thread = None
         self._health_sock = None
         signal.signal(signal.SIGTERM, self.graceful_quit)
         signal.signal(signal.SIGINT, self.graceful_quit)
+
+        self.backup_dir = backup_dir
+        os.makedirs(self.backup_dir, exist_ok=True)
 
     def graceful_quit(self, signum, frame):
         try:
@@ -47,21 +46,87 @@ class Join:
             logging.error(f"[JOIN] Error en graceful_quit: {e}")
         sys.exit(0)
 
-    # def _backup_path_for_client(self, client_id):
-    #     client_id = str(client_id)
-    #     return os.path.join(self.backup_dir, f"join_{client_id}.csv")
+    def _backup_path_for_client(self, client_id):
+        client_id = str(client_id)
+        return os.path.join(self.backup_dir, f"client_{client_id}_backup.csv")
 
-    # def _append_backup_row(self, client_id, key, value):
-    #     """Append de una fila id,nombre al CSV del client_id."""
-    #     path = self._backup_path_for_client(client_id)
-    #     try:
-    #         with open(path, "a") as f:
-    #             f.write(f"{key},{value}\n")
-    #             f.flush()
-    #             os.fsync(f.fileno())
-    #     except Exception as e:
-    #         logging.error(f"[JOIN] Error escribiendo backup de {client_id} en {path}: {e}")
+    def _safe_append(self, path, content):
+        b = content.encode('utf-8')
+        flags = os.O_CREAT | os.O_WRONLY | os.O_APPEND
+        # modo 0644
+        try:
+            fd = os.open(path, flags, 0o644)
+            try:
+                os.write(fd, b)  # único write desde Python hacia fd
+                os.fsync(fd)
+            finally:
+                os.close(fd)
+            return True
+        except Exception as e:
+            logging.error(f"[JOIN] Error escribiendo append seguro a {path}: {e}")
+            try:
+                # si algo quedó mal con permisos/archivo, no romper
+                if 'fd' in locals():
+                    os.close(fd)
+            except Exception:
+                pass
+            return False
 
+    def _remove_backup_file(self, client_id):
+        path = self._backup_path_for_client(client_id)
+        try:
+            if os.path.exists(path):
+                os.remove(path)
+        except Exception as e:
+            logging.error(f"[JOIN] Error eliminando backup {path}: {e}")
+
+    def _write_to_backup(self, client_id, dictionary):
+        if not dictionary:
+            return True
+
+        path = self._backup_path_for_client(client_id)
+        lines = []
+        for k, v in dictionary.items():
+            lines.append(f"{k},{v}")
+        content = "\n".join(lines) + "\n"
+        ok = self._safe_append(path, content)
+        if not ok:
+            logging.error(f"[JOIN] fallo backup append para client {client_id} de {len(dictionary)} entradas")
+        return ok
+
+    def _load_backups_on_start(self):
+        print("\n\nentre a LOad_backups_on_start\n")
+        print(f"recorro el {self.backup_dir} que tiene {os.listdir(self.backup_dir)}")
+
+        for fname in os.listdir(self.backup_dir):
+            if not fname.startswith("client_") or not fname.endswith("_backup.csv"):
+                continue
+            client_id = fname[len("client_"):-len("_backup.csv")]
+            path = os.path.join(self.backup_dir, fname)
+            d = {}
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    for raw in f:
+                        # strip solo el '\n' final
+                        line = raw.rstrip("\n")
+                        if not line:
+                            continue
+                        if "," not in line:
+                            logging.warning(f"[JOIN] linea corrupta en {path}: {line!r}, ignoro")
+                            continue
+                        key, value = line.split(",", 1)
+                        key = str(key).strip()
+                        value = str(value).strip()
+                        if key not in d:
+                            d[key] = value
+            except Exception as e:
+                logging.error(f"[JOIN] Error leyendo backup {path}: {e}")
+                continue
+            if d:
+                self.join_dictionary[client_id] = d
+                print(f"levante del archivo {path} el diccionario")
+                logging.info(f"[JOIN] Restaurado backup para client_id={client_id} con {len(d)} entradas")
+        print("salgo del load_backup\n\n")
     def start(self, consumer, producer):
 
         self._health_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -73,21 +138,19 @@ class Join:
             while True:
                 conn, addr = self._health_sock.accept()
                 conn.close()
+
         self._health_thread = threading.Thread(target=loop, daemon=True)
         self._health_thread.start()
-        logging.info(f"[JOIN] escuchando a Healthcheck en puerto {HEALTH_PORT}")
 
+        self._load_backups_on_start()
         aux = self.join_queue
         self.join_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=aux)
         queue_confirm_name = self.confirmation_queue
         self.confirmation_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=queue_confirm_name)
 
         self.thead_join = threading.Thread(target=self.join_queue.start_consuming,
-                                    args=(self.callback_to_receive_join_data,), daemon=True)
+                                           args=(self.callback_to_receive_join_data,), daemon=True)
         self.thead_join.start()
-        
-        logging.debug("action: receive_join_data | status: finished | entries: %d",
-                      len(self.join_dictionary))
 
         self.consumer_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=consumer)
         self.producer_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=producer)
@@ -98,7 +161,9 @@ class Join:
         self.batch_counter += 1
         batch = Batch()
         batch.decode(message)
-        client_id = batch.client_id()
+        client_id = str(batch.client_id()).strip()
+
+        batch_changes = {}
 
         if client_id not in self.counter_batches:
             self.counter_batches[client_id] = 0
@@ -113,36 +178,39 @@ class Join:
             return
 
         if id_idx is None or name_idx is None:
-            logging.debug(
+            logging.error(
                 f"Column {self.column_id} or {self.column_name} not found in batch header {batch.get_header()}")
             ch.basic_ack(delivery_tag=method.delivery_tag)
             return
 
         for row in batch:
-            key = row[id_idx]
-            value = row[name_idx]
+            key = str(row[id_idx]).strip()
+            value = str(row[name_idx]).strip()
             if key is None or value is None:
-                logging.debug(f"Key or value is None for row: {row}")
+                logging.error(f"Key or value is None for row: {row}")
                 continue
             with self.lock:
                 if client_id not in self.join_dictionary:
                     self.join_dictionary[client_id] = {}
                 if key not in self.join_dictionary[client_id]:
                     self.join_dictionary[client_id][key] = value
-                    # self._append_backup_row(client_id, key, value)
-
+                    batch_changes[key] = value
+        if batch_changes:
+            self._write_to_backup(client_id, batch_changes)
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
     def callback(self, ch, method, properties, message):
         batch = Batch()
         batch.decode(message)
-        client_id = batch.client_id()
+        client_id = str(batch.client_id()).strip()
 
         if batch.is_last_batch():
             self.waited_batches[client_id] = int(batch[0][batch.get_header().index('cant_batches')])
             if self.waited_batches[client_id] == self.counter_batches[client_id]:  # llegaron todos
                 self.join_dictionary.pop(client_id, None)
+                self._remove_backup_file(client_id)
             self.producer_queue.send(batch.encode())
+
             ch.basic_ack(delivery_tag=method.delivery_tag)
             return
 
@@ -159,9 +227,10 @@ class Join:
                 f'action: join_batch_with_dicctionary[{client_id}] | result: fail | error: {e}')
 
         self.counter_batches[client_id] += 1
-        if self.waited_batches[client_id] is not None and self.counter_batches[client_id] == self.waited_batches[client_id]:
+        if self.waited_batches[client_id] is not None and self.counter_batches[client_id] == self.waited_batches[
+            client_id]:
             self.join_dictionary.pop(client_id, None)
-
+            self._remove_backup_file(client_id)
         self.producer_queue.send(batch.encode())
         ch.basic_ack(delivery_tag=method.delivery_tag)
 

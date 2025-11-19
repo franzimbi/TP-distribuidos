@@ -4,6 +4,8 @@ if [ -d "$CARPETA" ]; then
     rm -rf "$CARPETA"
 fi
 
+find . -maxdepth 1 -type d -name "results_cliente_?" -exec rm -rf {} +
+
 docker-compose -f docker-compose-mw.yaml up --build -d
 
 # esperar a rabbit

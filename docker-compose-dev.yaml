@@ -18,8 +18,8 @@ services:
     - productsQueues=join_products_queue_q22_1,join_products_queue_q21_1
     - storesQueues=join_stores_queue_q3_1,join_stores_queue_q4_1
     - CONFIRMATION_QUEUE=q_joins_confirmation
-    - usersQueues=join_users_queue_1,join_users_queue_2,join_users_queue_3,join_users_queue_4,join_users_queue_5
-    - numberOfJoins=9
+    - usersQueues=join_users_queue_1,join_users_queue_2
+    - numberOfJoins=6
     networks:
     - mynet
     volumes:
@@ -593,12 +593,12 @@ services:
     - is_last_join=True
     - CONFIRMATION_QUEUE=q_joins_confirmation
     - params=item_name,item_id
-    - folder_backup_joiner=backups/joiner_Join_productos_Q21_backup
+    - folder_backup_joiner=backups/joiner_Join_productos_Q21_1_backup
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-    - ./backups:/app/join_backups
+    - ./backups:/app/backups/
   aggregator_suma_q22_1:
     container_name: aggregator_suma_q22_1
     build:
@@ -743,12 +743,12 @@ services:
     - is_last_join=True
     - CONFIRMATION_QUEUE=q_joins_confirmation
     - params=item_name,item_id
-    - folder_backup_joiner=backups/joiner_Join_productos_Q22_backup
+    - folder_backup_joiner=backups/joiner_Join_productos_Q22_1_backup
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-    - ./backups:/app/join_backups
+    - ./backups:/app/backups/
   aggregator_suma_q3_1:
     container_name: aggregator_suma_q3_1
     build:
@@ -873,12 +873,12 @@ services:
     - is_last_join=True
     - CONFIRMATION_QUEUE=q_joins_confirmation
     - params=store_name,store_id
-    - folder_backup_joiner=backups/joiner_Join_stores_Q3_backup
+    - folder_backup_joiner=backups/joiner_Join_stores_Q3_1_backup
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-    - ./backups:/app/join_backups
+    - ./backups:/app/backups/
   aggregator_counter_q4_1:
     container_name: aggregator_counter_q4_1
     build:
@@ -1023,34 +1023,12 @@ services:
     - is_last_join=False
     - CONFIRMATION_QUEUE=q_joins_confirmation
     - params=birthdate,user_id
-    - folder_backup_joiner=backups/joiner_Join_users_Q4_backup
+    - folder_backup_joiner=backups/joiner_Join_users_Q4_1_backup
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-    - ./backups:/app/join_backups
-  join_users_q4_5:
-    container_name: join_users_q4_5
-    build:
-      context: .
-      dockerfile: joinner/Dockerfile
-    depends_on:
-    - distributor
-    restart: on-failure
-    environment:
-    - PYTHONUNBUFFERED=1
-    - queueEntradaJoin=join_users_queue_5
-    - queueEntradaData=conection_join_4
-    - queuesSalida=Queue_between_joiner_users_and_joiner_stores_Q4
-    - is_last_join=True
-    - CONFIRMATION_QUEUE=q_joins_confirmation
-    - params=birthdate,user_id
-    - folder_backup_joiner=backups/joiner_Join_users_Q4_backup
-    networks:
-    - mynet
-    volumes:
-    - ./config.ini:/app/config.ini
-    - ./backups:/app/join_backups
+    - ./backups:/app/backups/
   join_users_q4_2:
     container_name: join_users_q4_2
     build:
@@ -1063,60 +1041,16 @@ services:
     - PYTHONUNBUFFERED=1
     - queueEntradaJoin=join_users_queue_2
     - queueEntradaData=conection_join_1
-    - queuesSalida=conection_join_2
-    - is_last_join=False
+    - queuesSalida=Queue_between_joiner_users_and_joiner_stores_Q4
+    - is_last_join=True
     - CONFIRMATION_QUEUE=q_joins_confirmation
     - params=birthdate,user_id
-    - folder_backup_joiner=backups/joiner_Join_users_Q4_backup
+    - folder_backup_joiner=backups/joiner_Join_users_Q4_2_backup
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-    - ./backups:/app/join_backups
-  join_users_q4_3:
-    container_name: join_users_q4_3
-    build:
-      context: .
-      dockerfile: joinner/Dockerfile
-    depends_on:
-    - distributor
-    restart: on-failure
-    environment:
-    - PYTHONUNBUFFERED=1
-    - queueEntradaJoin=join_users_queue_3
-    - queueEntradaData=conection_join_2
-    - queuesSalida=conection_join_3
-    - is_last_join=False
-    - CONFIRMATION_QUEUE=q_joins_confirmation
-    - params=birthdate,user_id
-    - folder_backup_joiner=backups/joiner_Join_users_Q4_backup
-    networks:
-    - mynet
-    volumes:
-    - ./config.ini:/app/config.ini
-    - ./backups:/app/join_backups
-  join_users_q4_4:
-    container_name: join_users_q4_4
-    build:
-      context: .
-      dockerfile: joinner/Dockerfile
-    depends_on:
-    - distributor
-    restart: on-failure
-    environment:
-    - PYTHONUNBUFFERED=1
-    - queueEntradaJoin=join_users_queue_4
-    - queueEntradaData=conection_join_3
-    - queuesSalida=conection_join_4
-    - is_last_join=False
-    - CONFIRMATION_QUEUE=q_joins_confirmation
-    - params=birthdate,user_id
-    - folder_backup_joiner=backups/joiner_Join_users_Q4_backup
-    networks:
-    - mynet
-    volumes:
-    - ./config.ini:/app/config.ini
-    - ./backups:/app/join_backups
+    - ./backups:/app/backups/
   join_stores_q4_1:
     container_name: join_stores_q4_1
     build:
@@ -1133,12 +1067,12 @@ services:
     - is_last_join=True
     - CONFIRMATION_QUEUE=q_joins_confirmation
     - params=store_name,store_id
-    - folder_backup_joiner=backups/joiner_Join_stores_Q4_backup
+    - folder_backup_joiner=backups/joiner_Join_stores_Q4_1_backup
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
-    - ./backups:/app/join_backups
+    - ./backups:/app/backups/
   cliente_1:
     container_name: cliente_1
     build:
@@ -1180,7 +1114,7 @@ services:
     - ./config.ini:/app/config.ini
     environment:
       PORT: '3030'
-      NODES: filtroanio1_1,filtroanio1_4,filtroanio2_2,filtroanio2_5,filtrohora1_3,filter_amount_q1_1,filter_amount_q1_4,filter_column_q1_2,filter_column_q1_5,aggregator_suma_q21_3,aggregator_suma_q22_1,aggregator_suma_q22_4,reducer_reducer_q22,aggregator_suma_q3_2,aggregator_suma_q3_5,aggregator_counter_q4_1,aggregator_counter_q4_4,reducer_reducer_q4,join_users_q4_2,join_stores_q4_1,healthchecker_2
+      NODES: filtroanio1_1,filtroanio1_4,filtroanio2_2,filtroanio2_5,filtrohora1_3,filter_amount_q1_1,filter_amount_q1_4,filter_column_q1_2,filter_column_q1_5,aggregator_suma_q21_3,aggregator_suma_q22_1,aggregator_suma_q22_4,reducer_reducer_q22,aggregator_suma_q3_2,aggregator_suma_q3_5,aggregator_counter_q4_1,aggregator_counter_q4_4,reducer_reducer_q4,join_stores_q4_1,healthchecker_2
   healthchecker_2:
     container_name: healthchecker_2
     build:
@@ -1199,7 +1133,7 @@ services:
     - ./config.ini:/app/config.ini
     environment:
       PORT: '3030'
-      NODES: filtroanio1_2,filtroanio1_5,filtroanio2_3,filtrohora1_1,filtrohora1_4,filter_amount_q1_2,filter_amount_q1_5,filter_column_q1_3,aggregator_suma_q21_1,aggregator_suma_q21_4,reducer_reducer_q21,aggregator_suma_q22_2,aggregator_suma_q22_5,join_productos_q22_1,aggregator_suma_q3_3,aggregator_counter_q4_2,aggregator_counter_q4_5,join_users_q4_1,join_users_q4_3,healthchecker_3
+      NODES: filtroanio1_2,filtroanio1_5,filtroanio2_3,filtrohora1_1,filtrohora1_4,filter_amount_q1_2,filter_amount_q1_5,filter_column_q1_3,aggregator_suma_q21_1,aggregator_suma_q21_4,reducer_reducer_q21,aggregator_suma_q22_2,aggregator_suma_q22_5,join_productos_q22_1,aggregator_suma_q3_3,aggregator_counter_q4_2,aggregator_counter_q4_5,join_users_q4_1,healthchecker_3
   healthchecker_3:
     container_name: healthchecker_3
     build:
@@ -1218,7 +1152,7 @@ services:
     - ./config.ini:/app/config.ini
     environment:
       PORT: '3030'
-      NODES: filtroanio1_3,filtroanio2_1,filtroanio2_4,filtrohora1_2,filtrohora1_5,filter_amount_q1_3,filter_column_q1_1,filter_column_q1_4,aggregator_suma_q21_2,aggregator_suma_q21_5,join_productos_q21_1,aggregator_suma_q22_3,aggregator_suma_q3_1,aggregator_suma_q3_4,join_stores_q3_1,aggregator_counter_q4_3,join_users_q4_5,join_users_q4_4,healthchecker_1
+      NODES: filtroanio1_3,filtroanio2_1,filtroanio2_4,filtrohora1_2,filtrohora1_5,filter_amount_q1_3,filter_column_q1_1,filter_column_q1_4,aggregator_suma_q21_2,aggregator_suma_q21_5,join_productos_q21_1,aggregator_suma_q22_3,aggregator_suma_q3_1,aggregator_suma_q3_4,join_stores_q3_1,aggregator_counter_q4_3,join_users_q4_2,healthchecker_1
 networks:
   mynet:
     external: false

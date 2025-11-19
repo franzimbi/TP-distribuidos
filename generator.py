@@ -175,7 +175,7 @@ def crear_joiners(nombre, cantidad, entrada, salida, entrada_join, params):
             'is_last_join=' + is_last_j1,
             'CONFIRMATION_QUEUE=q_joins_confirmation',
             'params=' + params,
-            'folder_backup_joiner=backups/' + f'joiner_{nombre}_backup'
+            'folder_backup_joiner=backups/' + f'joiner_{nombre}_1_backup'
         ],
         'networks': [
             'mynet'
@@ -208,7 +208,7 @@ def crear_joiners(nombre, cantidad, entrada, salida, entrada_join, params):
             'is_last_join=' + 'True',
             'CONFIRMATION_QUEUE=q_joins_confirmation',
             'params=' + params,
-            'folder_backup_joiner=backups/' + f'joiner_{nombre}_backup'
+            'folder_backup_joiner=backups/' + f'joiner_{nombre}_{cantidad}_backup'
         ],
         'networks': [
             'mynet'
@@ -244,7 +244,7 @@ def crear_joiners(nombre, cantidad, entrada, salida, entrada_join, params):
                     'is_last_join=' + 'False',
                     'CONFIRMATION_QUEUE=q_joins_confirmation',
                     'params=' + params,
-                    'folder_backup_joiner=backups/' + f'joiner_{nombre}_backup'
+                    'folder_backup_joiner=backups/' + f'joiner_{nombre}_{i}_backup'
                 ],
                 'networks': [
                     'mynet'
