@@ -6,7 +6,6 @@ from join import Join
 import signal
 import sys
 
-
 def initialize_config():
     import os
 
@@ -28,6 +27,7 @@ def initialize_config():
             raise ValueError("params debe tener formato 'COLUMN_NAME,COLUMN_ID'")
 
         is_last_join = os.getenv("is_last_join").strip().lower() in ("1", "true", "yes")
+        backup_dir = os.getenv("folder_backup_joiner")
         confirmation_queue = os.getenv("CONFIRMATION_QUEUE")
         logging_level  = os.getenv("LOGGING_LEVEL", "DEBUG")
         listen_backlog = int(os.getenv("SERVER_LISTEN_BACKLOG", "128"))
@@ -36,6 +36,7 @@ def initialize_config():
             "CONSUME_QUEUE": consume_q,
             "PRODUCE_QUEUE": produce_q,
             "CONFIRMATION_QUEUE": confirmation_queue,
+            "folder_backup_joiner": backup_dir,
             "JOIN_QUEUE": join_q,
             "COLUMN_NAME": col_name,
             "COLUMN_ID": col_id,
@@ -67,13 +68,15 @@ def main():
 
     logging_level = config_params["logging_level"]
     listen_backlog = config_params["listen_backlog"]
+
+    backup_dir = config_params["folder_backup_joiner"]
     initialize_log(logging_level)
 
     logging.debug(
         f"action: config | result: success | queue_consumer: {queue_consumer} | queue_producer: {queue_producer} | "
         f"join_queue:{join_queue} | listen_backlog: {listen_backlog} | logging_level: {logging_level}")
 
-    this_join = Join(config_params["CONFIRMATION_QUEUE"], join_queue, config_params["COLUMN_ID"], config_params["COLUMN_NAME"], config_params["IS_LAST_JOIN"])
+    this_join = Join(config_params["CONFIRMATION_QUEUE"], join_queue, config_params["COLUMN_ID"], config_params["COLUMN_NAME"], config_params["IS_LAST_JOIN"], backup_dir)
     this_join.start(queue_consumer, queue_producer)
 
 

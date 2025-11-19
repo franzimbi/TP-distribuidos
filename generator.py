@@ -174,13 +174,15 @@ def crear_joiners(nombre, cantidad, entrada, salida, entrada_join, params):
             'queuesSalida=' + salida_j1,
             'is_last_join=' + is_last_j1,
             'CONFIRMATION_QUEUE=q_joins_confirmation',
-            'params=' + params
+            'params=' + params,
+            'folder_backup_joiner=backups/' + f'joiner_{nombre}_backup'
         ],
         'networks': [
             'mynet'
         ],
         'volumes': [
-            './config.ini:/app/config.ini'
+            './config.ini:/app/config.ini',
+            './backups:/app/backups/'
         ],
     }
 
@@ -205,13 +207,15 @@ def crear_joiners(nombre, cantidad, entrada, salida, entrada_join, params):
             'queuesSalida=' + salida,
             'is_last_join=' + 'True',
             'CONFIRMATION_QUEUE=q_joins_confirmation',
-            'params=' + params
+            'params=' + params,
+            'folder_backup_joiner=backups/' + f'joiner_{nombre}_backup'
         ],
         'networks': [
             'mynet'
         ],
         'volumes': [
-            './config.ini:/app/config.ini'
+            './config.ini:/app/config.ini',
+            './backups:/app/backups/'
         ],
     }
 
@@ -239,13 +243,15 @@ def crear_joiners(nombre, cantidad, entrada, salida, entrada_join, params):
                     'queuesSalida=' + join_salida_data,
                     'is_last_join=' + 'False',
                     'CONFIRMATION_QUEUE=q_joins_confirmation',
-                    'params=' + params
+                    'params=' + params,
+                    'folder_backup_joiner=backups/' + f'joiner_{nombre}_backup'
                 ],
                 'networks': [
                     'mynet'
                 ],
                 'volumes': [
-                    './config.ini:/app/config.ini'
+                    './config.ini:/app/config.ini',
+                    './backups:/app/backups/'
                 ],
             }
     return joiners

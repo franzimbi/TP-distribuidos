@@ -88,10 +88,13 @@ class Reducer:
         self._consumer_queue.start_consuming(self.callback)
 
     def callback(self, ch, method, properties, message):
-        print(f"[reducer] Received batch\n\n")
+
         batch = Batch()
         batch.decode(message)
         client_id = batch.client_id()
+
+        if batch.id == 0:
+            print(f"[reducer] Received batch 0 \n\n")
 
         if client_id not in self.counter_batches:
             self.counter_batches[client_id] = IDRangeCounter()
