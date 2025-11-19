@@ -47,9 +47,14 @@ class Healthchecker:
                     con.shutdown(socket.SHUT_RDWR)
                     con.close()
                 except socket.error:
-                    self.revive_node(node)
+                    if not self.stop_event.is_set():
+                        self.revive_node(node)
+                    else:
+                        return
     
     def revive_node(self, node):
+        if self.stop_event.is_set():
+            return
         try:
             result = subprocess.run(['docker', 'start', node], check=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             
@@ -62,7 +67,7 @@ class Healthchecker:
     def stop(self): 
         self.stop_event.set()
         if self._health_thread:
-            self._health_thread.join()
+            self._health_thread.join(timeout=1)
         if self._health_sock:
             self._health_sock.shutdown(socket.SHUT_RDWR)
             self._health_sock.close()

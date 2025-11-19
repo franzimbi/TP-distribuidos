@@ -124,6 +124,8 @@ class Join:
                 continue
             if d:
                 self.join_dictionary[client_id] = d
+                self.counter_batches[client_id] = 0 #TODO: esto tiene que restaurase de un snapshot
+                self.waited_batches[client_id] = 0 #TODO: esto tambien. como hace el reducer.
                 print(f"levante del archivo {path} el diccionario")
                 logging.info(f"[JOIN] Restaurado backup para client_id={client_id} con {len(d)} entradas")
         print("salgo del load_backup\n\n")
