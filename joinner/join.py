@@ -1,14 +1,16 @@
 from middleware.middleware import MessageMiddlewareQueue, MessageMiddlewareDisconnectedError, MessageMiddlewareExchange
 from common.batch import Batch
+from common.id_range_counter import IDRangeCounter
 import logging
 import signal
 import sys
 import threading
 import socket
 import os
+import json
+import tempfile
 
 HEALTH_PORT = 3030
-
 
 class Join:
     def __init__(self, confirmation_queue, join_queue, column_id, column_name, is_last_join, backup_dir):
@@ -29,13 +31,13 @@ class Join:
         self.backup_dir = backup_dir
         os.makedirs(self.backup_dir, exist_ok=True)
 
+        self.snapshot_path = os.path.join(self.backup_dir, "join_snapshot.json")
+        self.load_snapshot()
+
         self._health_thread = None
         self._health_sock = None
         signal.signal(signal.SIGTERM, self.graceful_quit)
         signal.signal(signal.SIGINT, self.graceful_quit)
-
-        self.backup_dir = backup_dir
-        os.makedirs(self.backup_dir, exist_ok=True)
 
     def graceful_quit(self, signum, frame):
         try:
@@ -107,7 +109,10 @@ class Join:
             try:
                 with open(path, "r", encoding="utf-8") as f:
                     for raw in f:
-                        # strip solo el '\n' final
+                        # verifico q sea valida la linea
+                        if not raw.endswith("\n"):
+                            logging.warning(f"[JOIN] linea incompleta por crash: {raw!r}")
+                            continue
                         line = raw.rstrip("\n")
                         if not line:
                             continue
@@ -124,13 +129,78 @@ class Join:
                 continue
             if d:
                 self.join_dictionary[client_id] = d
-                self.counter_batches[client_id] = 0 #TODO: esto tiene que restaurase de un snapshot
-                self.waited_batches[client_id] = 0 #TODO: esto tambien. como hace el reducer.
+                # self.counter_batches[client_id] = 0 #TODO: esto tiene que restaurase de un snapshot
+                # self.waited_batches[client_id] = 0 #TODO: esto tambien. como hace el reducer.
                 print(f"levante del archivo {path} el diccionario")
                 logging.info(f"[JOIN] Restaurado backup para client_id={client_id} con {len(d)} entradas")
         print("salgo del load_backup\n\n")
-    def start(self, consumer, producer):
 
+    def register_to_disk(self, content, path):
+        dirpath = os.path.dirname(path)
+        os.makedirs(dirpath, exist_ok=True)
+        tmp_fd, tmp_path = tempfile.mkstemp(dir=dirpath)
+        try:
+            with os.fdopen(tmp_fd, "w", encoding="utf-8") as f:
+                f.write(content)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp_path, path)  # atómico a nivel filesystem
+            return True
+        except Exception as e:
+            logging.error(f"[JOIN] Error escribiendo snapshot atómico {path}: {e}")
+            try:
+                os.unlink(tmp_path)
+            except Exception:
+                pass
+            return False
+        
+    def write_snapshot(self, client_id):
+        
+        # snapshot = {"clients": {}}
+        
+        # for client_id, cb in self.counter_batches.items():
+        #     cid = str(client_id)
+        #     snapshot["clients"][cid] = {
+        #         "counter_batches": cb.to_dict(),
+        #         "waited_batches": self.waited_batches.get(client_id),
+        #     }
+
+        # print("ENTRE A WRITE SNAPSHOT")
+
+        snapshot = {
+            "counter_batches": self.counter_batches[client_id].to_dict(),
+            "waited_batches": self.waited_batches.get(client_id),
+        }
+
+        # print(f"SNAPSHOT A GUARDAR {snapshot}")
+
+        json_str = json.dumps(snapshot, indent=2)
+        self.register_to_disk(json_str, self.snapshot_path)
+
+    # def load_snapshot(self):
+    #     if not os.path.exists(self.snapshot_path):
+    #         return
+
+    #     try:
+    #         with open(self.snapshot_path, "r", encoding="utf-8") as f:
+    #             snapshot = json.load(f)
+
+    #         clients = snapshot.get("clients", {})
+    #         for cid, data in clients.items():
+    #             cb = data.get("counter_batches", 0)
+    #             wb = data.get("waited_batches", None)
+
+    #             self.counter_batches[cid] = cb
+    #             self.waited_batches[cid] = wb
+    #             logging.info(
+    #                 f"[JOIN][RECOVERY] Snapshot cargado para client_id={cid} "
+    #                 f"con counter={cb}, waited={wb}"
+    #             )
+    #     except Exception as e:
+    #         logging.error(f"[JOIN][RECOVERY] Error cargando snapshot: {e}")
+
+            
+    def start(self, consumer, producer):
         self._health_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._health_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self._health_sock.bind(('', HEALTH_PORT))
@@ -168,8 +238,12 @@ class Join:
         batch_changes = {}
 
         if client_id not in self.counter_batches:
-            self.counter_batches[client_id] = 0
+            self.counter_batches[client_id] = IDRangeCounter()
             self.waited_batches[client_id] = None
+
+        if self.counter_batches[client_id].already_processed(batch.id(), ' '):
+            ch.basic_ack(delivery_tag=method.delivery_tag)
+            return
 
         id_idx = batch.index_of(self.column_id)
         name_idx = batch.index_of(self.column_name)
@@ -199,6 +273,8 @@ class Join:
                     batch_changes[key] = value
         if batch_changes:
             self._write_to_backup(client_id, batch_changes)
+            self.write_snapshot(client_id)
+
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
     def callback(self, ch, method, properties, message):
@@ -208,7 +284,7 @@ class Join:
 
         if batch.is_last_batch():
             self.waited_batches[client_id] = int(batch[0][batch.get_header().index('cant_batches')])
-            if self.waited_batches[client_id] == self.counter_batches[client_id]:  # llegaron todos
+            if self.waited_batches[client_id] == self.counter_batches[client_id].amount_ids(' '):  # llegaron todos
                 self.join_dictionary.pop(client_id, None)
                 self._remove_backup_file(client_id)
             self.producer_queue.send(batch.encode())
@@ -228,11 +304,14 @@ class Join:
             logging.error(
                 f'action: join_batch_with_dicctionary[{client_id}] | result: fail | error: {e}')
 
-        self.counter_batches[client_id] += 1
+        self.counter_batches[client_id].add_id(batch.id(), ' ')
         if self.waited_batches[client_id] is not None and self.counter_batches[client_id] == self.waited_batches[
             client_id]:
             self.join_dictionary.pop(client_id, None)
             self._remove_backup_file(client_id)
+
+        self.write_snapshot(client_id)
+
         self.producer_queue.send(batch.encode())
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
