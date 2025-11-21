@@ -55,11 +55,10 @@ class Join:
     def _safe_append(self, path, content):
         b = content.encode('utf-8')
         flags = os.O_CREAT | os.O_WRONLY | os.O_APPEND
-        # modo 0644
         try:
             fd = os.open(path, flags, 0o644)
             try:
-                os.write(fd, b)  # único write desde Python hacia fd
+                os.write(fd, b)
                 os.fsync(fd)
             finally:
                 os.close(fd)
@@ -67,7 +66,6 @@ class Join:
         except Exception as e:
             logging.error(f"[JOIN] Error escribiendo append seguro a {path}: {e}")
             try:
-                # si algo quedó mal con permisos/archivo, no romper
                 if 'fd' in locals():
                     os.close(fd)
             except Exception:
@@ -109,7 +107,6 @@ class Join:
             try:
                 with open(path, "r", encoding="utf-8") as f:
                     for raw in f:
-                        # verifico q sea valida la linea
                         if not raw.endswith("\n"):
                             logging.warning(f"[JOIN] linea incompleta por crash: {raw!r}")
                             continue
@@ -129,8 +126,7 @@ class Join:
                 continue
             if d:
                 self.join_dictionary[client_id] = d
-                # self.counter_batches[client_id] = 0 #TODO: esto tiene que restaurase de un snapshot
-                # self.waited_batches[client_id] = 0 #TODO: esto tambien. como hace el reducer.
+                self.load_snapshot()
                 print(f"levante del archivo {path} el diccionario")
                 logging.info(f"[JOIN] Restaurado backup para client_id={client_id} con {len(d)} entradas")
         print("salgo del load_backup\n\n")
@@ -144,7 +140,7 @@ class Join:
                 f.write(content)
                 f.flush()
                 os.fsync(f.fileno())
-            os.replace(tmp_path, path)  # atómico a nivel filesystem
+            os.replace(tmp_path, path)
             return True
         except Exception as e:
             logging.error(f"[JOIN] Error escribiendo snapshot atómico {path}: {e}")
@@ -155,50 +151,30 @@ class Join:
             return False
         
     def write_snapshot(self, client_id):
-        
-        # snapshot = {"clients": {}}
-        
-        # for client_id, cb in self.counter_batches.items():
-        #     cid = str(client_id)
-        #     snapshot["clients"][cid] = {
-        #         "counter_batches": cb.to_dict(),
-        #         "waited_batches": self.waited_batches.get(client_id),
-        #     }
-
-        # print("ENTRE A WRITE SNAPSHOT")
-
         snapshot = {
+            "client_id": client_id,
             "counter_batches": self.counter_batches[client_id].to_dict(),
             "waited_batches": self.waited_batches.get(client_id),
         }
-
-        # print(f"SNAPSHOT A GUARDAR {snapshot}")
-
+        
         json_str = json.dumps(snapshot, indent=2)
         self.register_to_disk(json_str, self.snapshot_path)
 
-    # def load_snapshot(self):
-    #     if not os.path.exists(self.snapshot_path):
-    #         return
+    def load_snapshot(self):
+        if not os.path.exists(self.snapshot_path):
+            return
+        try:
+            with open(self.snapshot_path, "r", encoding="utf-8") as f:
+                snapshot = json.load(f)
+            client_id  = snapshot["client_id"]
+            self.waited_batches[client_id] = snapshot.get("waited_batches")
+            counter = IDRangeCounter()
+            counter = IDRangeCounter.from_dict(snapshot.get("counter_batches", {}))
+            self.counter_batches[client_id] = counter
 
-    #     try:
-    #         with open(self.snapshot_path, "r", encoding="utf-8") as f:
-    #             snapshot = json.load(f)
-
-    #         clients = snapshot.get("clients", {})
-    #         for cid, data in clients.items():
-    #             cb = data.get("counter_batches", 0)
-    #             wb = data.get("waited_batches", None)
-
-    #             self.counter_batches[cid] = cb
-    #             self.waited_batches[cid] = wb
-    #             logging.info(
-    #                 f"[JOIN][RECOVERY] Snapshot cargado para client_id={cid} "
-    #                 f"con counter={cb}, waited={wb}"
-    #             )
-    #     except Exception as e:
-    #         logging.error(f"[JOIN][RECOVERY] Error cargando snapshot: {e}")
-
+            logging.info(f"[JOIN][RECOVERY] Snapshot cargado para client_id={client_id}")
+        except Exception as e:
+            logging.error(f"[JOIN][RECOVERY] Error cargando snapshot: {e}")
             
     def start(self, consumer, producer):
         self._health_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

@@ -11,7 +11,6 @@ CONTAINER_NAMES = [
 SECONDS = 10
 last_container_name = None
 
-
 def run():
     global last_container_name
     while True:

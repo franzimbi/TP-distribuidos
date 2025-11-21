@@ -1,9 +1,6 @@
 import logging
 import os
-import signal
-import sys
 import threading
-from time import time
 from middleware.middleware import MessageMiddlewareQueue, MessageMiddlewareExchange
 from common.protocol import send_batch, send_joins_confirmation_to_client
 from common.batch import Batch
