@@ -5,11 +5,13 @@ from sumador import Adder
 from counter import Counter
 from acumulator import Accumulator
 
+
 def get_env(name, *, required=False, default=None):
     val = os.environ.get(name, default)
     if required and (val is None or str(val).strip() == ""):
         raise KeyError(f"Missing env: {name}")
     return val
+
 
 def main():
     logging.basicConfig(
@@ -18,43 +20,46 @@ def main():
         datefmt='%Y-%m-%d %H:%M:%S',
     )
     logging.getLogger("pika").setLevel(logging.WARNING)
-    
+
     consume = get_env("CONSUME_QUEUE", required=True)
     produce = get_env("PRODUCE_QUEUE", required=True)
-    type    = get_env("TYPE", required=True).strip().lower()
+    type = get_env("TYPE", required=True).strip().lower()
     params = get_env("PARAMS")
+    folder_backup = get_env("folder_backup_aggregator")
+
     logging.debug(f"[{type}] {consume} -> {produce}")
-    
+
     params_buffer = []
     for p in params.split(","):
         params_buffer.append(p)
-        
+
     if type == "sum":
         worker = Adder(
             consume, produce,
-            key_col       = params_buffer[0],
-            value_col     = params_buffer[1],
-            bucket_kind   = params_buffer[2], 
-            bucket_name   = params_buffer[3],
-            time_col      = params_buffer[4],
-            out_value_name= params_buffer[5],
+            key_col=params_buffer[0],
+            value_col=params_buffer[1],
+            bucket_kind=params_buffer[2],
+            bucket_name=params_buffer[3],
+            time_col=params_buffer[4],
+            out_value_name=params_buffer[5],
         )
     if type == "counter":
         worker = Counter(
             consume, produce,
-            key_columns = params_buffer[0:2],
-            count_name  = params_buffer[2],
+            key_columns=params_buffer[0:2],
+            count_name=params_buffer[2],
         )
     elif type == "accumulator":
         worker = Accumulator(
             consume, produce,
-            key_col       = params_buffer[0],
-            value_col     = params_buffer[1],
-            bucket_col    = params_buffer[2],
-            out_value_name= params_buffer[1],
+            file_backup=folder_backup,
+            key_col=params_buffer[0],
+            value_col=params_buffer[1],
+            bucket_col=params_buffer[2],
+            out_value_name=params_buffer[1],
         )
-#  store_id,tpv,year_semester
-   
+    #  store_id,tpv,year_semester
+
     worker.start()
 
 

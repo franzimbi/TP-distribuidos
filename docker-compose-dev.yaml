@@ -18,8 +18,8 @@ services:
     - productsQueues=join_products_queue_q22_1,join_products_queue_q21_1
     - storesQueues=join_stores_queue_q3_1,join_stores_queue_q4_1
     - CONFIRMATION_QUEUE=q_joins_confirmation
-    - usersQueues=join_users_queue_1,join_users_queue_2,join_users_queue_3,join_users_queue_4,join_users_queue_5
-    - numberOfJoins=9
+    - usersQueues=join_users_queue_1,join_users_queue_2
+    - numberOfJoins=6
     networks:
     - mynet
     volumes:
@@ -463,10 +463,12 @@ services:
     - PRODUCE_QUEUE=Queue_between_aggregator_accumulator_Q21
     - TYPE=sum
     - PARAMS=item_id,quantity,month,year_month,created_at,total_quantity
+    - folder_backup_aggregator=backups/aggregator_Suma_Q21_backup
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
   aggregator_suma_q21_2:
     container_name: aggregator_suma_q21_2
     build:
@@ -481,10 +483,12 @@ services:
     - PRODUCE_QUEUE=Queue_between_aggregator_accumulator_Q21
     - TYPE=sum
     - PARAMS=item_id,quantity,month,year_month,created_at,total_quantity
+    - folder_backup_aggregator=backups/aggregator_Suma_Q21_backup
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
   aggregator_suma_q21_3:
     container_name: aggregator_suma_q21_3
     build:
@@ -499,10 +503,12 @@ services:
     - PRODUCE_QUEUE=Queue_between_aggregator_accumulator_Q21
     - TYPE=sum
     - PARAMS=item_id,quantity,month,year_month,created_at,total_quantity
+    - folder_backup_aggregator=backups/aggregator_Suma_Q21_backup
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
   aggregator_suma_q21_4:
     container_name: aggregator_suma_q21_4
     build:
@@ -517,10 +523,12 @@ services:
     - PRODUCE_QUEUE=Queue_between_aggregator_accumulator_Q21
     - TYPE=sum
     - PARAMS=item_id,quantity,month,year_month,created_at,total_quantity
+    - folder_backup_aggregator=backups/aggregator_Suma_Q21_backup
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
   aggregator_suma_q21_5:
     container_name: aggregator_suma_q21_5
     build:
@@ -535,10 +543,12 @@ services:
     - PRODUCE_QUEUE=Queue_between_aggregator_accumulator_Q21
     - TYPE=sum
     - PARAMS=item_id,quantity,month,year_month,created_at,total_quantity
+    - folder_backup_aggregator=backups/aggregator_Suma_Q21_backup
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
   aggregator_accumulator_q21_1:
     container_name: aggregator_accumulator_q21_1
     build:
@@ -553,10 +563,12 @@ services:
     - PRODUCE_QUEUE=Queue_between_accumulator_reducer_Q21
     - TYPE=accumulator
     - PARAMS=item_id,total_quantity,year_month
+    - folder_backup_aggregator=backups/aggregator_accumulator_Q21_backup
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
   reducer_reducer_q21:
     container_name: reducer_Reducer_Q21
     build:
@@ -613,10 +625,12 @@ services:
     - PRODUCE_QUEUE=Queue_between_aggregator_accumulator_Q22
     - TYPE=sum
     - PARAMS=item_id,subtotal,month,year_month,created_at,total_earnings
+    - folder_backup_aggregator=backups/aggregator_Suma_Q22_backup
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
   aggregator_suma_q22_2:
     container_name: aggregator_suma_q22_2
     build:
@@ -631,10 +645,12 @@ services:
     - PRODUCE_QUEUE=Queue_between_aggregator_accumulator_Q22
     - TYPE=sum
     - PARAMS=item_id,subtotal,month,year_month,created_at,total_earnings
+    - folder_backup_aggregator=backups/aggregator_Suma_Q22_backup
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
   aggregator_suma_q22_3:
     container_name: aggregator_suma_q22_3
     build:
@@ -649,10 +665,12 @@ services:
     - PRODUCE_QUEUE=Queue_between_aggregator_accumulator_Q22
     - TYPE=sum
     - PARAMS=item_id,subtotal,month,year_month,created_at,total_earnings
+    - folder_backup_aggregator=backups/aggregator_Suma_Q22_backup
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
   aggregator_suma_q22_4:
     container_name: aggregator_suma_q22_4
     build:
@@ -667,10 +685,12 @@ services:
     - PRODUCE_QUEUE=Queue_between_aggregator_accumulator_Q22
     - TYPE=sum
     - PARAMS=item_id,subtotal,month,year_month,created_at,total_earnings
+    - folder_backup_aggregator=backups/aggregator_Suma_Q22_backup
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
   aggregator_suma_q22_5:
     container_name: aggregator_suma_q22_5
     build:
@@ -685,10 +705,12 @@ services:
     - PRODUCE_QUEUE=Queue_between_aggregator_accumulator_Q22
     - TYPE=sum
     - PARAMS=item_id,subtotal,month,year_month,created_at,total_earnings
+    - folder_backup_aggregator=backups/aggregator_Suma_Q22_backup
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
   aggregator_accumulator_q22_1:
     container_name: aggregator_accumulator_q22_1
     build:
@@ -703,10 +725,12 @@ services:
     - PRODUCE_QUEUE=Queue_between_accumulator_reducer_Q22
     - TYPE=accumulator
     - PARAMS=item_id,total_earnings,year_month
+    - folder_backup_aggregator=backups/aggregator_accumulator_Q22_backup
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
   reducer_reducer_q22:
     container_name: reducer_Reducer_Q22
     build:
@@ -763,10 +787,12 @@ services:
     - PRODUCE_QUEUE=Queue_between_aggregators_accumulator_Q3
     - TYPE=sum
     - PARAMS=store_id,final_amount,semester,year_semester,created_at,tpv
+    - folder_backup_aggregator=backups/aggregator_Suma_Q3_backup
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
   aggregator_suma_q3_2:
     container_name: aggregator_suma_q3_2
     build:
@@ -781,10 +807,12 @@ services:
     - PRODUCE_QUEUE=Queue_between_aggregators_accumulator_Q3
     - TYPE=sum
     - PARAMS=store_id,final_amount,semester,year_semester,created_at,tpv
+    - folder_backup_aggregator=backups/aggregator_Suma_Q3_backup
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
   aggregator_suma_q3_3:
     container_name: aggregator_suma_q3_3
     build:
@@ -799,10 +827,12 @@ services:
     - PRODUCE_QUEUE=Queue_between_aggregators_accumulator_Q3
     - TYPE=sum
     - PARAMS=store_id,final_amount,semester,year_semester,created_at,tpv
+    - folder_backup_aggregator=backups/aggregator_Suma_Q3_backup
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
   aggregator_suma_q3_4:
     container_name: aggregator_suma_q3_4
     build:
@@ -817,10 +847,12 @@ services:
     - PRODUCE_QUEUE=Queue_between_aggregators_accumulator_Q3
     - TYPE=sum
     - PARAMS=store_id,final_amount,semester,year_semester,created_at,tpv
+    - folder_backup_aggregator=backups/aggregator_Suma_Q3_backup
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
   aggregator_suma_q3_5:
     container_name: aggregator_suma_q3_5
     build:
@@ -835,10 +867,12 @@ services:
     - PRODUCE_QUEUE=Queue_between_aggregators_accumulator_Q3
     - TYPE=sum
     - PARAMS=store_id,final_amount,semester,year_semester,created_at,tpv
+    - folder_backup_aggregator=backups/aggregator_Suma_Q3_backup
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
   aggregator_accumulator_q3_1:
     container_name: aggregator_accumulator_q3_1
     build:
@@ -853,10 +887,12 @@ services:
     - PRODUCE_QUEUE=Queue_between_accumulator_join_Q3
     - TYPE=accumulator
     - PARAMS=store_id,tpv,year_semester
+    - folder_backup_aggregator=backups/aggregator_accumulator_Q3_backup
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
   join_stores_q3_1:
     container_name: join_stores_q3_1
     build:
@@ -893,10 +929,12 @@ services:
     - PRODUCE_QUEUE=Queue_between_aggregators_accumulator_Q4
     - TYPE=counter
     - PARAMS=store_id,user_id,purchases_qty
+    - folder_backup_aggregator=backups/aggregator_Counter_Q4_backup
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
   aggregator_counter_q4_2:
     container_name: aggregator_counter_q4_2
     build:
@@ -911,10 +949,12 @@ services:
     - PRODUCE_QUEUE=Queue_between_aggregators_accumulator_Q4
     - TYPE=counter
     - PARAMS=store_id,user_id,purchases_qty
+    - folder_backup_aggregator=backups/aggregator_Counter_Q4_backup
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
   aggregator_counter_q4_3:
     container_name: aggregator_counter_q4_3
     build:
@@ -929,10 +969,12 @@ services:
     - PRODUCE_QUEUE=Queue_between_aggregators_accumulator_Q4
     - TYPE=counter
     - PARAMS=store_id,user_id,purchases_qty
+    - folder_backup_aggregator=backups/aggregator_Counter_Q4_backup
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
   aggregator_counter_q4_4:
     container_name: aggregator_counter_q4_4
     build:
@@ -947,10 +989,12 @@ services:
     - PRODUCE_QUEUE=Queue_between_aggregators_accumulator_Q4
     - TYPE=counter
     - PARAMS=store_id,user_id,purchases_qty
+    - folder_backup_aggregator=backups/aggregator_Counter_Q4_backup
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
   aggregator_counter_q4_5:
     container_name: aggregator_counter_q4_5
     build:
@@ -965,10 +1009,12 @@ services:
     - PRODUCE_QUEUE=Queue_between_aggregators_accumulator_Q4
     - TYPE=counter
     - PARAMS=store_id,user_id,purchases_qty
+    - folder_backup_aggregator=backups/aggregator_Counter_Q4_backup
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
   aggregator_accumulator_q4_1:
     container_name: aggregator_accumulator_q4_1
     build:
@@ -983,10 +1029,12 @@ services:
     - PRODUCE_QUEUE=Queue_between_accumulator_reducer_Q4
     - TYPE=accumulator
     - PARAMS=store_id,purchases_qty,user_id
+    - folder_backup_aggregator=backups/aggregator_accumulator_Q4_backup
     networks:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
   reducer_reducer_q4:
     container_name: reducer_Reducer_Q4
     build:
@@ -1029,28 +1077,6 @@ services:
     volumes:
     - ./config.ini:/app/config.ini
     - ./backups:/app/backups/
-  join_users_q4_5:
-    container_name: join_users_q4_5
-    build:
-      context: .
-      dockerfile: joinner/Dockerfile
-    depends_on:
-    - distributor
-    restart: on-failure
-    environment:
-    - PYTHONUNBUFFERED=1
-    - queueEntradaJoin=join_users_queue_5
-    - queueEntradaData=conection_join_4
-    - queuesSalida=Queue_between_joiner_users_and_joiner_stores_Q4
-    - is_last_join=True
-    - CONFIRMATION_QUEUE=q_joins_confirmation
-    - params=birthdate,user_id
-    - folder_backup_joiner=backups/joiner_Join_users_Q4_5_backup
-    networks:
-    - mynet
-    volumes:
-    - ./config.ini:/app/config.ini
-    - ./backups:/app/backups/
   join_users_q4_2:
     container_name: join_users_q4_2
     build:
@@ -1063,55 +1089,11 @@ services:
     - PYTHONUNBUFFERED=1
     - queueEntradaJoin=join_users_queue_2
     - queueEntradaData=conection_join_1
-    - queuesSalida=conection_join_2
-    - is_last_join=False
+    - queuesSalida=Queue_between_joiner_users_and_joiner_stores_Q4
+    - is_last_join=True
     - CONFIRMATION_QUEUE=q_joins_confirmation
     - params=birthdate,user_id
     - folder_backup_joiner=backups/joiner_Join_users_Q4_2_backup
-    networks:
-    - mynet
-    volumes:
-    - ./config.ini:/app/config.ini
-    - ./backups:/app/backups/
-  join_users_q4_3:
-    container_name: join_users_q4_3
-    build:
-      context: .
-      dockerfile: joinner/Dockerfile
-    depends_on:
-    - distributor
-    restart: on-failure
-    environment:
-    - PYTHONUNBUFFERED=1
-    - queueEntradaJoin=join_users_queue_3
-    - queueEntradaData=conection_join_2
-    - queuesSalida=conection_join_3
-    - is_last_join=False
-    - CONFIRMATION_QUEUE=q_joins_confirmation
-    - params=birthdate,user_id
-    - folder_backup_joiner=backups/joiner_Join_users_Q4_3_backup
-    networks:
-    - mynet
-    volumes:
-    - ./config.ini:/app/config.ini
-    - ./backups:/app/backups/
-  join_users_q4_4:
-    container_name: join_users_q4_4
-    build:
-      context: .
-      dockerfile: joinner/Dockerfile
-    depends_on:
-    - distributor
-    restart: on-failure
-    environment:
-    - PYTHONUNBUFFERED=1
-    - queueEntradaJoin=join_users_queue_4
-    - queueEntradaData=conection_join_3
-    - queuesSalida=conection_join_4
-    - is_last_join=False
-    - CONFIRMATION_QUEUE=q_joins_confirmation
-    - params=birthdate,user_id
-    - folder_backup_joiner=backups/joiner_Join_users_Q4_4_backup
     networks:
     - mynet
     volumes:
@@ -1153,7 +1135,7 @@ services:
     - PYTHONUNBUFFERED=1
     - DISTRIBUTOR_HOST=distributor
     - DISTRIBUTOR_PORT=5000
-    - CSV_INPUT_DIR=csvs_files
+    - CSV_INPUT_DIR=csvs_files_reduced
     volumes:
     - ./config.ini:/app/config.ini
     - ./csvs_files:/app/csvs_files
@@ -1180,7 +1162,7 @@ services:
     - ./config.ini:/app/config.ini
     environment:
       PORT: '3030'
-      NODES: filtroanio1_1,filtroanio1_4,filtroanio2_2,filtroanio2_5,filtrohora1_3,filter_amount_q1_1,filter_amount_q1_4,filter_column_q1_2,filter_column_q1_5,aggregator_suma_q21_3,aggregator_suma_q22_1,aggregator_suma_q22_4,reducer_reducer_q22,aggregator_suma_q3_2,aggregator_suma_q3_5,aggregator_counter_q4_1,aggregator_counter_q4_4,reducer_reducer_q4,join_users_q4_2,join_stores_q4_1,healthchecker_2
+      NODES: filtroanio1_1,filtroanio1_4,filtroanio2_2,filtroanio2_5,filtrohora1_3,filter_amount_q1_1,filter_amount_q1_4,filter_column_q1_2,filter_column_q1_5,aggregator_suma_q21_3,aggregator_accumulator_q21_1,aggregator_suma_q22_1,aggregator_suma_q22_4,reducer_reducer_q22,aggregator_suma_q3_2,aggregator_suma_q3_5,aggregator_counter_q4_1,aggregator_counter_q4_4,reducer_reducer_q4,join_stores_q4_1,healthchecker_2
   healthchecker_2:
     container_name: healthchecker_2
     build:
@@ -1199,7 +1181,7 @@ services:
     - ./config.ini:/app/config.ini
     environment:
       PORT: '3030'
-      NODES: filtroanio1_2,filtroanio1_5,filtroanio2_3,filtrohora1_1,filtrohora1_4,filter_amount_q1_2,filter_amount_q1_5,filter_column_q1_3,aggregator_suma_q21_1,aggregator_suma_q21_4,reducer_reducer_q21,aggregator_suma_q22_2,aggregator_suma_q22_5,join_productos_q22_1,aggregator_suma_q3_3,aggregator_counter_q4_2,aggregator_counter_q4_5,join_users_q4_1,join_users_q4_3,healthchecker_3
+      NODES: filtroanio1_2,filtroanio1_5,filtroanio2_3,filtrohora1_1,filtrohora1_4,filter_amount_q1_2,filter_amount_q1_5,filter_column_q1_3,aggregator_suma_q21_1,aggregator_suma_q21_4,reducer_reducer_q21,aggregator_suma_q22_2,aggregator_suma_q22_5,join_productos_q22_1,aggregator_suma_q3_3,aggregator_accumulator_q3_1,aggregator_counter_q4_2,aggregator_counter_q4_5,join_users_q4_1,healthchecker_3
   healthchecker_3:
     container_name: healthchecker_3
     build:
@@ -1218,7 +1200,7 @@ services:
     - ./config.ini:/app/config.ini
     environment:
       PORT: '3030'
-      NODES: filtroanio1_3,filtroanio2_1,filtroanio2_4,filtrohora1_2,filtrohora1_5,filter_amount_q1_3,filter_column_q1_1,filter_column_q1_4,aggregator_suma_q21_2,aggregator_suma_q21_5,join_productos_q21_1,aggregator_suma_q22_3,aggregator_suma_q3_1,aggregator_suma_q3_4,join_stores_q3_1,aggregator_counter_q4_3,join_users_q4_5,join_users_q4_4,healthchecker_1
+      NODES: filtroanio1_3,filtroanio2_1,filtroanio2_4,filtrohora1_2,filtrohora1_5,filter_amount_q1_3,filter_column_q1_1,filter_column_q1_4,aggregator_suma_q21_2,aggregator_suma_q21_5,join_productos_q21_1,aggregator_suma_q22_3,aggregator_accumulator_q22_1,aggregator_suma_q3_1,aggregator_suma_q3_4,join_stores_q3_1,aggregator_counter_q4_3,aggregator_accumulator_q4_1,join_users_q4_2,healthchecker_1
 networks:
   mynet:
     external: false

@@ -12,6 +12,7 @@ import threading
 
 HEALTH_PORT = 3030
 
+
 class Reducer:
     def __init__(self, consumer, producer, top, columns, path_log_file):
         self._consumer_queue = consumer
@@ -126,7 +127,7 @@ class Reducer:
             # prev_top = self.top_users[client_id][store].copy()
 
             self.top_users[client_id][store][user] = qty
-           
+
             store_dict = self.top_users[client_id][store]
             top_keys = heapq.nlargest(self._top, store_dict, key=store_dict.get)
             new_top = {k: store_dict[k] for k in top_keys}
@@ -137,8 +138,8 @@ class Reducer:
         # self.counter_batches[client_id].add_id(batch.id(), ' ')
 
         if (
-            self.waited_batches[client_id] is not None
-            and self.counter_batches[client_id].amount_ids(' ') + 1 == self.waited_batches[client_id]
+                self.waited_batches[client_id] is not None
+                and self.counter_batches[client_id].amount_ids(' ') + 1 == self.waited_batches[client_id]
         ):
             self.send_last_batch(batch, client_id)
 

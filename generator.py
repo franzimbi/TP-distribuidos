@@ -106,12 +106,14 @@ def crear_aggregators(nombre, cantidad, entrada, salida, type, params):
                 'PRODUCE_QUEUE=' + salida,
                 'TYPE=' + type,
                 'PARAMS=' + params,
+                'folder_backup_aggregator=backups/' + f'aggregator_{nombre}_backup'
             ],
             'networks': [
                 'mynet'
             ],
             'volumes': [
-                './config.ini:/app/config.ini'
+                './config.ini:/app/config.ini',
+                './backups:/app/backups/'
             ],
         }
     return aggregators
@@ -461,7 +463,7 @@ with open(nombre_file, 'w') as f:
     for i in nodos_a_sacar:
         nodos_a_controlar.remove(i)
 
-    services.update(crear_healthcheckers(3, 3030, nodos_a_controlar))
+    services.update(crear_healthcheckers(5, 3030, nodos_a_controlar))
 
     # red
     data = {'services': services,
