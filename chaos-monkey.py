@@ -14,7 +14,7 @@ CONTAINER_NAMES = [
 'join_productos_q21_1','aggregator_suma_q22_3','aggregator_suma_q3_1','aggregator_suma_q3_4','join_stores_q3_1','aggregator_counter_q4_3','join_users_q4_5','join_users_q4_4','healthchecker_1'
 ]
 
-SECONDS = 15
+SECONDS = 60
 last_container_name = None
 
 def run():

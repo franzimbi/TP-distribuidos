@@ -32,6 +32,19 @@ class Accumulator:
         self.bucket_col = bucket_col
         self._out_value_name = out_value_name
 
+        self._health_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._health_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self._health_sock.bind(('', HEALTH_PORT))
+        self._health_sock.listen()
+
+        def loop():
+            while True:
+                conn, addr = self._health_sock.accept()
+                conn.close()
+
+        self._health_thread = threading.Thread(target=loop, daemon=True)
+        self._health_thread.start()
+
         self.client_state = defaultdict(lambda: {
             "accumulator": {},
             "expected": None,
@@ -49,9 +62,9 @@ class Accumulator:
         except FileNotFoundError:
             logging.info(f"[ACCUMULATOR] La carpeta de backups no existe.")
             os.makedirs(self._wal_dir, exist_ok=True)
-        
-        self._health_sock = None
-        self._health_thread = None
+
+        # self._health_sock = None
+        # self._health_thread = None
 
         signal.signal(signal.SIGTERM, self.graceful_quit)
 
@@ -68,7 +81,7 @@ class Accumulator:
             return
         path = self._wal_path(cid)
         data = "".join(line + "\n" for line in lines)
-        data = "BEGIN\n" + data +str(batch_id)+";END\n"
+        data = "BEGIN\n" + data + str(batch_id) + ";END\n"
         b = data.encode("utf-8")
 
         flags = os.O_CREAT | os.O_WRONLY | os.O_APPEND
@@ -90,7 +103,6 @@ class Accumulator:
                 os.remove(path)
         except Exception as e:
             logging.error(f"[ACCUMULATOR][WAL] Error eliminando {path}: {e}")
-
 
     def _replay_block(self, state, cid, block_lines, end_batch_id_str):
         if not block_lines:
@@ -212,19 +224,6 @@ class Accumulator:
         sys.exit(0)
 
     def start(self):
-        self._health_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._health_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self._health_sock.bind(('', HEALTH_PORT))
-        self._health_sock.listen()
-
-        def loop():
-            while True:
-                conn, addr = self._health_sock.accept()
-                conn.close()
-
-        self._health_thread = threading.Thread(target=loop, daemon=True)
-        self._health_thread.start()
-        
         self._consume_queue.start_consuming(self.callback)
 
     def stop(self):
