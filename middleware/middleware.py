@@ -147,8 +147,7 @@ class MessageMiddlewareQueue(MessageMiddleware):
         # self._channel.confirm_delivery()  # activa publisher confirms
         self._queue_name = queue_name
         self._channel.queue_declare(queue=queue_name, durable=True, arguments={
-            'x-max-length': 1000000,  # hasta 1 millon de mensajes
-            'x-max-length-bytes': 1073741824,  # o 1 GB de mensajes
+            'x-max-length-bytes': 10 * 1024 * 1024 * 1024,  #10 GB de mensajes
             'x-overflow': 'drop-head'  # descarta los mas viejos si se llena
         })
         logging.getLogger("pika").propagate = False # para q pika no llore
