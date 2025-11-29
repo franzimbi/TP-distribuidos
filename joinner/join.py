@@ -12,6 +12,7 @@ import tempfile
 
 HEALTH_PORT = 3030
 
+
 class Join:
     def __init__(self, confirmation_queue, join_queue, column_id, column_name, is_last_join, backup_dir):
         self.producer_queue = None
@@ -32,7 +33,7 @@ class Join:
         os.makedirs(self.backup_dir, exist_ok=True)
 
         self.snapshot_path = os.path.join(self.backup_dir, "join_snapshot.json")
-        self.load_snapshot()
+        # self.load_snapshot()
 
         self._health_thread = None
         self._health_sock = None
@@ -95,10 +96,23 @@ class Join:
         return ok
 
     def _load_backups_on_start(self):
-        print("\n\nentre a LOad_backups_on_start\n")
-        print(f"recorro el {self.backup_dir} que tiene {os.listdir(self.backup_dir)}")
+        """
+        1) carga snapshot completo (si existe)
+        2) recorre backups per-client (csv) y restaura join_dictionary sin pisar counters
+        """
+        logging.debug("Entrando a _load_backups_on_start")
+        # 1) cargar snapshot (si existe) para inicializar counter_batches / waited_batches
+        self.load_snapshot()
 
-        for fname in os.listdir(self.backup_dir):
+        try:
+            files = os.listdir(self.backup_dir)
+        except Exception as e:
+            logging.error(f"[JOIN] No puedo listar backup dir {self.backup_dir}: {e}")
+            return
+
+        logging.debug(f"[JOIN] backups en {self.backup_dir}: {files}")
+
+        for fname in files:
             if not fname.startswith("client_") or not fname.endswith("_backup.csv"):
                 continue
             client_id = fname[len("client_"):-len("_backup.csv")]
@@ -107,6 +121,7 @@ class Join:
             try:
                 with open(path, "r", encoding="utf-8") as f:
                     for raw in f:
+                        # comprobamos que la linea finalizó con newline (evita crashes parciales)
                         if not raw.endswith("\n"):
                             logging.warning(f"[JOIN] linea incompleta por crash: {raw!r}")
                             continue
@@ -125,11 +140,11 @@ class Join:
                 logging.error(f"[JOIN] Error leyendo backup {path}: {e}")
                 continue
             if d:
+                # solo restauramos join_dictionary (no pisamos counter_batches ni waited_batches)
                 self.join_dictionary[client_id] = d
-                self.load_snapshot()
-                print(f"levante del archivo {path} el diccionario")
                 logging.info(f"[JOIN] Restaurado backup para client_id={client_id} con {len(d)} entradas")
-        print("salgo del load_backup\n\n")
+
+        logging.debug("Salgo de _load_backups_on_start")
 
     def register_to_disk(self, content, path):
         dirpath = os.path.dirname(path)
@@ -149,33 +164,73 @@ class Join:
             except Exception:
                 pass
             return False
-        
-    def write_snapshot(self, client_id):
-        snapshot = {
-            "client_id": client_id,
-            "counter_batches": self.counter_batches[client_id].to_dict(),
-            "waited_batches": self.waited_batches.get(client_id),
-        }
-        
+
+    def write_snapshot(self):
+        """
+        Escribe un snapshot único que contiene el estado de TODOS los clientes.
+        Toma una snapshot consistente copiando las estructuras bajo lock.
+        """
+        with self.lock:
+            # tomar una vista consistente de las estructuras
+            client_ids = set(self.counter_batches.keys()) | set(self.join_dictionary.keys()) | set(
+                self.waited_batches.keys())
+            snapshot = {"clients": {}}
+            for cid in client_ids:
+                counter_dict = {}
+                try:
+                    if cid in self.counter_batches and self.counter_batches[cid] is not None:
+                        counter_dict = self.counter_batches[cid].to_dict()
+                except Exception:
+                    counter_dict = {}
+                snapshot["clients"][cid] = {
+                    "counter_batches": counter_dict,
+                    "waited_batches": self.waited_batches.get(cid),
+                    # No guardamos join_dictionary completo aquí (evita duplicar mucho),
+                    # pero si querés, podés agregar "join_dictionary": self.join_dictionary.get(cid, {})
+                }
+
+        # escribir fuera del lock (ya tenemos una copia consistente)
         json_str = json.dumps(snapshot, indent=2)
-        self.register_to_disk(json_str, self.snapshot_path)
+        ok = self.register_to_disk(json_str, self.snapshot_path)
+        if not ok:
+            logging.error("[JOIN] write_snapshot falló al escribir en disco")
+
+        # snapshot = {
+        #     "client_id": client_id,
+        #     "counter_batches": self.counter_batches[client_id].to_dict(),
+        #     "waited_batches": self.waited_batches.get(client_id),
+        # }
+        #
+        # json_str = json.dumps(snapshot, indent=2)
+        # self.register_to_disk(json_str, self.snapshot_path)
 
     def load_snapshot(self):
+        """
+        Carga snapshot multi-client: {"clients": {cid: {counter_batches:..., waited_batches:...}}}
+        """
         if not os.path.exists(self.snapshot_path):
+            logging.debug("[JOIN] No existe snapshot para cargar")
             return
         try:
             with open(self.snapshot_path, "r", encoding="utf-8") as f:
                 snapshot = json.load(f)
-            client_id  = snapshot["client_id"]
-            self.waited_batches[client_id] = snapshot.get("waited_batches")
-            counter = IDRangeCounter()
-            counter = IDRangeCounter.from_dict(snapshot.get("counter_batches", {}))
-            self.counter_batches[client_id] = counter
 
-            logging.info(f"[JOIN][RECOVERY] Snapshot cargado para client_id={client_id}")
+            clients = snapshot.get("clients", {})
+            restored = 0
+            for cid, cdata in clients.items():
+                try:
+                    counter = IDRangeCounter.from_dict(cdata.get("counter_batches", {}))
+                except Exception:
+                    counter = IDRangeCounter()
+                self.counter_batches[cid] = counter
+                self.waited_batches[cid] = cdata.get("waited_batches")
+                # join_dictionary se restaura desde backups CSV, no desde el snapshot (opcional)
+                restored += 1
+
+            logging.info(f"[JOIN][RECOVERY] Snapshot cargado: {restored} clientes")
         except Exception as e:
             logging.error(f"[JOIN][RECOVERY] Error cargando snapshot: {e}")
-            
+
     def start(self, consumer, producer):
         self._health_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._health_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -249,7 +304,7 @@ class Join:
                     batch_changes[key] = value
         if batch_changes:
             self._write_to_backup(client_id, batch_changes)
-            self.write_snapshot(client_id)
+            # self.write_snapshot()
 
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
@@ -286,7 +341,7 @@ class Join:
             self.join_dictionary.pop(client_id, None)
             self._remove_backup_file(client_id)
 
-        self.write_snapshot(client_id)
+        self.write_snapshot()
 
         self.producer_queue.send(batch.encode())
         ch.basic_ack(delivery_tag=method.delivery_tag)

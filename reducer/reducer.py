@@ -48,16 +48,17 @@ class Reducer:
             with open(self.log_file_path, "r") as f:
                 snapshot = json.load(f)
 
-            client_id = snapshot["client_id"]
+            clients = snapshot.get("clients", {})
 
-            self.top_users[client_id] = snapshot.get("top_users", {})
-            self.waited_batches[client_id] = snapshot.get("waited_batches")
+            for client_id, cdata in clients.items():
+                self.top_users[client_id] = cdata.get("top_users", {})
 
-            counter = IDRangeCounter()
-            counter = IDRangeCounter.from_dict(snapshot.get("counter_batches", {}))
-            self.counter_batches[client_id] = counter
+                counter = IDRangeCounter.from_dict(cdata.get("counter_batches", {}))
+                self.counter_batches[client_id] = counter
 
-            logging.info(f"[RECOVERY] Snapshot cargado para client_id={client_id}")
+                self.waited_batches[client_id] = cdata.get("waited_batches")
+
+            logging.info(f"[RECOVERY] Snapshot cargado: {len(clients)} clientes")
 
         except Exception as e:
             logging.error(f"[RECOVERY] Error cargando snapshot: {e}")
@@ -149,16 +150,17 @@ class Reducer:
         #     )
         #     self.register_to_disk(line, self.log_file_path)
         self.counter_batches[client_id].add_id(batch.id(), ' ')
-        self.write_snapshot(client_id)
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
-    def write_snapshot(self, client_id):
-        snapshot = {
-            "client_id": client_id,
-            "top_users": self.top_users.get(client_id, {}),
-            "counter_batches": self.counter_batches[client_id].to_dict(),
-            "waited_batches": self.waited_batches.get(client_id),
-        }
+    def write_snapshot(self):
+        snapshot = {"clients": {}}
+
+        for client_id in self.top_users.keys():
+            snapshot["clients"][client_id] = {
+                "top_users": self.top_users.get(client_id, {}),
+                "counter_batches": self.counter_batches[client_id].to_dict(),
+                "waited_batches": self.waited_batches.get(client_id)
+            }
 
         json_str = json.dumps(snapshot, indent=2)
         self.register_to_disk(json_str, self.log_file_path)
