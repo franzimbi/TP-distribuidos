@@ -432,7 +432,7 @@ with open(nombre_file, 'w') as f:
     services.update(
         crear_aggregators(nombre='accumulator_Q4', cantidad=1, entrada='Queue_between_aggregators_accumulator_Q4',
                           salida='Queue_between_accumulator_reducer_Q4', type='accumulator',
-                          params='store_id,purchases_qty,user_id'))
+                          params='user_id,purchases_qty,store_id'))
 
     services.update(crear_reducers(nombre='Reducer_Q4', entrada='Queue_between_accumulator_reducer_Q4',
                                    salida='Queue_between_reducer_joiner_Q4', top=3,

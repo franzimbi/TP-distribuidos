@@ -1358,7 +1358,7 @@ services:
     - CONSUME_QUEUE=Queue_between_aggregators_accumulator_Q4
     - PRODUCE_QUEUE=Queue_between_accumulator_reducer_Q4
     - TYPE=accumulator
-    - PARAMS=store_id,purchases_qty,user_id
+    - PARAMS=user_id,purchases_qty,store_id
     - folder_backup_aggregator=backups/aggregator_accumulator_Q4_backup
     networks:
     - mynet

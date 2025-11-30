@@ -516,4 +516,4 @@ class Accumulator:
         state["id_counter"] = IDRangeCounter()
         state["last_checkpoint"] = 0
 
-        self._wal_remove(cid)
+        #self._wal_remove(cid)
