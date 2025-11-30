@@ -476,7 +476,7 @@ class Accumulator:
             state["type"] = None
             state["id_counter"] = IDRangeCounter()
             state["last_checkpoint"] = 0
-            self._wal_remove(cid)
+            # self._wal_remove(cid)
             return
 
         header = [self.bucket_col, self._key_col, self._out_value_name]

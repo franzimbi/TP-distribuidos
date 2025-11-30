@@ -123,7 +123,7 @@ def crear_reducers(nombre, entrada, salida, top, params):
     reducers = {}
     reducer_name = f'reducer_{nombre}'
     reducers[reducer_name.lower()] = {
-        'container_name': f'reducer_{nombre}',
+        'container_name': f'reducer_{nombre}'.lower(),
         'build': {
             'context': '.',
             'dockerfile': 'reducer/Dockerfile',
