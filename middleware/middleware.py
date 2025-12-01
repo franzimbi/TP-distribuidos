@@ -145,6 +145,7 @@ class MessageMiddlewareQueue(MessageMiddleware):
         ))
         self._channel = self._connection.channel()
         # self._channel.confirm_delivery()  # activa publisher confirms
+        self._host = host
         self._queue_name = queue_name
         self._channel.queue_declare(queue=queue_name, durable=True, arguments={
             'x-max-length-bytes': 10 * 1024 * 1024 * 1024,  #10 GB de mensajes
@@ -190,16 +191,87 @@ class MessageMiddlewareQueue(MessageMiddleware):
         except Exception as e:
             raise MessageMiddlewareMessageError(f"Error al detener consumo: {e}") from e
 
+    # def send(self, message):
+    #     try:
+    #         self._channel.basic_publish(exchange='', routing_key=self._queue_name, body=message,
+    #                                     properties=pika.BasicProperties(delivery_mode=2), mandatory=True)
+    #     except (pika.exceptions.ConnectionClosed,
+    #             pika.exceptions.StreamLostError,
+    #             pika.exceptions.AMQPConnectionError) as e:
+    #         raise MessageMiddlewareDisconnectedError() from e
+    #     except Exception as e:
+    #         raise MessageMiddlewareMessageError(f"Error enviando mensaje: {e}") from e
+        
+    def _reconnect(self):
+        try:
+            if self._connection and self._connection.is_open:
+                self._connection.close()
+        except Exception:
+            pass
+
+        try:
+            self._connection = pika.BlockingConnection(pika.ConnectionParameters(
+                host=self._host,
+                heartbeat=300,
+                blocked_connection_timeout=600,
+                socket_timeout=600,
+                connection_attempts=10,
+                retry_delay=5,
+            ))
+            self._channel = self._connection.channel()
+            self._channel.queue_declare(
+                queue=self._queue_name,
+                durable=True,
+                arguments={
+                    'x-max-length-bytes': 10 * 1024 * 1024 * 1024,
+                    'x-overflow': 'drop-head'
+                }
+            )
+            logging.info("[Middleware] reconectado correctamente")
+
+        except Exception as e:
+            logging.error(f"[Middleware] error al reconectar: {e}")
+            raise
+
+        
     def send(self, message):
         try:
-            self._channel.basic_publish(exchange='', routing_key=self._queue_name, body=message,
-                                        properties=pika.BasicProperties(delivery_mode=2), mandatory=True)
+            self._channel.basic_publish(
+                exchange='',
+                routing_key=self._queue_name,
+                body=message,
+                properties=pika.BasicProperties(delivery_mode=2),
+                mandatory=True
+            )
+            return
+
         except (pika.exceptions.ConnectionClosed,
+                pika.exceptions.ChannelClosed,
                 pika.exceptions.StreamLostError,
                 pika.exceptions.AMQPConnectionError) as e:
-            raise MessageMiddlewareDisconnectedError() from e
+
+            logging.error(f"[Middleware] conexión perdida al enviar. Error: {e}")
+
+            
+            logging.info("[Middleware] intentando reconectar...")
+            self._reconnect()
+            try:
+                self._channel.basic_publish(
+                    exchange='',
+                    routing_key=self._queue_name,
+                    body=message,
+                    properties=pika.BasicProperties(delivery_mode=2),
+                    mandatory=True
+                )
+                logging.info("[Middleware] mensaje enviado tras reconexión")
+                return
+            except Exception as e2:
+                logging.info(f"[Middleware] error al enviar mensaje tras reconexión: {e2}")
+                raise MessageMiddlewareDisconnectedError() from e2
+
         except Exception as e:
             raise MessageMiddlewareMessageError(f"Error enviando mensaje: {e}") from e
+
 
     def close(self):
         try:

@@ -309,76 +309,79 @@ class Join:
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
     def callback(self, ch, method, properties, message):
-        batch = Batch()
-        batch.decode(message)
-        client_id = str(batch.client_id()).strip()
-        with self.lock:
-            if client_id not in self.counter_batches:
-                self.counter_batches[client_id] = IDRangeCounter()
-            if client_id not in self.waited_batches:
-                self.waited_batches[client_id] = None
-            if client_id not in self.join_dictionary:
-                self.join_dictionary[client_id] = {}
+        try:
+            batch = Batch()
+            batch.decode(message)
+            client_id = str(batch.client_id()).strip()
+            with self.lock:
+                if client_id not in self.counter_batches:
+                    self.counter_batches[client_id] = IDRangeCounter()
+                if client_id not in self.waited_batches:
+                    self.waited_batches[client_id] = None
+                if client_id not in self.join_dictionary:
+                    self.join_dictionary[client_id] = {}
 
-        if batch.is_last_batch():
+            if batch.is_last_batch():
+                try:
+                    self.waited_batches[client_id] = int(batch[0][batch.get_header().index('cant_batches')])
+                except Exception as e:
+                    logging.error(f"[JOIN] Error parsing cant_batches from last batch for client {client_id}: {e}")
+                    self.waited_batches[client_id] = None
+
+                try:
+                    if self.waited_batches[client_id] is not None and self.counter_batches[client_id].amount_ids(' ') == self.waited_batches[client_id]:
+                        self.join_dictionary.pop(client_id, None)
+                        # self._remove_backup_file(client_id)
+                except Exception:
+                    pass
+
+                try:
+                    self.producer_queue.send(batch.encode())
+                    ch.basic_ack(delivery_tag=method.delivery_tag)
+                except Exception as e:
+                    logging.error(f"[JOIN] Error sending last batch to producer for client {client_id}: {e}")
+
+                return
+
             try:
-                self.waited_batches[client_id] = int(batch[0][batch.get_header().index('cant_batches')])
+                with self.lock:
+                    dic = self.join_dictionary.get(client_id, {})
+                    batch.change_header_name_value(
+                        self.column_id,
+                        self.column_name,
+                        dic,
+                        self.is_last_join
+                    )
+                    if client_id not in self.join_dictionary:
+                        self.join_dictionary[client_id] = dic
+            except (ValueError, KeyError) as e:
+                logging.error(f'action: join_batch_with_dicctionary[{client_id}] | result: fail | error: {e}')
+
+            try:
+                self.counter_batches[client_id].add_id(batch.id(), ' ')
             except Exception as e:
-                logging.error(f"[JOIN] Error parsing cant_batches from last batch for client {client_id}: {e}")
-                self.waited_batches[client_id] = None
+                logging.error(f"[JOIN] Error adding id to counter for client {client_id}: {e}")
 
             try:
-                if self.waited_batches[client_id] is not None and self.counter_batches[client_id].amount_ids(' ') == self.waited_batches[client_id]:
+                if self.waited_batches.get(client_id) is not None and self.counter_batches[client_id].amount_ids(' ') == self.waited_batches.get(client_id):
                     self.join_dictionary.pop(client_id, None)
                     # self._remove_backup_file(client_id)
             except Exception:
                 pass
 
             try:
+                self.write_snapshot()
+            except Exception as e:
+                logging.error(f"[JOIN] Error writing snapshot: {e}")
+
+            try:
                 self.producer_queue.send(batch.encode())
             except Exception as e:
-                logging.error(f"[JOIN] Error sending last batch to producer for client {client_id}: {e}")
+                logging.error(f"[JOIN] Error sending batch to producer for client {client_id}: {e}")
 
             ch.basic_ack(delivery_tag=method.delivery_tag)
-            return
-
-        try:
-            with self.lock:
-                dic = self.join_dictionary.get(client_id, {})
-                batch.change_header_name_value(
-                    self.column_id,
-                    self.column_name,
-                    dic,
-                    self.is_last_join
-                )
-                if client_id not in self.join_dictionary:
-                    self.join_dictionary[client_id] = dic
-        except (ValueError, KeyError) as e:
-            logging.error(f'action: join_batch_with_dicctionary[{client_id}] | result: fail | error: {e}')
-
-        try:
-            self.counter_batches[client_id].add_id(batch.id(), ' ')
         except Exception as e:
-            logging.error(f"[JOIN] Error adding id to counter for client {client_id}: {e}")
-
-        try:
-            if self.waited_batches.get(client_id) is not None and self.counter_batches[client_id].amount_ids(' ') == self.waited_batches.get(client_id):
-                self.join_dictionary.pop(client_id, None)
-                # self._remove_backup_file(client_id)
-        except Exception:
-            pass
-
-        try:
-            self.write_snapshot()
-        except Exception as e:
-            logging.error(f"[JOIN] Error writing snapshot: {e}")
-
-        try:
-            self.producer_queue.send(batch.encode())
-        except Exception as e:
-            logging.error(f"[JOIN] Error sending batch to producer for client {client_id}: {e}")
-
-        ch.basic_ack(delivery_tag=method.delivery_tag)
+            logging.error(f"[JOIN] Error en callback principal: {e}")
 
     def close(self):
         try:
