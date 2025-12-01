@@ -16,7 +16,7 @@ config.read("config.ini")
 BUFFER_SIZE = int(config["DEFAULT"]["BATCH_SIZE"])
 HEALTH_PORT = 3030
 
-CHECKPOINT_INTERVAL = 500
+CHECKPOINT_INTERVAL = 2500
 
 class Accumulator:
     def __init__(self, consume_queue, produce_queue, *,
@@ -146,7 +146,6 @@ class Accumulator:
                 os.remove(wal_path)
             
             state["last_checkpoint"] = state["received"]
-            logging.info(f"[ACCUMULATOR][COMPACT] cid={cid} snapshot con {len(state['accumulator'])} entradas")
             
         except Exception as e:
             logging.error(f"[ACCUMULATOR][COMPACT] Error compactando cid={cid}: {e}")
@@ -277,10 +276,10 @@ class Accumulator:
 
                     block_lines.append(line)
 
-            logging.info(
-                f"[ACCUMULATOR][RECOVERY] incremental wal cid={cid} "
-                f"entries={len(state['accumulator'])} received={state['received']}"
-            )
+            # logging.info(
+            #     f"[ACCUMULATOR][RECOVERY] incremental wal cid={cid} "
+            #     f"entries={len(state['accumulator'])} received={state['received']}"
+            # )
         except Exception as e:
             logging.error(f"[ACCUMULATOR][WAL] Error aplicando WAL incremental {wal_path}: {e}")
     
@@ -456,10 +455,6 @@ class Accumulator:
         batches_since_checkpoint = state["received"] - state["last_checkpoint"]
         
         if batches_since_checkpoint >= CHECKPOINT_INTERVAL:
-            logging.info(
-                f"[ACCUMULATOR][CHECKPOINT] cid={cid} compactando: "
-                f"received={state['received']} entries={len(state['accumulator'])}"
-            )
             self._compact_wal(cid)
 
         if state["expected"] is not None and state["received"] == state["expected"]:

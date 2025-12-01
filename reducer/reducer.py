@@ -93,7 +93,7 @@ class Reducer:
 
         batch = Batch()
         batch.decode(message)
-        client_id = batch.client_id()
+        client_id = str(batch.client_id())
 
         if batch.id == 0:
             print(f"[reducer] Received batch 0 \n\n")
@@ -108,8 +108,10 @@ class Reducer:
 
         if batch.is_last_batch():
             self.waited_batches[client_id] = int(batch[0][batch.get_header().index('cant_batches')])
+            print(f"[reducer] Client {client_id} will send {self.waited_batches[client_id]} batches in total.\n\n")
             if self.waited_batches[client_id] == self.counter_batches[client_id].amount_ids(' '):
                 self.send_last_batch(batch, client_id)
+                self.write_snapshot()
                 ch.basic_ack(delivery_tag=method.delivery_tag)
                 return
 
@@ -125,8 +127,6 @@ class Reducer:
             if store not in self.top_users[client_id]:
                 self.top_users[client_id][store] = {}
 
-            # prev_top = self.top_users[client_id][store].copy()
-
             self.top_users[client_id][store][user] = qty
 
             store_dict = self.top_users[client_id][store]
@@ -136,20 +136,15 @@ class Reducer:
             self.top_users[client_id][store] = new_top
 
         # termine de procesar el batch
-        # self.counter_batches[client_id].add_id(batch.id(), ' ')
+        self.counter_batches[client_id].add_id(batch.id(), ' ')
 
         if (
                 self.waited_batches[client_id] is not None
                 and self.counter_batches[client_id].amount_ids(' ') + 1 == self.waited_batches[client_id]
         ):
             self.send_last_batch(batch, client_id)
-
-        # for line in lines_to_write:
-        #     logging.info(
-        #         f"[REDUCER] guardo en disco: {line[0:10]}. en self.log_file_path: {self.log_file_path}"
-        #     )
-        #     self.register_to_disk(line, self.log_file_path)
-        self.counter_batches[client_id].add_id(batch.id(), ' ')
+        
+        self.write_snapshot()
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
     def write_snapshot(self):
@@ -178,7 +173,7 @@ class Reducer:
 
             return True
         except Exception as e:
-            logging.error(f"[LOG] Error escribiendo atomico {log_file_path}: {e}")
+            logging.info(f"[LOG] Error escribiendo atomico {log_file_path}: {e}")
             try:
                 os.unlink(tmp_path)
             except Exception:
@@ -194,13 +189,15 @@ class Reducer:
             rows = [(str(int(float(s))), str(int(float(u))), str(float(v))) for (s, u, v) in rows]
             rows.sort(key=lambda x: (int(x[0]), int(x[1])))
         except Exception as e:
-            logging.error(f"[REDUCER] Error sending last batch: {e}")
+            logging.info(f"[REDUCER] Error sending last batch: {e}")
 
-        batch_result = Batch(batch.id() - 1, client_id=client_id, type_file=batch.type())
+        client_id_int = int(client_id)
+
+        batch_result = Batch(batch.id() - 1, client_id=client_id_int, type_file=batch.type())
         batch_result.set_header([self._columns[0], self._columns[1], self._columns[2]])
         for store, user, qty in rows:
             batch_result.add_row([store, user, str(qty)])
-        batch_result.set_client_id(client_id)
+        batch_result.set_client_id(client_id_int)
         self._producer_queue.send(batch_result.encode())
 
         batch.delete_rows()
@@ -208,9 +205,9 @@ class Reducer:
         batch.set_header(['cant_batches'])
         batch.add_row([str(1)])
         self._producer_queue.send(batch.encode())
-        self.top_users.pop(client_id)
-        self.waited_batches.pop(client_id)
-        self.counter_batches.pop(client_id)
+        # self.top_users.pop(client_id)
+        # self.waited_batches.pop(client_id)
+        # self.counter_batches.pop(client_id)
 
     def close(self):
         self._consumer_queue.stop_consuming()
