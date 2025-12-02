@@ -171,7 +171,6 @@ class Accumulator:
             dir_path = os.path.dirname(snap_path)
             tmp_fd, tmp_path = tempfile.mkstemp(dir=dir_path, suffix=".tmp")
 
-            # Armamos el dict a serializar
             snapshot_dict = {
                 "expected": state["expected"],
                 "received": state["received"],
@@ -179,7 +178,8 @@ class Accumulator:
                 "accumulator": [
                     [bucket, key, value]
                     for (bucket, key), value in state["accumulator"].items()
-                ]
+                ],
+                "id_counter": state["id_counter"].to_dict()
             }
 
             with os.fdopen(tmp_fd, "w", encoding="utf-8") as f:
@@ -407,10 +407,14 @@ class Accumulator:
             for bucket, key, value in acc:
                 state["accumulator"][(bucket, key)] = float(value)
 
+            idc_data = snap.get("id_counter")
+            if idc_data is not None:
+                state["id_counter"] = IDRangeCounter.from_dict(idc_data)
+
             logging.info(
                 f"[ACCUMULATOR][RECOVERY] snapshot cid={cid} "
                 f"entries={len(state['accumulator'])} "
-                f"expected={state['expected']} received={state['received']}"
+                f"expected={state['expected']} received={state['received']}  y amount_ids={state['id_counter'].amount_ids(' ')}"
             )
 
         except Exception as e:
@@ -465,7 +469,7 @@ class Accumulator:
         logging.info(
             f"[ACCUMULATOR][RECOVERY] wal cid={cid} "
             f"entries={len(state['accumulator'])} "
-            f"expected={state['expected']} received={state['received']}  y amount_ids={state['id_counter'].amount_ids(' ')}"
+            f"expected={state['expected']} received={state['received']}  y amount_ids={state['id_counter'].amount_ids(' ')} y amount_ids={state['id_counter'].amount_ids(' ')}"
         )
 
     def graceful_quit(self, signum, frame):
@@ -549,8 +553,8 @@ class Accumulator:
             if batches_since_checkpoint >= CHECKPOINT_INTERVAL:
                 self._compact_wal(cid)
 
-            if state["expected"] is not None and state["received"] == state["expected"]:
-            # if state["expected"] is not None and state["id_counter"].amount_ids(' ') == state["expected"]:
+            # if state["expected"] is not None and state["received"] == state["expected"]:
+            if state["expected"] is not None and state["id_counter"].amount_ids(' ') == state["expected"]:
                 logging.info(f"[aggregator]llegue a la cantidad esperada")
                 self._flush_client(cid)
 
