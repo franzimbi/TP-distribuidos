@@ -99,9 +99,6 @@ class Reducer:
             self.counter_batches[client_id] = IDRangeCounter()
             self.waited_batches[client_id] = None
 
-        print(
-            f"\n[REDUCER] llego {batch.id()} de client {client_id} y tengo counter:{self.counter_batches[client_id]} con waited: {self.waited_batches[client_id]}\n\n")
-
         if self.counter_batches[client_id].already_processed(batch.id(), ' '):
             ch.basic_ack(delivery_tag=method.delivery_tag)
             return
@@ -110,6 +107,10 @@ class Reducer:
             self.waited_batches[client_id] = int(batch[0][batch.get_header().index('cant_batches')])
             if self.waited_batches[client_id] == self.counter_batches[client_id].amount_ids(' '):
                 self.send_last_batch(batch, client_id)
+                self.write_snapshot()
+                ch.basic_ack(delivery_tag=method.delivery_tag)
+                return
+            else:
                 self.write_snapshot()
                 ch.basic_ack(delivery_tag=method.delivery_tag)
                 return
@@ -193,7 +194,7 @@ class Reducer:
             logging.info(f"[REDUCER] Error sending last batch: {e}")
 
         client_id_int = int(client_id)
-
+        
         print(f"\n\n[REDUCER] paso 2\n\n\n")
         batch_result = Batch(batch.id() - 1, client_id=client_id_int, type_file=batch.type())
         batch_result.set_header([self._columns[0], self._columns[1], self._columns[2]])
