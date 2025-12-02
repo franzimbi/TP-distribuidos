@@ -543,8 +543,8 @@ class Accumulator:
             state["id_counter"].add_id(batch.id(), ' ')
             
             
-            if self.has_last_batch:
-                logging.info(f"[aggregator] cid={cid}, batch.id()={batch.id()}, received={state['received']}, expected={state['expected']}, amount_ids={state['id_counter'].amount_ids(' ')}")
+            # if self.has_last_batch:
+            #     logging.info(f"[aggregator] cid={cid}, batch.id()={batch.id()}, received={state['received']}, expected={state['expected']}, amount_ids={state['id_counter'].amount_ids(' ')}")
 
             self._wal_append(cid, wal_lines, batch.id())
 
@@ -559,10 +559,10 @@ class Accumulator:
                 self._flush_client(cid)
 
             ch.basic_ack(delivery_tag=method.delivery_tag)
-            if self.has_last_batch and self.printed_last is False:
-                self.printed_last = True
-                print("ya ackee el last batch, tirame bro \n")
-                time.sleep(10)
+            # if self.has_last_batch and self.printed_last is False:
+            #     self.printed_last = True
+            #     print("ya ackee el last batch, tirame bro \n")
+            #     time.sleep(10)
         except Exception as e:
             logging.info(f"[ACCUMULATOR] Error en callback principal: {e}")
 
