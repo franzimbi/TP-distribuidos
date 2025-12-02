@@ -95,12 +95,12 @@ class Reducer:
         batch.decode(message)
         client_id = str(batch.client_id())
 
-        if batch.id == 0:
-            print(f"[reducer] Received batch 0 \n\n")
-
         if client_id not in self.counter_batches:
             self.counter_batches[client_id] = IDRangeCounter()
             self.waited_batches[client_id] = None
+
+        print(
+            f"\n[REDUCER] llego {batch.id()} de client {client_id} y tengo counter:{self.counter_batches[client_id]} con waited: {self.waited_batches[client_id]}\n\n")
 
         if self.counter_batches[client_id].already_processed(batch.id(), ' '):
             ch.basic_ack(delivery_tag=method.delivery_tag)
@@ -108,7 +108,6 @@ class Reducer:
 
         if batch.is_last_batch():
             self.waited_batches[client_id] = int(batch[0][batch.get_header().index('cant_batches')])
-            print(f"[reducer] Client {client_id} will send {self.waited_batches[client_id]} batches in total.\n\n")
             if self.waited_batches[client_id] == self.counter_batches[client_id].amount_ids(' '):
                 self.send_last_batch(batch, client_id)
                 self.write_snapshot()
@@ -181,6 +180,8 @@ class Reducer:
             return False
 
     def send_last_batch(self, batch, client_id):
+        print(f"\n\n[REDUCER] paso 1\n\n\n")
+
         rows = []
         try:
             for store, users in self.top_users[client_id].items():
@@ -193,18 +194,22 @@ class Reducer:
 
         client_id_int = int(client_id)
 
+        print(f"\n\n[REDUCER] paso 2\n\n\n")
         batch_result = Batch(batch.id() - 1, client_id=client_id_int, type_file=batch.type())
         batch_result.set_header([self._columns[0], self._columns[1], self._columns[2]])
         for store, user, qty in rows:
             batch_result.add_row([store, user, str(qty)])
         batch_result.set_client_id(client_id_int)
+        print(f"\n\n[REDUCER] paso 3\n\n\n")
         self._producer_queue.send(batch_result.encode())
-
+        print(f"\n\n[REDUCER] paso 4\n\n\n")
         batch.delete_rows()
         batch.set_last_batch(True)
         batch.set_header(['cant_batches'])
         batch.add_row([str(1)])
+        print(f"\n\n[REDUCER] paso 5\n\n\n")
         self._producer_queue.send(batch.encode())
+        print(f"\n\n[REDUCER] paso 6 (final) \n\n\n")
         # self.top_users.pop(client_id)
         # self.waited_batches.pop(client_id)
         # self.counter_batches.pop(client_id)

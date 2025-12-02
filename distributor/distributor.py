@@ -7,7 +7,7 @@ from common.batch import Batch
 from common.id_range_counter import IDRangeCounter
 from functools import partial
 from collections import defaultdict
-COUNT_OF_PRINTS = 3000
+COUNT_OF_PRINTS = 10000
 
 transactionsQueue = os.getenv('transactionsQueue')
 itemsQueue = os.getenv('itemsQueue')
