@@ -65,6 +65,8 @@ class Accumulator:
             if os.listdir(self._wal_dir):
                 logging.info(f"[ACCUMULATOR] La carpeta de backups existe. creando estado de recovery...")
                 self._load_wal()
+            else:
+                logging.info(f"[ACCUMULATOR] La carpeta de backups está vacía. iniciando desde cero.")
         except FileNotFoundError:
             logging.info(f"[ACCUMULATOR] La carpeta de backups no existe.")
             os.makedirs(self._wal_dir, exist_ok=True)
@@ -80,7 +82,7 @@ class Accumulator:
     
     def _snapshot_path(self, cid):
         """Devuelve la ruta del snapshot compactado para un client_id."""
-        return os.path.join(self._wal_dir, f"acc_client_{cid}.snapshot")
+        return os.path.join(self._wal_dir, f"acc_client_{cid}.json")
 
     def _wal_append(self, cid, lines, batch_id):
         """
@@ -117,40 +119,83 @@ class Accumulator:
         except Exception as e:
             logging.error(f"[ACCUMULATOR][WAL] Error eliminando {path}: {e}")
     
+    # def _compact_wal(self, cid):
+    #     """
+    #     Compacta el WAL escribiendo un snapshot atómico del accumulator actual
+    #     y limpiando el WAL incremental. Esto evita que el WAL crezca sin límite.
+    #     """
+    #     state = self.client_state[cid]
+    #     snap_path = self._snapshot_path(cid)
+        
+    #     try:
+    #         import tempfile
+    #         dir_path = os.path.dirname(snap_path)
+    #         tmp_fd, tmp_path = tempfile.mkstemp(dir=dir_path, suffix=".tmp")
+            
+    #         with os.fdopen(tmp_fd, "w", encoding="utf-8") as f:
+    #             f.write(f"SNAPSHOT\n")
+    #             f.write(f"expected={state['expected']}\n")
+    #             f.write(f"received={state['received']}\n")
+    #             f.write(f"type={state['type']}\n")
+    #             f.write(f"DATA\n")
+                
+    #             for (bucket, key), value in state["accumulator"].items():
+    #                 f.write(f"{bucket};{key};{value}\n")
+                
+    #             f.flush()
+    #             os.fsync(f.fileno())
+            
+    #         os.replace(tmp_path, snap_path)
+            
+    #         wal_path = self._wal_path(cid)
+    #         if os.path.exists(wal_path):
+    #             os.remove(wal_path)
+            
+    #         state["last_checkpoint"] = state["received"]
+            
+    #     except Exception as e:
+    #         logging.error(f"[ACCUMULATOR][COMPACT] Error compactando cid={cid}: {e}")
+    #         try:
+    #             if os.path.exists(tmp_path):
+    #                 os.unlink(tmp_path)
+    #         except:
+    #             pass
+
     def _compact_wal(self, cid):
-        """
-        Compacta el WAL escribiendo un snapshot atómico del accumulator actual
-        y limpiando el WAL incremental. Esto evita que el WAL crezca sin límite.
-        """
+
         state = self.client_state[cid]
         snap_path = self._snapshot_path(cid)
-        
+
         try:
             import tempfile
             dir_path = os.path.dirname(snap_path)
             tmp_fd, tmp_path = tempfile.mkstemp(dir=dir_path, suffix=".tmp")
-            
+
+            # Armamos el dict a serializar
+            snapshot_dict = {
+                "expected": state["expected"],
+                "received": state["received"],
+                "type": state["type"],
+                "accumulator": [
+                    [bucket, key, value]
+                    for (bucket, key), value in state["accumulator"].items()
+                ]
+            }
+
             with os.fdopen(tmp_fd, "w", encoding="utf-8") as f:
-                f.write(f"SNAPSHOT\n")
-                f.write(f"expected={state['expected']}\n")
-                f.write(f"received={state['received']}\n")
-                f.write(f"type={state['type']}\n")
-                f.write(f"DATA\n")
-                
-                for (bucket, key), value in state["accumulator"].items():
-                    f.write(f"{bucket};{key};{value}\n")
-                
+                import json
+                json.dump(snapshot_dict, f, ensure_ascii=False, indent=2)
                 f.flush()
                 os.fsync(f.fileno())
-            
+
             os.replace(tmp_path, snap_path)
-            
+
             wal_path = self._wal_path(cid)
             if os.path.exists(wal_path):
                 os.remove(wal_path)
-            
+
             state["last_checkpoint"] = state["received"]
-            
+
         except Exception as e:
             logging.error(f"[ACCUMULATOR][COMPACT] Error compactando cid={cid}: {e}")
             try:
@@ -158,6 +203,7 @@ class Accumulator:
                     os.unlink(tmp_path)
             except:
                 pass
+
 
     def _replay_block(self, state, cid, block_lines, end_batch_id_str):
         if not block_lines:
@@ -181,8 +227,6 @@ class Accumulator:
                 return
 
             state["expected"] = expected
-            if not state["id_counter"].already_processed(bid, ' ') and block_lines[0] != "LAST":
-                state["id_counter"].add_id(bid, ' ')
             return
 
         try:
@@ -220,8 +264,8 @@ class Accumulator:
         try:
             snapshot_clients = set()
             for fname in os.listdir(self._wal_dir):
-                if fname.startswith("acc_client_") and fname.endswith(".snapshot"):
-                    cid_str = fname[len("acc_client_"):-len(".snapshot")]
+                if fname.startswith("acc_client_") and fname.endswith(".json"):
+                    cid_str = fname[len("acc_client_"):-len(".json")]
                     cid = cid_str
                     snap_path = os.path.join(self._wal_dir, fname)
                     self._load_snapshot(cid, snap_path)
@@ -280,64 +324,100 @@ class Accumulator:
 
                     block_lines.append(line)
 
-            # logging.info(
-            #     f"[ACCUMULATOR][RECOVERY] incremental wal cid={cid} "
-            #     f"entries={len(state['accumulator'])} received={state['received']}"
-            # )
+            logging.info(
+                f"[ACCUMULATOR][RECOVERY] incremental wal cid={cid} "
+                f"entries={len(state['accumulator'])}, expected={state['expected']}, received={state['received']} y amount_ids={state['id_counter'].amount_ids(' ')}"
+            )
         except Exception as e:
             logging.error(f"[ACCUMULATOR][WAL] Error aplicando WAL incremental {wal_path}: {e}")
     
+    # def _load_snapshot(self, cid, snap_path):
+    #     """Carga un snapshot compactado."""
+    #     state = self.client_state[cid]
+    #     state["accumulator"].clear()
+    #     state["expected"] = None
+    #     state["received"] = 0
+    #     state["type"] = None
+    #     state["id_counter"] = IDRangeCounter()
+        
+    #     try:
+    #         with open(snap_path, "r", encoding="utf-8") as f:
+    #             mode = None
+    #             for raw in f:
+    #                 line = raw.rstrip("\n")
+    #                 if not line:
+    #                     continue
+                    
+    #                 if line == "SNAPSHOT":
+    #                     continue
+    #                 if line == "DATA":
+    #                     mode = "data"
+    #                     continue
+                    
+    #                 if mode != "data":
+    #                     if line.startswith("expected="):
+    #                         val = line.split("=", 1)[1]
+    #                         state["expected"] = int(val) if val != "None" else None
+    #                     elif line.startswith("received="):
+    #                         state["received"] = int(line.split("=", 1)[1])
+    #                     elif line.startswith("type="):
+    #                         val = line.split("=", 1)[1]
+    #                         state["type"] = val if val != "None" else None
+    #                 else:
+    #                     # Parsear datos
+    #                     parts = line.split(";")
+    #                     if len(parts) != 3:
+    #                         continue
+    #                     bucket, key, value_str = parts
+    #                     try:
+    #                         value = float(value_str)
+    #                         state["accumulator"][(bucket, key)] = value
+    #                     except ValueError:
+    #                         continue
+            
+    #         logging.info(
+    #             f"[ACCUMULATOR][RECOVERY] snapshot cid={cid} "
+    #             f"entries={len(state['accumulator'])} "
+    #             f"expected={state['expected']} received={state['received']}"
+    #         )
+    #     except Exception as e:
+    #         logging.error(f"[ACCUMULATOR][RECOVERY] Error leyendo snapshot {snap_path}: {e}")
+
     def _load_snapshot(self, cid, snap_path):
-        """Carga un snapshot compactado."""
+        """Carga un snapshot compactado en formato JSON."""
         state = self.client_state[cid]
         state["accumulator"].clear()
         state["expected"] = None
         state["received"] = 0
         state["type"] = None
         state["id_counter"] = IDRangeCounter()
-        
+
         try:
+            import json
             with open(snap_path, "r", encoding="utf-8") as f:
-                mode = None
-                for raw in f:
-                    line = raw.rstrip("\n")
-                    if not line:
-                        continue
-                    
-                    if line == "SNAPSHOT":
-                        continue
-                    if line == "DATA":
-                        mode = "data"
-                        continue
-                    
-                    if mode != "data":
-                        if line.startswith("expected="):
-                            val = line.split("=", 1)[1]
-                            state["expected"] = int(val) if val != "None" else None
-                        elif line.startswith("received="):
-                            state["received"] = int(line.split("=", 1)[1])
-                        elif line.startswith("type="):
-                            val = line.split("=", 1)[1]
-                            state["type"] = val if val != "None" else None
-                    else:
-                        # Parsear datos
-                        parts = line.split(";")
-                        if len(parts) != 3:
-                            continue
-                        bucket, key, value_str = parts
-                        try:
-                            value = float(value_str)
-                            state["accumulator"][(bucket, key)] = value
-                        except ValueError:
-                            continue
-            
+                snap = json.load(f)
+
+            # Campos simples
+            state["expected"] = snap.get("expected")
+            state["received"] = snap.get("received", 0)
+            state["type"] = snap.get("type")
+
+            # Restaurar accumulator
+            acc = snap.get("accumulator", [])
+            for bucket, key, value in acc:
+                state["accumulator"][(bucket, key)] = float(value)
+
             logging.info(
                 f"[ACCUMULATOR][RECOVERY] snapshot cid={cid} "
                 f"entries={len(state['accumulator'])} "
                 f"expected={state['expected']} received={state['received']}"
             )
+
         except Exception as e:
-            logging.error(f"[ACCUMULATOR][RECOVERY] Error leyendo snapshot {snap_path}: {e}")
+            logging.error(
+                f"[ACCUMULATOR][RECOVERY] Error leyendo snapshot JSON {snap_path}: {e}"
+            )
+
     
     def _load_wal_file(self, cid, path):
         """Carga un archivo WAL incremental (legacy)."""
@@ -385,7 +465,7 @@ class Accumulator:
         logging.info(
             f"[ACCUMULATOR][RECOVERY] wal cid={cid} "
             f"entries={len(state['accumulator'])} "
-            f"expected={state['expected']} received={state['received']}"
+            f"expected={state['expected']} received={state['received']}  y amount_ids={state['id_counter'].amount_ids(' ')}"
         )
 
     def graceful_quit(self, signum, frame):
@@ -433,10 +513,10 @@ class Accumulator:
 
                 # if state["expected"] is not None and state["received"] == state["expected"]:
                 if state["expected"] is not None and state["id_counter"].amount_ids(' ') == state["expected"]:
-                    logging.info(f"[aggregator] flusheo pq state[received] == state[expected]")
+                    logging.info(f"[aggregator] flusheo pq received={state['received']} y expected={state['expected']} y amount_ids={state['id_counter'].amount_ids(' ')}")
                     self._flush_client(cid)
                 else:
-                    logging.info(f"[aggregator] no flusheo pq state[received] != state[expected]")
+                    logging.info(f"[aggregator] no flusheo pq received={state['received']} y expected={state['expected']} y amount_ids={state['id_counter'].amount_ids(' ')}")
                 ch.basic_ack(delivery_tag=method.delivery_tag)
                 return
 
@@ -458,8 +538,9 @@ class Accumulator:
             state["received"] += 1
             state["id_counter"].add_id(batch.id(), ' ')
             
+            
             if self.has_last_batch:
-                logging.info(f"[aggregator] cid={cid}, batch.id()={batch.id()}, received={state['received']}, expected={state['expected']}")
+                logging.info(f"[aggregator] cid={cid}, batch.id()={batch.id()}, received={state['received']}, expected={state['expected']}, amount_ids={state['id_counter'].amount_ids(' ')}")
 
             self._wal_append(cid, wal_lines, batch.id())
 
@@ -468,8 +549,8 @@ class Accumulator:
             if batches_since_checkpoint >= CHECKPOINT_INTERVAL:
                 self._compact_wal(cid)
 
-            # if state["expected"] is not None and state["received"] == state["expected"]:
-            if state["expected"] is not None and state["id_counter"].amount_ids(' ') == state["expected"]:
+            if state["expected"] is not None and state["received"] == state["expected"]:
+            # if state["expected"] is not None and state["id_counter"].amount_ids(' ') == state["expected"]:
                 logging.info(f"[aggregator]llegue a la cantidad esperada")
                 self._flush_client(cid)
 
