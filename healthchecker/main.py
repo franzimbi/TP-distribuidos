@@ -12,7 +12,6 @@ def initialize_config():
     try:
         config_params["port"] = int(os.getenv('PORT'))
         config_params["nodes"] = (str(os.getenv('NODES'))).split(',')
-        # config_params["host"] = str(os.getenv('SYSTEM_HOST', config["DEFAULT"]["SYSTEM_HOST"]))
         config_params["listen_backlog"] = int(
             os.getenv('SERVER_LISTEN_BACKLOG', config["DEFAULT"]["SYSTEM_LISTEN_BACKLOG"]))
         config_params["logging_level"] = os.getenv('LOGGING_LEVEL', config["DEFAULT"]["LOGGING_LEVEL"])

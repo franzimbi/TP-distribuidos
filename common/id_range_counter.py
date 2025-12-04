@@ -4,8 +4,6 @@ RANGES_POSITION = 1
 
 class IDRangeCounter:
     def __init__(self):
-        # self.individual_ids = set()
-        # self.ranges = []
         self.dic_files = {}
 
     def already_processed(self, id: int, file_type: str):
@@ -130,46 +128,3 @@ class IDRangeCounter:
                 [tuple(r) for r in content["ranges"]]
             ]
         return obj
-#
-# counter = IDRangeCounter()
-#
-# counter.add_id(1, 'a')
-# print(counter.already_processed(1, 'a'))
-# counter.add_id(3, 'a')
-# print(counter.already_processed(3, 'a'))
-# counter.add_id(5, 'a')
-# print(counter.already_processed(5, 'a'))
-# counter.add_id(7, 'a')
-# print(counter.already_processed(7, 'a'))
-#
-# counter.add_id(1, 'b')
-# print(counter.already_processed(1, 'b'))
-# counter.add_id(3, 'b')
-# print(counter.already_processed(3, 'b'))
-# counter.add_id(5, 'b')
-# print(counter.already_processed(5, 'b'))
-# counter.add_id(7, 'b')
-# print(counter.already_processed(7, 'b'))
-# print(counter)
-# #
-# counter.add_id(2, 'a')
-# print(counter.already_processed(2, 'a'))
-# print(counter)
-# #
-# counter.add_id(6, 'a')
-# print(counter.already_processed(6, 'a'))
-# counter.add_id(10, 'a')
-# counter.add_id(20, 'a')
-# print(counter.already_processed(20, 'a'))
-# counter.add_id(0, 'a')
-# print(counter)
-# print("len: ", counter.amount_ids('a'))
-#
-# counter.add_id(4, 'a')
-# print(counter)
-#
-# counter.add_range(8, 21, 'a')
-# print(counter)
-#
-# counter.add_range(8, 21, 'c')
-# print(counter)

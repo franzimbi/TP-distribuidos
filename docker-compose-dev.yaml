@@ -1057,7 +1057,7 @@ services:
     - PYTHONUNBUFFERED=1
     - DISTRIBUTOR_HOST=distributor
     - DISTRIBUTOR_PORT=5000
-    - CSV_INPUT_DIR=csvs_files
+    - CSV_INPUT_DIR=csvs_files_reduced
     volumes:
     - ./config.ini:/app/config.ini
     - ./csvs_files:/app/csvs_files

@@ -160,7 +160,7 @@ class Distributor:
             return
         try:
             self.ids_counter[client_id].add_id(batch.id(), query_id)
-            with self.socket_lock:  # TODO: cambiar este lock a un lock por cliente
+            with self.socket_lock:
                 if batch.id() == 0 or batch.id() % COUNT_OF_PRINTS == 0:
                     logging.info(f"[DISTRIBUTOR] Enviando batch procesado con id={batch.id()} de query{query_id} al cliente{client_id}")
                 send_batch(client_socket, batch)
@@ -172,8 +172,6 @@ class Distributor:
             return
 
     def start_consuming_from_workers(self):
-        # TODO: lanza los hilos de start_consuming de las 4 queries y se las manda al client por id
-        # for clave, valor in self.route.items():
         def helper_callback(query_id):
             return lambda ch, method, properties, body: self.callback(ch, method, properties, body, query_id)
 
@@ -212,7 +210,6 @@ class Distributor:
                         mw.stop_consuming()
                     except Exception as e:
                         pass
-                        # logging.debug(f"[Distributor] deteniendo consumo de {mw}: {e}")
                 try:
                     mw.close()
                 except Exception as e:

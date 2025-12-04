@@ -243,45 +243,6 @@ class MessageMiddlewareQueue(MessageMiddleware):
             logging.info(f"[Middleware] error al reconectar: {e}")
             raise
 
-        
-    # def send(self, message):
-    #     try:
-    #         self._channel.basic_publish(
-    #             exchange='',
-    #             routing_key=self._queue_name,
-    #             body=message,
-    #             properties=pika.BasicProperties(delivery_mode=2),
-    #             mandatory=True
-    #         )
-    #         return
-
-    #     except (pika.exceptions.ConnectionClosed,
-    #             pika.exceptions.ChannelClosed,
-    #             pika.exceptions.StreamLostError,
-    #             pika.exceptions.AMQPConnectionError) as e:
-
-    #         logging.error(f"[Middleware] conexión perdida al enviar. Error: {e}")
-
-            
-    #         logging.info("[Middleware] intentando reconectar...")
-    #         self._reconnect()
-    #         try:
-    #             self._channel.basic_publish(
-    #                 exchange='',
-    #                 routing_key=self._queue_name,
-    #                 body=message,
-    #                 properties=pika.BasicProperties(delivery_mode=2),
-    #                 mandatory=True
-    #             )
-    #             logging.info("[Middleware] mensaje enviado tras reconexión")
-    #             return
-    #         except Exception as e2:
-    #             logging.info(f"[Middleware] error al enviar mensaje tras reconexión: {e2}")
-    #             raise MessageMiddlewareDisconnectedError() from e2
-
-    #     except Exception as e:
-    #         raise MessageMiddlewareMessageError(f"Error enviando mensaje: {e}") from e
-
     def publish(self, message):
         try:
             self._channel.basic_publish(
@@ -329,7 +290,6 @@ class MessageMiddlewareQueue(MessageMiddleware):
             if self._connection and self._connection.is_open:
                 self._connection.close()
         except Exception as e:
-            # raise MessageMiddlewareCloseError(f"Error al cerrar conexión: {e}") from e
             return
         finally:
             logging.debug("[Middleware] conexión cerrada manualmente")

@@ -25,7 +25,6 @@ def send_batches_from_csv(path, batch_size, connection: socket, type_file, clien
                         cant_batches += 1
     if len(current_batch) > 0:
         send_batch(connection, current_batch)
-        # current_batch.reset_body_and_increment_id()
         cant_batches += 1
 
     current_batch.reset_body_and_increment_id()

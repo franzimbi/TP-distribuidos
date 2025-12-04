@@ -8,8 +8,6 @@ from configparser import ConfigParser
 import logging
 import signal
 
-# QUERIES_SIZE = 3
-
 def initialize_config():
     config = ConfigParser(os.environ)
     config.read("config.ini")
