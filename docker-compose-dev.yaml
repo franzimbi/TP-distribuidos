@@ -75,6 +75,23 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+  filtroanio1_4:
+    container_name: filtroanio1_4
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=itemsQueue
+    - PRODUCE_QUEUE=Queue_begin2_1,Queue_begin2_2
+    - FILTER_NAME=byyear
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
   filtroanio2_1:
     container_name: filtroanio2_1
     build:
@@ -111,6 +128,23 @@ services:
     - ./config.ini:/app/config.ini
   filtroanio2_3:
     container_name: filtroanio2_3
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=transactionsQueue
+    - PRODUCE_QUEUE=Queue_begin_4,Queue_begin_3_y_1
+    - FILTER_NAME=byyear
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+  filtroanio2_4:
+    container_name: filtroanio2_4
     build:
       context: .
       dockerfile: filter/Dockerfile
@@ -177,6 +211,23 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+  filtrohora1_4:
+    container_name: filtrohora1_4
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_begin_3_y_1
+    - PRODUCE_QUEUE=Queue_3,Queue_1
+    - FILTER_NAME=bytime
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
   filter_amount_q1_1:
     container_name: filter_amount_q1_1
     build:
@@ -213,6 +264,23 @@ services:
     - ./config.ini:/app/config.ini
   filter_amount_q1_3:
     container_name: filter_amount_q1_3
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_1
+    - PRODUCE_QUEUE=Queue_between_filter_amount_filter_columna_Q1
+    - FILTER_NAME=byamount
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+  filter_amount_q1_4:
+    container_name: filter_amount_q1_4
     build:
       context: .
       dockerfile: filter/Dockerfile
@@ -279,6 +347,23 @@ services:
     - mynet
     volumes:
     - ./config.ini:/app/config.ini
+  filter_column_q1_4:
+    container_name: filter_column_q1_4
+    build:
+      context: .
+      dockerfile: filter/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_between_filter_amount_filter_columna_Q1
+    - PRODUCE_QUEUE=Queue_final_Q1
+    - FILTER_NAME=bycolumn
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
   aggregator_suma_q21_1:
     container_name: aggregator_suma_q21_1
     build:
@@ -301,6 +386,106 @@ services:
     - ./backups:/app/backups/
   aggregator_suma_q21_2:
     container_name: aggregator_suma_q21_2
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_begin2_1
+    - PRODUCE_QUEUE=Queue_between_aggregator_accumulator_Q21
+    - TYPE=sum
+    - PARAMS=item_id,quantity,month,year_month,created_at,total_quantity
+    - folder_backup_aggregator=backups/aggregator_Suma_Q21_backup
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
+  aggregator_suma_q21_3:
+    container_name: aggregator_suma_q21_3
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_begin2_1
+    - PRODUCE_QUEUE=Queue_between_aggregator_accumulator_Q21
+    - TYPE=sum
+    - PARAMS=item_id,quantity,month,year_month,created_at,total_quantity
+    - folder_backup_aggregator=backups/aggregator_Suma_Q21_backup
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
+  aggregator_suma_q21_4:
+    container_name: aggregator_suma_q21_4
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_begin2_1
+    - PRODUCE_QUEUE=Queue_between_aggregator_accumulator_Q21
+    - TYPE=sum
+    - PARAMS=item_id,quantity,month,year_month,created_at,total_quantity
+    - folder_backup_aggregator=backups/aggregator_Suma_Q21_backup
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
+  aggregator_suma_q21_5:
+    container_name: aggregator_suma_q21_5
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_begin2_1
+    - PRODUCE_QUEUE=Queue_between_aggregator_accumulator_Q21
+    - TYPE=sum
+    - PARAMS=item_id,quantity,month,year_month,created_at,total_quantity
+    - folder_backup_aggregator=backups/aggregator_Suma_Q21_backup
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
+  aggregator_suma_q21_6:
+    container_name: aggregator_suma_q21_6
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_begin2_1
+    - PRODUCE_QUEUE=Queue_between_aggregator_accumulator_Q21
+    - TYPE=sum
+    - PARAMS=item_id,quantity,month,year_month,created_at,total_quantity
+    - folder_backup_aggregator=backups/aggregator_Suma_Q21_backup
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
+  aggregator_suma_q21_7:
+    container_name: aggregator_suma_q21_7
     build:
       context: .
       dockerfile: aggregator/Dockerfile
@@ -421,6 +606,106 @@ services:
     volumes:
     - ./config.ini:/app/config.ini
     - ./backups:/app/backups/
+  aggregator_suma_q22_3:
+    container_name: aggregator_suma_q22_3
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_begin2_2
+    - PRODUCE_QUEUE=Queue_between_aggregator_accumulator_Q22
+    - TYPE=sum
+    - PARAMS=item_id,subtotal,month,year_month,created_at,total_earnings
+    - folder_backup_aggregator=backups/aggregator_Suma_Q22_backup
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
+  aggregator_suma_q22_4:
+    container_name: aggregator_suma_q22_4
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_begin2_2
+    - PRODUCE_QUEUE=Queue_between_aggregator_accumulator_Q22
+    - TYPE=sum
+    - PARAMS=item_id,subtotal,month,year_month,created_at,total_earnings
+    - folder_backup_aggregator=backups/aggregator_Suma_Q22_backup
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
+  aggregator_suma_q22_5:
+    container_name: aggregator_suma_q22_5
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_begin2_2
+    - PRODUCE_QUEUE=Queue_between_aggregator_accumulator_Q22
+    - TYPE=sum
+    - PARAMS=item_id,subtotal,month,year_month,created_at,total_earnings
+    - folder_backup_aggregator=backups/aggregator_Suma_Q22_backup
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
+  aggregator_suma_q22_6:
+    container_name: aggregator_suma_q22_6
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_begin2_2
+    - PRODUCE_QUEUE=Queue_between_aggregator_accumulator_Q22
+    - TYPE=sum
+    - PARAMS=item_id,subtotal,month,year_month,created_at,total_earnings
+    - folder_backup_aggregator=backups/aggregator_Suma_Q22_backup
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
+  aggregator_suma_q22_7:
+    container_name: aggregator_suma_q22_7
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_begin2_2
+    - PRODUCE_QUEUE=Queue_between_aggregator_accumulator_Q22
+    - TYPE=sum
+    - PARAMS=item_id,subtotal,month,year_month,created_at,total_earnings
+    - folder_backup_aggregator=backups/aggregator_Suma_Q22_backup
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
   aggregator_accumulator_q22_1:
     container_name: aggregator_accumulator_q22_1
     build:
@@ -523,6 +808,106 @@ services:
     volumes:
     - ./config.ini:/app/config.ini
     - ./backups:/app/backups/
+  aggregator_suma_q3_3:
+    container_name: aggregator_suma_q3_3
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_3
+    - PRODUCE_QUEUE=Queue_between_aggregators_accumulator_Q3
+    - TYPE=sum
+    - PARAMS=store_id,final_amount,semester,year_semester,created_at,tpv
+    - folder_backup_aggregator=backups/aggregator_Suma_Q3_backup
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
+  aggregator_suma_q3_4:
+    container_name: aggregator_suma_q3_4
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_3
+    - PRODUCE_QUEUE=Queue_between_aggregators_accumulator_Q3
+    - TYPE=sum
+    - PARAMS=store_id,final_amount,semester,year_semester,created_at,tpv
+    - folder_backup_aggregator=backups/aggregator_Suma_Q3_backup
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
+  aggregator_suma_q3_5:
+    container_name: aggregator_suma_q3_5
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_3
+    - PRODUCE_QUEUE=Queue_between_aggregators_accumulator_Q3
+    - TYPE=sum
+    - PARAMS=store_id,final_amount,semester,year_semester,created_at,tpv
+    - folder_backup_aggregator=backups/aggregator_Suma_Q3_backup
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
+  aggregator_suma_q3_6:
+    container_name: aggregator_suma_q3_6
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_3
+    - PRODUCE_QUEUE=Queue_between_aggregators_accumulator_Q3
+    - TYPE=sum
+    - PARAMS=store_id,final_amount,semester,year_semester,created_at,tpv
+    - folder_backup_aggregator=backups/aggregator_Suma_Q3_backup
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
+  aggregator_suma_q3_7:
+    container_name: aggregator_suma_q3_7
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_3
+    - PRODUCE_QUEUE=Queue_between_aggregators_accumulator_Q3
+    - TYPE=sum
+    - PARAMS=store_id,final_amount,semester,year_semester,created_at,tpv
+    - folder_backup_aggregator=backups/aggregator_Suma_Q3_backup
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
   aggregator_accumulator_q3_1:
     container_name: aggregator_accumulator_q3_1
     build:
@@ -587,6 +972,106 @@ services:
     - ./backups:/app/backups/
   aggregator_counter_q4_2:
     container_name: aggregator_counter_q4_2
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_begin_4
+    - PRODUCE_QUEUE=Queue_between_aggregators_accumulator_Q4
+    - TYPE=counter
+    - PARAMS=store_id,user_id,purchases_qty
+    - folder_backup_aggregator=backups/aggregator_Counter_Q4_backup
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
+  aggregator_counter_q4_3:
+    container_name: aggregator_counter_q4_3
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_begin_4
+    - PRODUCE_QUEUE=Queue_between_aggregators_accumulator_Q4
+    - TYPE=counter
+    - PARAMS=store_id,user_id,purchases_qty
+    - folder_backup_aggregator=backups/aggregator_Counter_Q4_backup
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
+  aggregator_counter_q4_4:
+    container_name: aggregator_counter_q4_4
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_begin_4
+    - PRODUCE_QUEUE=Queue_between_aggregators_accumulator_Q4
+    - TYPE=counter
+    - PARAMS=store_id,user_id,purchases_qty
+    - folder_backup_aggregator=backups/aggregator_Counter_Q4_backup
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
+  aggregator_counter_q4_5:
+    container_name: aggregator_counter_q4_5
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_begin_4
+    - PRODUCE_QUEUE=Queue_between_aggregators_accumulator_Q4
+    - TYPE=counter
+    - PARAMS=store_id,user_id,purchases_qty
+    - folder_backup_aggregator=backups/aggregator_Counter_Q4_backup
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
+  aggregator_counter_q4_6:
+    container_name: aggregator_counter_q4_6
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+    - distributor
+    restart: on-failure
+    environment:
+    - PYTHONUNBUFFERED=1
+    - CONSUME_QUEUE=Queue_begin_4
+    - PRODUCE_QUEUE=Queue_between_aggregators_accumulator_Q4
+    - TYPE=counter
+    - PARAMS=store_id,user_id,purchases_qty
+    - folder_backup_aggregator=backups/aggregator_Counter_Q4_backup
+    networks:
+    - mynet
+    volumes:
+    - ./config.ini:/app/config.ini
+    - ./backups:/app/backups/
+  aggregator_counter_q4_7:
+    container_name: aggregator_counter_q4_7
     build:
       context: .
       dockerfile: aggregator/Dockerfile
@@ -752,7 +1237,7 @@ services:
     - ./config.ini:/app/config.ini
     - ./csvs_files:/app/csvs_files
     - ./csvs_files_reduced:/app/csvs_files_reduced
-    - ./csvs_files_vacios:/app/csvs_files_vacios
+    - ./csvs_files_juguete:/app/csvs_files_juguete
     - ./results_cliente_1:/app/results
     networks:
     - mynet
@@ -797,7 +1282,7 @@ services:
     - ./config.ini:/app/config.ini
     environment:
       PORT: '3030'
-      NODES: filtroanio1_1,filtroanio2_3,filter_amount_q1_2,aggregator_suma_q21_1,aggregator_suma_q22_1,aggregator_suma_q3_1,aggregator_counter_q4_2,join_users_q4_2,healthchecker_2
+      NODES: filtroanio1_1,filtroanio2_2,filtrohora1_3,filter_amount_q1_4,aggregator_suma_q21_1,aggregator_suma_q21_6,aggregator_suma_q22_1,aggregator_suma_q22_6,aggregator_suma_q3_1,aggregator_suma_q3_6,aggregator_counter_q4_2,aggregator_counter_q4_7,join_users_q4_2,healthchecker_2
   healthchecker_2:
     container_name: healthchecker_2
     build:
@@ -816,7 +1301,7 @@ services:
     - ./config.ini:/app/config.ini
     environment:
       PORT: '3030'
-      NODES: filtroanio1_2,filtrohora1_1,filter_amount_q1_3,aggregator_suma_q21_2,aggregator_suma_q22_2,aggregator_suma_q3_2,aggregator_accumulator_q4_1,join_stores_q4_1,healthchecker_3
+      NODES: filtroanio1_2,filtroanio2_3,filtrohora1_4,filter_column_q1_1,aggregator_suma_q21_2,aggregator_suma_q21_7,aggregator_suma_q22_2,aggregator_suma_q22_7,aggregator_suma_q3_2,aggregator_suma_q3_7,aggregator_counter_q4_3,aggregator_accumulator_q4_1,join_stores_q4_1,healthchecker_3
   healthchecker_3:
     container_name: healthchecker_3
     build:
@@ -835,7 +1320,7 @@ services:
     - ./config.ini:/app/config.ini
     environment:
       PORT: '3030'
-      NODES: filtroanio1_3,filtrohora1_2,filter_column_q1_1,aggregator_accumulator_q21_1,aggregator_accumulator_q22_1,aggregator_accumulator_q3_1,reducer_reducer_q4,healthchecker_4
+      NODES: filtroanio1_3,filtroanio2_4,filter_amount_q1_1,filter_column_q1_2,aggregator_suma_q21_3,aggregator_accumulator_q21_1,aggregator_suma_q22_3,aggregator_accumulator_q22_1,aggregator_suma_q3_3,aggregator_accumulator_q3_1,aggregator_counter_q4_4,reducer_reducer_q4,healthchecker_4
   healthchecker_4:
     container_name: healthchecker_4
     build:
@@ -854,7 +1339,7 @@ services:
     - ./config.ini:/app/config.ini
     environment:
       PORT: '3030'
-      NODES: filtroanio2_1,filtrohora1_3,filter_column_q1_2,reducer_reducer_q21,reducer_reducer_q22,join_stores_q3_1,join_users_q4_1,healthchecker_5
+      NODES: filtroanio1_4,filtrohora1_1,filter_amount_q1_2,filter_column_q1_3,aggregator_suma_q21_4,reducer_reducer_q21,aggregator_suma_q22_4,reducer_reducer_q22,aggregator_suma_q3_4,join_stores_q3_1,aggregator_counter_q4_5,join_users_q4_1,healthchecker_5
   healthchecker_5:
     container_name: healthchecker_5
     build:
@@ -873,7 +1358,7 @@ services:
     - ./config.ini:/app/config.ini
     environment:
       PORT: '3030'
-      NODES: filtroanio2_2,filter_amount_q1_1,filter_column_q1_3,join_productos_q21_1,join_productos_q22_1,aggregator_counter_q4_1,join_users_q4_3,healthchecker_1
+      NODES: filtroanio2_1,filtrohora1_2,filter_amount_q1_3,filter_column_q1_4,aggregator_suma_q21_5,join_productos_q21_1,aggregator_suma_q22_5,join_productos_q22_1,aggregator_suma_q3_5,aggregator_counter_q4_1,aggregator_counter_q4_6,join_users_q4_3,healthchecker_1
 networks:
   mynet:
     external: false

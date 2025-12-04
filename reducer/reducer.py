@@ -87,7 +87,7 @@ class Reducer:
         self._health_thread.start()  # no se esta joineando esto en graceful shutdown
         logging.info(f"[FILTER] Healthcheck escuchando en puerto {HEALTH_PORT}")
 
-        self._consumer_queue.start_consuming(self.callback, auto_ack=False, prefetch_count=50)
+        self._consumer_queue.start_consuming(self.callback)
 
     def callback(self, ch, method, properties, message):
 

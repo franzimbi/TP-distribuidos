@@ -258,7 +258,7 @@ class Join:
         self.consumer_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=consumer)
         self.producer_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=producer)
 
-        self.consumer_queue.start_consuming(self.callback, auto_ack=False, prefetch_count=50)
+        self.consumer_queue.start_consuming(self.callback)
 
     def callback_to_receive_join_data(self, ch, method, properties, message):
         self.batch_counter += 1

@@ -148,9 +148,21 @@ class Accumulator:
 
             os.replace(tmp_path, snap_path)
 
+            dir_fd = os.open(os.path.dirname(snap_path), os.O_DIRECTORY)
+            try:
+                os.fsync(dir_fd)
+            finally:
+                os.close(dir_fd)
+
             wal_path = self._wal_path(cid)
             if os.path.exists(wal_path):
                 os.remove(wal_path)
+
+                dir_fd = os.open(os.path.dirname(wal_path), os.O_DIRECTORY)
+                try:
+                    os.fsync(dir_fd)
+                finally:
+                    os.close(dir_fd)
 
             state["last_checkpoint"] = state["received"]
 
@@ -186,12 +198,17 @@ class Accumulator:
 
             state["expected"] = expected
             return
+        
 
         try:
             bid = int(end_batch_id_str)
         except ValueError:
             logging.info(f"[ACCUMULATOR][WAL] batch_id de END inválido para cid={cid}: {end_batch_id_str!r}")
             return
+
+        if not state["id_counter"].already_processed(bid, ' '):
+            state["id_counter"].add_id(bid, ' ')
+            state["received"] += 1
 
         for line in block_lines:
             parts = line.split(";")
@@ -208,9 +225,6 @@ class Accumulator:
             acc_key = (bucket, key)
             state["accumulator"][acc_key] = state["accumulator"].get(acc_key, 0.0) + delta
 
-        if not state["id_counter"].already_processed(bid, ' '):
-            state["id_counter"].add_id(bid, ' ')
-            state["received"] += 1
 
     def _load_wal(self):
         """
@@ -383,7 +397,7 @@ class Accumulator:
         sys.exit(0)
 
     def start(self):
-        self._consume_queue.start_consuming(self.callback, auto_ack=False, prefetch_count=50)
+        self._consume_queue.start_consuming(self.callback)
 
     def stop(self):
         self._consume_queue.stop_consuming()
@@ -400,17 +414,11 @@ class Accumulator:
             if "last_checkpoint" not in state:
                 state["last_checkpoint"] = 0
 
-            if state["id_counter"].already_processed(batch.id(), ' '):
-                ch.basic_ack(delivery_tag=method.delivery_tag)
-                return
-
             if batch.is_last_batch():
                 try:
                     self.has_last_batch = True
                     idx = batch.get_header().index('cant_batches')
                     state["expected"] = int(batch[0][idx])
-                    # state["id_counter"].add_id(batch.id(), ' ')
-                    # state["received"] += 1
                     logging.info(f"[aggregator] cid={cid} espera {state['expected']} batches")
                 except (ValueError, IndexError):
                     logging.info(f"[aggregator] cid={cid} last_batch sin 'cant_batches' válido")
@@ -428,6 +436,10 @@ class Accumulator:
                 ch.basic_ack(delivery_tag=method.delivery_tag)
                 return
 
+            if state["id_counter"].already_processed(batch.id(), ' '):
+                ch.basic_ack(delivery_tag=method.delivery_tag)
+                return
+            
             state["type"] = batch.type()
             wal_lines = []
 
@@ -443,30 +455,25 @@ class Accumulator:
                     logging.info(f"[aggregator] cid={cid} row malformed: {row}")
                     continue
 
+            
+
             state["received"] += 1
             state["id_counter"].add_id(batch.id(), ' ')
             
             
-            # if self.has_last_batch:
-            #     logging.info(f"[aggregator] cid={cid}, batch.id()={batch.id()}, received={state['received']}, expected={state['expected']}, amount_ids={state['id_counter'].amount_ids(' ')}")
+            if state["expected"] is not None and state["id_counter"].amount_ids(' ') == state["expected"]:
+                logging.info(f"[aggregator]llegue a la cantidad esperada")
+                self._flush_client(cid)
 
             self._wal_append(cid, wal_lines, batch.id())
+
+            ch.basic_ack(delivery_tag=method.delivery_tag)
 
             batches_since_checkpoint = state["received"] - state["last_checkpoint"]
             
             if batches_since_checkpoint >= CHECKPOINT_INTERVAL:
                 self._compact_wal(cid)
 
-            # if state["expected"] is not None and state["received"] == state["expected"]:
-            if state["expected"] is not None and state["id_counter"].amount_ids(' ') == state["expected"]:
-                logging.info(f"[aggregator]llegue a la cantidad esperada")
-                self._flush_client(cid)
-
-            ch.basic_ack(delivery_tag=method.delivery_tag)
-            # if self.has_last_batch and self.printed_last is False:
-            #     self.printed_last = True
-            #     print("ya ackee el last batch, tirame bro \n")
-            #     time.sleep(10)
         except Exception as e:
             logging.info(f"[ACCUMULATOR] Error en callback principal: {e}")
 

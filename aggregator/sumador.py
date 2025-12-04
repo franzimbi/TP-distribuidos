@@ -37,6 +37,7 @@ class Adder:
                  out_value_name: str = "tpv"):
         self._consume_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=consume_queue)
         self._produce_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=produce_queue)
+        self._produce_queue.set_confirm_delivery()
 
         self._key_col = key_col
         self._value_col = value_col

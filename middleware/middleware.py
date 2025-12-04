@@ -83,8 +83,7 @@ class MessageMiddlewareExchange(MessageMiddleware):
         if self.queue:
             self.channel.queue_declare(queue=self.queue, durable=False, exclusive=False, auto_delete=True, arguments={
                 'x-max-length': 1000000,  # hasta 1 millón de mensajes
-                'x-max-length-bytes': 1073741824,  # o 1 GB de mensajes
-                'x-overflow': 'drop-head'  # descarta los más viejos si se llena
+                'x-max-length-bytes': 1073741824  # o 1 GB de mensajes
             })
 
     def start_consuming(self, on_message_callback):
@@ -147,17 +146,19 @@ class MessageMiddlewareQueue(MessageMiddleware):
         retry_delay=5,  # espera 5s entre intentos
         ))
         self._channel = self._connection.channel()
-        # self._channel.confirm_delivery()  # activa publisher confirms
+        
         
         self._queue_name = queue_name
         self._channel.queue_declare(queue=queue_name, durable=True, arguments={
-            'x-max-length-bytes': 10 * 1024 * 1024 * 1024,  #10 GB de mensajes
-            'x-overflow': 'drop-head'  # descarta los mas viejos si se llena
+            'x-max-length-bytes': 10 * 1024 * 1024 * 1024  #10 GB de mensajes
         })
         logging.getLogger("pika").propagate = False # para q pika no llore
         self._should_stop = threading.Event()
+    
+    def set_confirm_delivery(self):
+        self._channel.confirm_delivery()  # activa publisher confirms
         
-    def start_consuming(self, on_message_callback, *, auto_ack=False, prefetch_count=1000):
+    def start_consuming(self, on_message_callback, *, auto_ack=False, prefetch_count=1):
         
         while not self._should_stop.is_set():
             try:
@@ -167,7 +168,7 @@ class MessageMiddlewareQueue(MessageMiddleware):
                 if prefetch_count and prefetch_count > 0:
                     self._channel.basic_qos(prefetch_count=prefetch_count)
                 else:
-                    self._channel.basic_qos(prefetch_count=50)
+                    self._channel.basic_qos(prefetch_count=1)
 
                 try:
                     self._channel._consumers.clear()
@@ -233,8 +234,7 @@ class MessageMiddlewareQueue(MessageMiddleware):
                 queue=self._queue_name,
                 durable=True,
                 arguments={
-                    'x-max-length-bytes': 10 * 1024 * 1024 * 1024,
-                    'x-overflow': 'drop-head'
+                    'x-max-length-bytes': 10 * 1024 * 1024 * 1024
                 }
             )
             logging.info("[Middleware] reconectado correctamente")
@@ -244,7 +244,45 @@ class MessageMiddlewareQueue(MessageMiddleware):
             raise
 
         
-    def send(self, message):
+    # def send(self, message):
+    #     try:
+    #         self._channel.basic_publish(
+    #             exchange='',
+    #             routing_key=self._queue_name,
+    #             body=message,
+    #             properties=pika.BasicProperties(delivery_mode=2),
+    #             mandatory=True
+    #         )
+    #         return
+
+    #     except (pika.exceptions.ConnectionClosed,
+    #             pika.exceptions.ChannelClosed,
+    #             pika.exceptions.StreamLostError,
+    #             pika.exceptions.AMQPConnectionError) as e:
+
+    #         logging.error(f"[Middleware] conexión perdida al enviar. Error: {e}")
+
+            
+    #         logging.info("[Middleware] intentando reconectar...")
+    #         self._reconnect()
+    #         try:
+    #             self._channel.basic_publish(
+    #                 exchange='',
+    #                 routing_key=self._queue_name,
+    #                 body=message,
+    #                 properties=pika.BasicProperties(delivery_mode=2),
+    #                 mandatory=True
+    #             )
+    #             logging.info("[Middleware] mensaje enviado tras reconexión")
+    #             return
+    #         except Exception as e2:
+    #             logging.info(f"[Middleware] error al enviar mensaje tras reconexión: {e2}")
+    #             raise MessageMiddlewareDisconnectedError() from e2
+
+    #     except Exception as e:
+    #         raise MessageMiddlewareMessageError(f"Error enviando mensaje: {e}") from e
+
+    def publish(self, message):
         try:
             self._channel.basic_publish(
                 exchange='',
@@ -255,32 +293,35 @@ class MessageMiddlewareQueue(MessageMiddleware):
             )
             return
 
-        except (pika.exceptions.ConnectionClosed,
-                pika.exceptions.ChannelClosed,
-                pika.exceptions.StreamLostError,
-                pika.exceptions.AMQPConnectionError) as e:
+        except pika.exceptions.UnroutableError:
+            raise MessageMiddlewareMessageError("UNROUTABLE — queue inexistente o no enlazada")
 
-            logging.error(f"[Middleware] conexión perdida al enviar. Error: {e}")
-
-            
-            logging.info("[Middleware] intentando reconectar...")
-            self._reconnect()
-            try:
-                self._channel.basic_publish(
-                    exchange='',
-                    routing_key=self._queue_name,
-                    body=message,
-                    properties=pika.BasicProperties(delivery_mode=2),
-                    mandatory=True
-                )
-                logging.info("[Middleware] mensaje enviado tras reconexión")
-                return
-            except Exception as e2:
-                logging.info(f"[Middleware] error al enviar mensaje tras reconexión: {e2}")
-                raise MessageMiddlewareDisconnectedError() from e2
+        except pika.exceptions.NackError:
+            raise MessageMiddlewareMessageError("NACK — RabbitMQ rechazó el mensaje")
 
         except Exception as e:
-            raise MessageMiddlewareMessageError(f"Error enviando mensaje: {e}") from e
+            raise MessageMiddlewareMessageError(f"Fallo al publicar: {e}") from e
+
+
+    def send(self, message):
+        reconection = False
+        while True:
+            try:
+                self.publish(message)
+                if reconection:
+                    logging.info("[Middleware] mensaje enviado tras reconexión")
+                return
+
+            except MessageMiddlewareMessageError as e:
+
+                if "UNROUTABLE" in str(e) or "NACK" in str(e):
+                    logging.error(f"[Middleware] problema al publicar en queue | ({e}). Reintentando...")
+                    time.sleep(1)
+                    continue 
+                logging.info("[Middleware] intentando reconectar...")
+                reconection = True
+                self._reconnect()
+
 
 
     def close(self):

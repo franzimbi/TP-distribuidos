@@ -16,6 +16,7 @@ class Counter:
     def __init__(self, consumer, producer, *, key_columns, count_name):
         self._consumer_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=consumer)
         self._producer_queue = MessageMiddlewareQueue(host="rabbitmq", queue_name=producer)
+        self._producer_queue.set_confirm_delivery()
         self.key_columns = list(key_columns)
         self.count_name = count_name
 
