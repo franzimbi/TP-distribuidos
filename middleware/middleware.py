@@ -150,7 +150,7 @@ class MessageMiddlewareQueue(MessageMiddleware):
         
         self._queue_name = queue_name
         self._channel.queue_declare(queue=queue_name, durable=True, arguments={
-            'x-max-length-bytes': 10 * 1024 * 1024 * 1024  #10 GB de mensajes
+            'x-max-length-bytes': 13 * 1024 * 1024 * 1024  #10 GB de mensajes
         })
         logging.getLogger("pika").propagate = False # para q pika no llore
         self._should_stop = threading.Event()
@@ -234,7 +234,7 @@ class MessageMiddlewareQueue(MessageMiddleware):
                 queue=self._queue_name,
                 durable=True,
                 arguments={
-                    'x-max-length-bytes': 10 * 1024 * 1024 * 1024
+                    'x-max-length-bytes': 13 * 1024 * 1024 * 1024
                 }
             )
             logging.info("[Middleware] reconectado correctamente")

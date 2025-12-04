@@ -17,7 +17,7 @@ config.read("config.ini")
 BUFFER_SIZE = int(config["DEFAULT"]["BATCH_SIZE"])
 HEALTH_PORT = 3030
 
-CHECKPOINT_INTERVAL = 2500
+CHECKPOINT_INTERVAL = 400
 
 class Accumulator:
     def __init__(self, consume_queue, produce_queue, *,
