@@ -6,11 +6,11 @@ from common.batch import Batch
 from configparser import ConfigParser
 import socket
 import threading
+from common.loop_check import crear_skt_healthchecker, loop_healthchecker, shutdown
 
 config = ConfigParser()
 config.read("config.ini")
 
-HEALTH_PORT = 3030
 
 class Counter:
     def __init__(self, consumer, producer, *, key_columns, count_name):
@@ -22,6 +22,7 @@ class Counter:
 
         self._health_sock = None
         self._health_thread = None
+        self.health_stop_event = threading.Event()
 
         signal.signal(signal.SIGTERM, self.graceful_quit)
 
@@ -32,17 +33,10 @@ class Counter:
         sys.exit(0)
 
     def start(self):
-        self._health_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._health_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self._health_sock.bind(('', HEALTH_PORT))
-        self._health_sock.listen()
-
-        def loop():
-            while True:
-                conn, addr = self._health_sock.accept()
-                conn.close()
-
-        self._health_thread = threading.Thread(target=loop, daemon=True)
+        self._health_sock = crear_skt_healthchecker()
+        self._health_thread = threading.Thread(target=loop_healthchecker,
+                                               args=(self._health_sock, self.health_stop_event,),
+                                               daemon=True)
         self._health_thread.start()
         self._consumer_queue.start_consuming(self.callback)
 
@@ -50,6 +44,7 @@ class Counter:
         self._consumer_queue.stop_consuming()
         self._consumer_queue.close()
         self._producer_queue.close()
+        shutdown(self.health_stop_event, self._health_thread, self._health_sock)
 
     def callback(self, ch, method, properties, message):
         batch = Batch(); batch.decode(message)

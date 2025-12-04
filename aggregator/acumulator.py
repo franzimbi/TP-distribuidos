@@ -7,17 +7,16 @@ from middleware.middleware import MessageMiddlewareQueue
 from common.batch import Batch
 from common.id_range_counter import IDRangeCounter
 from configparser import ConfigParser
-import socket
 import threading
-import time
+from common.loop_check import crear_skt_healthchecker, loop_healthchecker, shutdown
 
 config = ConfigParser()
 config.read("config.ini")
 
 BUFFER_SIZE = int(config["DEFAULT"]["BATCH_SIZE"])
-HEALTH_PORT = 3030
 
 CHECKPOINT_INTERVAL = 400
+
 
 class Accumulator:
     def __init__(self, consume_queue, produce_queue, *,
@@ -34,20 +33,14 @@ class Accumulator:
         self.bucket_col = bucket_col
         self._out_value_name = out_value_name
 
-        self.has_last_batch = False
-        self.printed_last = False
+        self._health_sock = None
+        self._health_thread = None
+        self.health_stop_event = threading.Event()
 
-        self._health_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._health_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self._health_sock.bind(('', HEALTH_PORT))
-        self._health_sock.listen()
-
-        def loop():
-            while True:
-                conn, addr = self._health_sock.accept()
-                conn.close()
-
-        self._health_thread = threading.Thread(target=loop, daemon=True)
+        self._health_sock = crear_skt_healthchecker()
+        self._health_thread = threading.Thread(target=loop_healthchecker,
+                                               args=(self._health_sock, self.health_stop_event,),
+                                               daemon=True)
         self._health_thread.start()
 
         self.client_state = defaultdict(lambda: {
@@ -71,24 +64,18 @@ class Accumulator:
             logging.info(f"[ACCUMULATOR] La carpeta de backups no existe.")
             os.makedirs(self._wal_dir, exist_ok=True)
 
-        # self._health_sock = None
-        # self._health_thread = None
-
         signal.signal(signal.SIGTERM, self.graceful_quit)
 
     def _wal_path(self, cid):
-        """Devuelve la ruta del WAL para un client_id."""
+        """devuelve path del WAL para un client_id"""
         return os.path.join(self._wal_dir, f"acc_client_{cid}.wal")
-    
+
     def _snapshot_path(self, cid):
-        """Devuelve la ruta del snapshot compactado para un client_id."""
+        """devuelve path de snapshot para un client_id"""
         return os.path.join(self._wal_dir, f"acc_client_{cid}.json")
 
     def _wal_append(self, cid, lines, batch_id):
-        """
-        Escribe una lista de líneas en el WAL del cliente (append seguro).
-        lines: lista de strings SIN '\n'.
-        """
+        """esscribe en el WAL del cliente"""
         if not lines:
             return
         path = self._wal_path(cid)
@@ -108,7 +95,7 @@ class Accumulator:
             logging.error(f"[ACCUMULATOR][WAL] Error escribiendo {path}: {e}")
 
     def _wal_remove(self, cid):
-        """Elimina el WAL del cliente cuando ya no lo necesitamos."""
+        """elimina WAL del cliente cuando ya no lo necesita"""
         path = self._wal_path(cid)
         snap_path = self._snapshot_path(cid)
         try:
@@ -174,7 +161,6 @@ class Accumulator:
             except:
                 pass
 
-
     def _replay_block(self, state, cid, block_lines, end_batch_id_str):
         if not block_lines:
             return
@@ -198,7 +184,6 @@ class Accumulator:
 
             state["expected"] = expected
             return
-        
 
         try:
             bid = int(end_batch_id_str)
@@ -225,13 +210,8 @@ class Accumulator:
             acc_key = (bucket, key)
             state["accumulator"][acc_key] = state["accumulator"].get(acc_key, 0.0) + delta
 
-
     def _load_wal(self):
-        """
-        Carga el estado persistido desde disco.
-        1. Cargar snapshots (si existen)
-        2. Aplicar WAL incremental sobre el snapshot (si existe)
-        """
+        """carga el estado persistido desde disco"""
         try:
             snapshot_clients = set()
             for fname in os.listdir(self._wal_dir):
@@ -241,13 +221,13 @@ class Accumulator:
                     snap_path = os.path.join(self._wal_dir, fname)
                     self._load_snapshot(cid, snap_path)
                     snapshot_clients.add(cid)
-            
+
             for fname in os.listdir(self._wal_dir):
                 if fname.startswith("acc_client_") and fname.endswith(".wal"):
                     cid_str = fname[len("acc_client_"):-len(".wal")]
                     cid = cid_str
                     path = os.path.join(self._wal_dir, fname)
-                    
+
                     if cid in snapshot_clients:
                         self._apply_incremental_wal(cid, path)
                     else:
@@ -257,14 +237,11 @@ class Accumulator:
             return
         except Exception as e:
             logging.info(f"[ACCUMULATOR][RECOVERY] Error recorriendo directorio WAL: {e}")
-    
+
     def _apply_incremental_wal(self, cid, wal_path):
-        """
-        Aplica un WAL incremental sobre un estado ya cargado desde snapshot.
-        Esto permite recuperar batches procesados después del último checkpoint.
-        """
+        """aplica WAL sobre un estado ya cargado del snapshot."""
         state = self.client_state[cid]
-        
+
         try:
             with open(wal_path, "r", encoding="utf-8") as f:
                 in_block = False
@@ -301,9 +278,9 @@ class Accumulator:
             )
         except Exception as e:
             logging.error(f"[ACCUMULATOR][WAL] Error aplicando WAL incremental {wal_path}: {e}")
-    
+
     def _load_snapshot(self, cid, snap_path):
-        """Carga un snapshot compactado en formato JSON."""
+        """carga snapshot"""
         state = self.client_state[cid]
         state["accumulator"].clear()
         state["expected"] = None
@@ -315,7 +292,6 @@ class Accumulator:
             import json
             with open(snap_path, "r", encoding="utf-8") as f:
                 snap = json.load(f)
-
 
             state["expected"] = snap.get("expected")
             state["received"] = snap.get("received", 0)
@@ -340,9 +316,8 @@ class Accumulator:
                 f"[ACCUMULATOR][RECOVERY] Error leyendo snapshot JSON {snap_path}: {e}"
             )
 
-    
     def _load_wal_file(self, cid, path):
-        """Carga un archivo WAL incremental"""
+        """carga WAL incremental"""
         state = self.client_state[cid]
         state["accumulator"].clear()
         state["expected"] = None
@@ -403,6 +378,7 @@ class Accumulator:
         self._consume_queue.stop_consuming()
         self._consume_queue.close()
         self._produce_queue.close()
+        shutdown(self.health_stop_event, self._health_thread, self._health_sock)
 
     def callback(self, ch, method, properties, message):
         try:
@@ -416,7 +392,6 @@ class Accumulator:
 
             if batch.is_last_batch():
                 try:
-                    self.has_last_batch = True
                     idx = batch.get_header().index('cant_batches')
                     state["expected"] = int(batch[0][idx])
                     logging.info(f"[aggregator] cid={cid} espera {state['expected']} batches")
@@ -429,17 +404,19 @@ class Accumulator:
 
                 # if state["expected"] is not None and state["received"] == state["expected"]:
                 if state["expected"] is not None and state["id_counter"].amount_ids(' ') == state["expected"]:
-                    logging.info(f"[aggregator] flusheo pq received={state['received']} y expected={state['expected']} y amount_ids={state['id_counter'].amount_ids(' ')}")
+                    logging.info(
+                        f"[aggregator] flusheo pq received={state['received']} y expected={state['expected']} y amount_ids={state['id_counter'].amount_ids(' ')}")
                     self._flush_client(cid)
                 else:
-                    logging.info(f"[aggregator] no flusheo pq received={state['received']} y expected={state['expected']} y amount_ids={state['id_counter'].amount_ids(' ')}")
+                    logging.info(
+                        f"[aggregator] no flusheo pq received={state['received']} y expected={state['expected']} y amount_ids={state['id_counter'].amount_ids(' ')}")
                 ch.basic_ack(delivery_tag=method.delivery_tag)
                 return
 
             if state["id_counter"].already_processed(batch.id(), ' '):
                 ch.basic_ack(delivery_tag=method.delivery_tag)
                 return
-            
+
             state["type"] = batch.type()
             wal_lines = []
 
@@ -455,12 +432,9 @@ class Accumulator:
                     logging.info(f"[aggregator] cid={cid} row malformed: {row}")
                     continue
 
-            
-
             state["received"] += 1
             state["id_counter"].add_id(batch.id(), ' ')
-            
-            
+
             if state["expected"] is not None and state["id_counter"].amount_ids(' ') == state["expected"]:
                 logging.info(f"[aggregator]llegue a la cantidad esperada")
                 self._flush_client(cid)
@@ -470,7 +444,7 @@ class Accumulator:
             ch.basic_ack(delivery_tag=method.delivery_tag)
 
             batches_since_checkpoint = state["received"] - state["last_checkpoint"]
-            
+
             if batches_since_checkpoint >= CHECKPOINT_INTERVAL:
                 self._compact_wal(cid)
 
@@ -485,7 +459,7 @@ class Accumulator:
             state["type"] = None
             state["id_counter"] = IDRangeCounter()
             state["last_checkpoint"] = 0
-            # self._wal_remove(cid)
+            self._wal_remove(cid)
             return
 
         header = [self.bucket_col, self._key_col, self._out_value_name]
@@ -525,4 +499,4 @@ class Accumulator:
         state["id_counter"] = IDRangeCounter()
         state["last_checkpoint"] = 0
 
-        #self._wal_remove(cid)
+        self._wal_remove(cid)

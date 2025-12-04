@@ -7,6 +7,7 @@ from common.batch import Batch
 from configparser import ConfigParser
 import socket
 import threading
+from common.loop_check import crear_skt_healthchecker, loop_healthchecker, shutdown
 
 config = ConfigParser()
 config.read("config.ini")
@@ -14,18 +15,22 @@ config.read("config.ini")
 BUFFER_SIZE = int(config["DEFAULT"]["BATCH_SIZE"])
 HEALTH_PORT = 3030
 
+
 def year_month(ts: str) -> str:
     d = datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")
     return f"{d.year}_{d.month:02d}"
+
 
 def year_semester(ts: str) -> str:
     d = datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")
     return f"{d.year}_{'S1' if d.month <= 6 else 'S2'}"
 
+
 BUCKET = {
     "month": year_month,
     "semester": year_semester,
 }
+
 
 class Adder:
     def __init__(self, consume_queue, produce_queue, *,
@@ -46,11 +51,12 @@ class Adder:
 
         self._health_sock = None
         self._health_thread = None
+        self.health_stop_event = threading.Event()
 
         kind = bucket_kind.lower().strip()
         self._bucket_fn = BUCKET[kind]
         self._bucket_name = bucket_name.strip()
-        
+
         signal.signal(signal.SIGTERM, self.graceful_quit)
 
     def graceful_quit(self, signum, frame):
@@ -60,20 +66,11 @@ class Adder:
         sys.exit(0)
 
     def start(self):
-        self._health_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._health_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self._health_sock.bind(('', HEALTH_PORT))
-        self._health_sock.listen()
-
-        def loop():
-            while True:
-                conn, addr = self._health_sock.accept()
-                conn.close()
-
-        self._health_thread = threading.Thread(target=loop, daemon=True)
+        self._health_sock = crear_skt_healthchecker()
+        self._health_thread = threading.Thread(target=loop_healthchecker,
+                                               args=(self._health_sock, self.health_stop_event,),
+                                               daemon=True)
         self._health_thread.start()
-        logging.info(f"[SUMADOR] Healthcheck escuchando en puerto {HEALTH_PORT}")
-
 
         self._consume_queue.start_consuming(self.callback)
 
@@ -81,17 +78,18 @@ class Adder:
         self._consume_queue.stop_consuming()
         self._consume_queue.close()
         self._produce_queue.close()
-        
+        shutdown(self.health_stop_event, self._health_thread, self._health_sock)
 
     def callback(self, ch, method, properties, message):
-        batch = Batch(); batch.decode(message)
+        batch = Batch();
+        batch.decode(message)
         # print(f"[SUMADOR] Recibido batch con {batch.id()}")
         try:
             if batch.is_last_batch():
                 self._produce_queue.send(batch.encode())
                 ch.basic_ack(delivery_tag=method.delivery_tag)
                 return
-            
+
             accumulator = {}
             for row in batch.iter_per_header():
                 try:
@@ -115,7 +113,7 @@ class Adder:
     def _flush(self, batch, accumulator):
         header = [self._bucket_name, self._key_col, self._out_value_name]
         rows = [[bucket, str(key), f"{total:.2f}"] for (bucket, key), total in accumulator.items()]
-        
+
         batch.delete_rows()
         batch.set_header(header)
         batch.add_rows(rows)

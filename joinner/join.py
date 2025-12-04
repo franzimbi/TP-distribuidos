@@ -9,8 +9,7 @@ import socket
 import os
 import json
 import tempfile
-
-HEALTH_PORT = 3030
+from common.loop_check import crear_skt_healthchecker, loop_healthchecker, shutdown
 
 
 class Join:
@@ -33,10 +32,11 @@ class Join:
         os.makedirs(self.backup_dir, exist_ok=True)
 
         self.snapshot_path = os.path.join(self.backup_dir, "join_snapshot.json")
-        # self.load_snapshot()
 
-        self._health_thread = None
         self._health_sock = None
+        self._health_thread = None
+        self.health_stop_event = threading.Event()
+
         signal.signal(signal.SIGTERM, self.graceful_quit)
         signal.signal(signal.SIGINT, self.graceful_quit)
 
@@ -80,34 +80,19 @@ class Join:
                 os.remove(path)
         except Exception as e:
             logging.error(f"[JOIN] Error eliminando backup {path}: {e}")
-  
-    # def _write_to_backup(self, client_id, dictionary):
-    #     if not dictionary:
-    #         return True
-
-    #     path = self._backup_path_for_client(client_id)
-    #     lines = []
-    #     for k, v in dictionary.items():
-    #         lines.append(f"{k},{v}")
-    #     content = "\n".join(lines) + "$\n"
-    #     ok = self._safe_append(path, content)
-    #     if not ok:
-    #         logging.error(f"[JOIN] fallo backup append para client {client_id} de {len(dictionary)} entradas")
-    #     return ok
 
     def _write_to_backup(self, client_id, dictionary):
         if not dictionary:
             return True
 
         path = self._backup_path_for_client(client_id)
-        
+
         content = "".join(f"{k},{v}$\n" for k, v in dictionary.items())
 
         ok = self._safe_append(path, content)
         if not ok:
             logging.error(f"[JOIN] fallo backup append para client {client_id} de {len(dictionary)} entradas")
         return ok
-
 
     def _load_backups_on_start(self):
         """
@@ -124,7 +109,7 @@ class Join:
             return
 
         logging.debug(f"[JOIN] backups en {self.backup_dir}: {files}")
-        
+
         last_line_broken = False
 
         for fname in files:
@@ -154,7 +139,8 @@ class Join:
                         if key not in d:
                             d[key] = value
                     if last_line_broken:
-                        logging.info(f"[JOIN] Ultima linea del backup {path} estaba incompleta por crash, agrego /n para ignorar")
+                        logging.info(
+                            f"[JOIN] Ultima linea del backup {path} estaba incompleta por crash, agrego /n para ignorar")
                         content = "\n"
                         ok = self._safe_append(path, content)
                         if not ok:
@@ -232,17 +218,10 @@ class Join:
             logging.error(f"[JOIN][RECOVERY] Error cargando snapshot: {e}")
 
     def start(self, consumer, producer):
-        self._health_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._health_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self._health_sock.bind(('', HEALTH_PORT))
-        self._health_sock.listen()
-
-        def loop():
-            while True:
-                conn, addr = self._health_sock.accept()
-                conn.close()
-
-        self._health_thread = threading.Thread(target=loop, daemon=True)
+        self._health_sock = crear_skt_healthchecker()
+        self._health_thread = threading.Thread(target=loop_healthchecker,
+                                               args=(self._health_sock, self.health_stop_event,),
+                                               daemon=True)
         self._health_thread.start()
 
         self._load_backups_on_start()
@@ -329,9 +308,10 @@ class Join:
                     self.waited_batches[client_id] = None
 
                 try:
-                    if self.waited_batches[client_id] is not None and self.counter_batches[client_id].amount_ids(' ') == self.waited_batches[client_id]:
+                    if self.waited_batches[client_id] is not None and self.counter_batches[client_id].amount_ids(' ') == \
+                            self.waited_batches[client_id]:
                         self.join_dictionary.pop(client_id, None)
-                        # self._remove_backup_file(client_id)
+                        self._remove_backup_file(client_id)
                 except Exception:
                     pass
 
@@ -363,9 +343,10 @@ class Join:
                 logging.error(f"[JOIN] Error adding id to counter for client {client_id}: {e}")
 
             try:
-                if self.waited_batches.get(client_id) is not None and self.counter_batches[client_id].amount_ids(' ') == self.waited_batches.get(client_id):
+                if self.waited_batches.get(client_id) is not None and self.counter_batches[client_id].amount_ids(
+                        ' ') == self.waited_batches.get(client_id):
                     self.join_dictionary.pop(client_id, None)
-                    # self._remove_backup_file(client_id)
+                    self._remove_backup_file(client_id)
             except Exception:
                 pass
 
@@ -400,6 +381,7 @@ class Join:
                 self._health_sock.close()
 
             if self.thead_join is not None:
-                self.thead_join.join()
+                self.thead_join.join(timeout=2)
         except Exception:
             pass
+        shutdown(self.health_stop_event, self._health_thread, self._health_sock)

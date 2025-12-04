@@ -82,7 +82,7 @@ CONTAINER_3 = ['filtroanio1_5', 'filtroanio2_3', 'filtrohora1_1', 'filtrohora1_6
 # CONTAINER_1= ['aggregator_accumulator_q3_1']
 # CONTAINER_2= ['aggregator_accumulator_q21_1', 'aggregator_accumulator_q4_1']
 # CONTAINER_3= ['aggregator_accumulator_q22_1']
-SECONDS = 80
+SECONDS = 40
 
 def run():
     while True:

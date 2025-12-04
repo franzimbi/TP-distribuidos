@@ -9,8 +9,7 @@ import json
 import tempfile
 import socket
 import threading
-
-HEALTH_PORT = 3030
+from common.loop_check import crear_skt_healthchecker, loop_healthchecker, shutdown
 
 
 class Reducer:
@@ -35,6 +34,7 @@ class Reducer:
 
         self._health_sock = None
         self._health_thread = None
+        self.health_stop_event = threading.Event()
 
         logging.debug(f"[REDUCER] Initialized with top={self._top} and columns={self._columns}")
         signal.signal(signal.SIGTERM, self.graceful_shutdown)
@@ -73,19 +73,11 @@ class Reducer:
         sys.exit(0)
 
     def start(self):
-        self._health_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._health_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self._health_sock.bind(('', HEALTH_PORT))
-        self._health_sock.listen()
-
-        def loop():
-            while True:
-                conn, addr = self._health_sock.accept()
-                conn.close()
-
-        self._health_thread = threading.Thread(target=loop, daemon=True)
-        self._health_thread.start()  # no se esta joineando esto en graceful shutdown
-        logging.info(f"[FILTER] Healthcheck escuchando en puerto {HEALTH_PORT}")
+        self._health_sock = crear_skt_healthchecker()
+        self._health_thread = threading.Thread(target=loop_healthchecker,
+                                               args=(self._health_sock, self.health_stop_event,),
+                                               daemon=True)
+        self._health_thread.start()
 
         self._consumer_queue.start_consuming(self.callback)
 
@@ -117,8 +109,6 @@ class Reducer:
                 self.write_snapshot()
                 ch.basic_ack(delivery_tag=method.delivery_tag)
                 return
-
-        lines_to_write = []
 
         for row in batch.iter_per_header():
             store = row[self._columns[0]]
@@ -184,8 +174,6 @@ class Reducer:
             return False
 
     def send_last_batch(self, batch, client_id):
-        print(f"\n\n[REDUCER] paso 1\n\n\n")
-
         rows = []
         try:
             for store, users in self.top_users[client_id].items():
@@ -197,29 +185,25 @@ class Reducer:
             logging.info(f"[REDUCER] Error sending last batch: {e}")
 
         client_id_int = int(client_id)
-        
-        print(f"\n\n[REDUCER] paso 2\n\n\n")
+
         batch_result = Batch(batch.id() - 1, client_id=client_id_int, type_file=batch.type())
         batch_result.set_header([self._columns[0], self._columns[1], self._columns[2]])
         for store, user, qty in rows:
             batch_result.add_row([store, user, str(qty)])
         batch_result.set_client_id(client_id_int)
-        print(f"\n\n[REDUCER] paso 3\n\n\n")
         self._producer_queue.send(batch_result.encode())
-        print(f"\n\n[REDUCER] paso 4\n\n\n")
         batch.delete_rows()
         batch.set_last_batch(True)
         batch.set_header(['cant_batches'])
         batch.add_row([str(1)])
-        print(f"\n\n[REDUCER] paso 5\n\n\n")
         self._producer_queue.send(batch.encode())
-        print(f"\n\n[REDUCER] paso 6 (final) \n\n\n")
-        # self.top_users.pop(client_id)
-        # self.waited_batches.pop(client_id)
-        # self.counter_batches.pop(client_id)
+        self.top_users.pop(client_id)
+        self.waited_batches.pop(client_id)
+        self.counter_batches.pop(client_id)
 
     def close(self):
         self._consumer_queue.stop_consuming()
         self._consumer_queue.close()
         self._producer_queue.close()
+        shutdown(self.health_stop_event, self._health_thread, self._health_sock)
         logging.debug("[REDUCER] Queues cerradas")

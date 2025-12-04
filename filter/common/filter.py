@@ -7,6 +7,7 @@ import signal
 import sys
 import socket
 import threading
+from common.loop_check import crear_skt_healthchecker, loop_healthchecker, shutdown
 
 from configparser import ConfigParser
 
@@ -14,7 +15,6 @@ config = ConfigParser()
 config.read("config.ini")
 
 BUFFER_SIZE = int(config["DEFAULT"]["BATCH_SIZE"])
-HEALTH_PORT = 3030
 
 class Filter:
     def __init__(self, consume_queue, produce_queue, filter):
@@ -30,6 +30,7 @@ class Filter:
 
         self._health_sock = None
         self._health_thread = None
+        self.health_stop_event = threading.Event()
 
         signal.signal(signal.SIGTERM, self.graceful_shutdown)
 
@@ -43,26 +44,14 @@ class Filter:
         sys.exit(0)
 
     def start(self):
-        self._health_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._health_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self._health_sock.bind(('', HEALTH_PORT))
-        self._health_sock.listen()
-
-        def loop():
-            while True:
-                conn, addr = self._health_sock.accept() 
-                conn.close()
-
-        self._health_thread = threading.Thread(target=loop, daemon=True)
-        self._health_thread.start() #no se esta joineando esto en graceful shutdown
-        logging.info(f"[FILTER] Healthcheck escuchando en puerto {HEALTH_PORT}")
-
+        self._health_sock = crear_skt_healthchecker()
+        self._health_thread = threading.Thread(target=loop_healthchecker, args=(self._health_sock, self.health_stop_event,), daemon=True)
+        self._health_thread.start()
         self._consume_queue.start_consuming(self.callback, auto_ack=False)
 
     def callback(self, ch, method, properties, message):
         try:
             batch = Batch(); batch.decode(message)
-            # print(f"[FILTER] Recibido batch con {batch.id()}")
             if not batch.is_last_batch():
                 batch = self._filter(batch)
             for q in self._produce_queues:
@@ -77,5 +66,6 @@ class Filter:
         self._consume_queue.close()
         for queue in self._produce_queues:
             queue.close()
+        shutdown(self.health_stop_event, self._health_thread, self._health_sock)
         logging.debug("Queues cerradas")
         logging.debug("[FILTER] Apagado limpio.")

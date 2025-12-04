@@ -8,7 +8,6 @@ import threading
 class Healthchecker:
     def __init__(self, port, nodes):
         self.port = port
-        # self.host = host
         self.nodes = nodes
         signal.signal(signal.SIGTERM, self._handle_shutdown)
         signal.signal(signal.SIGINT, self._handle_shutdown)
