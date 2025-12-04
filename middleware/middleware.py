@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 import pika
 import logging
+import threading
+import time
 
 
 class MessageMiddlewareMessageError(Exception):
@@ -135,72 +137,80 @@ class MessageMiddlewareExchange(MessageMiddleware):
 
 class MessageMiddlewareQueue(MessageMiddleware):
     def __init__(self, host, queue_name):
+        self._host = host
         self._connection = pika.BlockingConnection(pika.ConnectionParameters(
-            host=host,
-            heartbeat=300,  # 5 minutos de tolerancia
-            blocked_connection_timeout=600,  # evita cortar por bloqueos largos
-            socket_timeout=600,  # lectura/escritura
-            connection_attempts=10,  # intenta reconectarse varias veces
-            retry_delay=5,  # espera 5s entre intentos
+        host=self._host,
+        heartbeat=300,  # 5 minutos de tolerancia
+        blocked_connection_timeout=600,  # evita cortar por bloqueos largos
+        socket_timeout=600,  # lectura/escritura
+        connection_attempts=10,  # intenta reconectarse varias veces
+        retry_delay=5,  # espera 5s entre intentos
         ))
         self._channel = self._connection.channel()
         # self._channel.confirm_delivery()  # activa publisher confirms
-        self._host = host
+        
         self._queue_name = queue_name
         self._channel.queue_declare(queue=queue_name, durable=True, arguments={
             'x-max-length-bytes': 10 * 1024 * 1024 * 1024,  #10 GB de mensajes
             'x-overflow': 'drop-head'  # descarta los mas viejos si se llena
         })
         logging.getLogger("pika").propagate = False # para q pika no llore
-
-    def start_consuming(self, on_message_callback, *, auto_ack=False, prefetch_count=1):
-        try:
-            if prefetch_count and prefetch_count > 0:
-                self._channel.basic_qos(prefetch_count=prefetch_count)
-
-            self._channel.basic_consume(
-                queue=self._queue_name,
-                on_message_callback=on_message_callback,
-                auto_ack=False
-            )
-            self._channel.start_consuming()
-        except Exception:
-            return
-        finally:
+        self._should_stop = threading.Event()
+        
+    def start_consuming(self, on_message_callback, *, auto_ack=False, prefetch_count=1000):
+        
+        while not self._should_stop.is_set():
             try:
-                if self._channel and self._channel.is_open:
-                    self._channel.close()
-            except Exception:
-                pass
-            try:
-                if self._connection and self._connection.is_open:
-                    self._connection.close()
-            except Exception:
-                pass
-            logging.debug("[Middleware] cerrado correctamente")
+                if not self._connection or self._connection.is_closed or not self._channel or self._channel.is_closed:
+                    self._reconnect()
+
+                if prefetch_count and prefetch_count > 0:
+                    self._channel.basic_qos(prefetch_count=prefetch_count)
+                else:
+                    self._channel.basic_qos(prefetch_count=50)
+
+                try:
+                    self._channel._consumers.clear()
+                except Exception:
+                    pass
+                self._channel.basic_consume(
+                    queue=self._queue_name,
+                    on_message_callback=on_message_callback,
+                    auto_ack=auto_ack
+                )
+                self._channel.start_consuming()
+            except Exception as e:
+                if self._should_stop.is_set():
+                    break
+                
+                logging.info(f"[Middleware]reconectando: {e}")
+                time.sleep(1) #espero un seg antes de reintentar
+            
+                try:
+                    if self._channel and self._channel.is_open:
+                        self._channel.close()
+                except:
+                    pass
+                try:
+                    if self._connection and self._connection.is_open:
+                        self._connection.close()
+                except:
+                    pass
+                logging.info("[Middleware] cerrado correctamente")
+        logging.info("[Middleware] Consumo detenido correctamente.")
 
     def stop_consuming(self):
+        self._should_stop.set()
         try:
             if self._channel and self._channel.is_open:
                 self._channel.stop_consuming()
         except (pika.exceptions.ConnectionClosed,
                 pika.exceptions.StreamLostError,
-                pika.exceptions.AMQPConnectionErrorm, AttributeError) as e:
+                pika.exceptions.AMQPConnectionError, AttributeError) as e:
             return
             # raise MessageMiddlewareDisconnectedError() from e
         except Exception as e:
             raise MessageMiddlewareMessageError(f"Error al detener consumo: {e}") from e
-
-    # def send(self, message):
-    #     try:
-    #         self._channel.basic_publish(exchange='', routing_key=self._queue_name, body=message,
-    #                                     properties=pika.BasicProperties(delivery_mode=2), mandatory=True)
-    #     except (pika.exceptions.ConnectionClosed,
-    #             pika.exceptions.StreamLostError,
-    #             pika.exceptions.AMQPConnectionError) as e:
-    #         raise MessageMiddlewareDisconnectedError() from e
-    #     except Exception as e:
-    #         raise MessageMiddlewareMessageError(f"Error enviando mensaje: {e}") from e
         
     def _reconnect(self):
         try:
@@ -230,7 +240,7 @@ class MessageMiddlewareQueue(MessageMiddleware):
             logging.info("[Middleware] reconectado correctamente")
 
         except Exception as e:
-            logging.error(f"[Middleware] error al reconectar: {e}")
+            logging.info(f"[Middleware] error al reconectar: {e}")
             raise
 
         

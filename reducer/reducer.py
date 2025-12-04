@@ -87,7 +87,7 @@ class Reducer:
         self._health_thread.start()  # no se esta joineando esto en graceful shutdown
         logging.info(f"[FILTER] Healthcheck escuchando en puerto {HEALTH_PORT}")
 
-        self._consumer_queue.start_consuming(self.callback)
+        self._consumer_queue.start_consuming(self.callback, auto_ack=False, prefetch_count=50)
 
     def callback(self, ch, method, properties, message):
 
@@ -105,12 +105,15 @@ class Reducer:
 
         if batch.is_last_batch():
             self.waited_batches[client_id] = int(batch[0][batch.get_header().index('cant_batches')])
+            logging.info(f"[REDUCER] Cliente {client_id} indicó que espera {self.waited_batches[client_id]} batches.")
             if self.waited_batches[client_id] == self.counter_batches[client_id].amount_ids(' '):
+                logging.info(f"[REDUCER] Cliente {client_id} ya recibió todos los batches esperados. Esperaba {self.waited_batches[client_id]}, tengo: {self.counter_batches[client_id].amount_ids(' ')}. Enviando resultado final.")
                 self.send_last_batch(batch, client_id)
                 self.write_snapshot()
                 ch.basic_ack(delivery_tag=method.delivery_tag)
                 return
             else:
+                logging.info(f"[REDUCER] Cliente {client_id} aún espera más batches. Esperando {self.waited_batches[client_id]} tengo: {self.counter_batches[client_id].amount_ids(' ')} batches")
                 self.write_snapshot()
                 ch.basic_ack(delivery_tag=method.delivery_tag)
                 return

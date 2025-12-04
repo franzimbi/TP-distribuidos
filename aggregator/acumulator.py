@@ -118,48 +118,6 @@ class Accumulator:
                 os.remove(snap_path)
         except Exception as e:
             logging.error(f"[ACCUMULATOR][WAL] Error eliminando {path}: {e}")
-    
-    # def _compact_wal(self, cid):
-    #     """
-    #     Compacta el WAL escribiendo un snapshot atómico del accumulator actual
-    #     y limpiando el WAL incremental. Esto evita que el WAL crezca sin límite.
-    #     """
-    #     state = self.client_state[cid]
-    #     snap_path = self._snapshot_path(cid)
-        
-    #     try:
-    #         import tempfile
-    #         dir_path = os.path.dirname(snap_path)
-    #         tmp_fd, tmp_path = tempfile.mkstemp(dir=dir_path, suffix=".tmp")
-            
-    #         with os.fdopen(tmp_fd, "w", encoding="utf-8") as f:
-    #             f.write(f"SNAPSHOT\n")
-    #             f.write(f"expected={state['expected']}\n")
-    #             f.write(f"received={state['received']}\n")
-    #             f.write(f"type={state['type']}\n")
-    #             f.write(f"DATA\n")
-                
-    #             for (bucket, key), value in state["accumulator"].items():
-    #                 f.write(f"{bucket};{key};{value}\n")
-                
-    #             f.flush()
-    #             os.fsync(f.fileno())
-            
-    #         os.replace(tmp_path, snap_path)
-            
-    #         wal_path = self._wal_path(cid)
-    #         if os.path.exists(wal_path):
-    #             os.remove(wal_path)
-            
-    #         state["last_checkpoint"] = state["received"]
-            
-    #     except Exception as e:
-    #         logging.error(f"[ACCUMULATOR][COMPACT] Error compactando cid={cid}: {e}")
-    #         try:
-    #             if os.path.exists(tmp_path):
-    #                 os.unlink(tmp_path)
-    #         except:
-    #             pass
 
     def _compact_wal(self, cid):
 
@@ -257,7 +215,6 @@ class Accumulator:
     def _load_wal(self):
         """
         Carga el estado persistido desde disco.
-        Estrategia:
         1. Cargar snapshots (si existen)
         2. Aplicar WAL incremental sobre el snapshot (si existe)
         """
@@ -331,58 +288,6 @@ class Accumulator:
         except Exception as e:
             logging.error(f"[ACCUMULATOR][WAL] Error aplicando WAL incremental {wal_path}: {e}")
     
-    # def _load_snapshot(self, cid, snap_path):
-    #     """Carga un snapshot compactado."""
-    #     state = self.client_state[cid]
-    #     state["accumulator"].clear()
-    #     state["expected"] = None
-    #     state["received"] = 0
-    #     state["type"] = None
-    #     state["id_counter"] = IDRangeCounter()
-        
-    #     try:
-    #         with open(snap_path, "r", encoding="utf-8") as f:
-    #             mode = None
-    #             for raw in f:
-    #                 line = raw.rstrip("\n")
-    #                 if not line:
-    #                     continue
-                    
-    #                 if line == "SNAPSHOT":
-    #                     continue
-    #                 if line == "DATA":
-    #                     mode = "data"
-    #                     continue
-                    
-    #                 if mode != "data":
-    #                     if line.startswith("expected="):
-    #                         val = line.split("=", 1)[1]
-    #                         state["expected"] = int(val) if val != "None" else None
-    #                     elif line.startswith("received="):
-    #                         state["received"] = int(line.split("=", 1)[1])
-    #                     elif line.startswith("type="):
-    #                         val = line.split("=", 1)[1]
-    #                         state["type"] = val if val != "None" else None
-    #                 else:
-    #                     # Parsear datos
-    #                     parts = line.split(";")
-    #                     if len(parts) != 3:
-    #                         continue
-    #                     bucket, key, value_str = parts
-    #                     try:
-    #                         value = float(value_str)
-    #                         state["accumulator"][(bucket, key)] = value
-    #                     except ValueError:
-    #                         continue
-            
-    #         logging.info(
-    #             f"[ACCUMULATOR][RECOVERY] snapshot cid={cid} "
-    #             f"entries={len(state['accumulator'])} "
-    #             f"expected={state['expected']} received={state['received']}"
-    #         )
-    #     except Exception as e:
-    #         logging.error(f"[ACCUMULATOR][RECOVERY] Error leyendo snapshot {snap_path}: {e}")
-
     def _load_snapshot(self, cid, snap_path):
         """Carga un snapshot compactado en formato JSON."""
         state = self.client_state[cid]
@@ -397,12 +302,11 @@ class Accumulator:
             with open(snap_path, "r", encoding="utf-8") as f:
                 snap = json.load(f)
 
-            # Campos simples
+
             state["expected"] = snap.get("expected")
             state["received"] = snap.get("received", 0)
             state["type"] = snap.get("type")
 
-            # Restaurar accumulator
             acc = snap.get("accumulator", [])
             for bucket, key, value in acc:
                 state["accumulator"][(bucket, key)] = float(value)
@@ -424,7 +328,7 @@ class Accumulator:
 
     
     def _load_wal_file(self, cid, path):
-        """Carga un archivo WAL incremental (legacy)."""
+        """Carga un archivo WAL incremental"""
         state = self.client_state[cid]
         state["accumulator"].clear()
         state["expected"] = None
@@ -479,7 +383,7 @@ class Accumulator:
         sys.exit(0)
 
     def start(self):
-        self._consume_queue.start_consuming(self.callback)
+        self._consume_queue.start_consuming(self.callback, auto_ack=False, prefetch_count=50)
 
     def stop(self):
         self._consume_queue.stop_consuming()

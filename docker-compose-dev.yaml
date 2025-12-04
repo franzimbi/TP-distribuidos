@@ -747,7 +747,7 @@ services:
     - PYTHONUNBUFFERED=1
     - DISTRIBUTOR_HOST=distributor
     - DISTRIBUTOR_PORT=5000
-    - CSV_INPUT_DIR=csvs_files_vacios
+    - CSV_INPUT_DIR=csvs_files
     volumes:
     - ./config.ini:/app/config.ini
     - ./csvs_files:/app/csvs_files
@@ -756,29 +756,29 @@ services:
     - ./results_cliente_1:/app/results
     networks:
     - mynet
-  # cliente_2:
-  #   container_name: cliente_2
-  #   build:
-  #     context: .
-  #     dockerfile: client/Dockerfile
-  #   restart: on-failure
-  #   depends_on:
-  #   - distributor
-  #   links:
-  #   - distributor
-  #   environment:
-  #   - PYTHONUNBUFFERED=1
-  #   - DISTRIBUTOR_HOST=distributor
-  #   - DISTRIBUTOR_PORT=5000
-  #   - CSV_INPUT_DIR=csvs_files_reduced
-  #   volumes:
-  #   - ./config.ini:/app/config.ini
-  #   - ./csvs_files:/app/csvs_files
-  #   - ./csvs_files_reduced:/app/csvs_files_reduced
-  #   - ./csvs_files_juguete:/app/csvs_files_juguete
-  #   - ./results_cliente_2:/app/results
-  #   networks:
-  #   - mynet
+  cliente_2:
+    container_name: cliente_2
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    restart: on-failure
+    depends_on:
+    - distributor
+    links:
+    - distributor
+    environment:
+    - PYTHONUNBUFFERED=1
+    - DISTRIBUTOR_HOST=distributor
+    - DISTRIBUTOR_PORT=5000
+    - CSV_INPUT_DIR=csvs_files_reduced
+    volumes:
+    - ./config.ini:/app/config.ini
+    - ./csvs_files:/app/csvs_files
+    - ./csvs_files_reduced:/app/csvs_files_reduced
+    - ./csvs_files_juguete:/app/csvs_files_juguete
+    - ./results_cliente_2:/app/results
+    networks:
+    - mynet
   healthchecker_1:
     container_name: healthchecker_1
     build:
